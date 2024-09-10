@@ -22,7 +22,15 @@ namespace OTB {
 		}
 
 		Identifier fileIdentifier;
+
+#if defined(__AVX2__)
+		_mm256_storeu_si256(reinterpret_cast<__m256i*>(fileIdentifier.data()), _mm256_loadu_si256(reinterpret_cast<const __m256i*>(fileContents.data())));
+#elif defined(__SSE2__)
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(fileIdentifier.data()), _mm_loadu_si128(reinterpret_cast<const __m128i*>(fileContents.data())));
+#else
 		std::copy(fileContents.begin(), fileContents.begin() + fileIdentifier.size(), fileIdentifier.begin());
+#endif
+
 		if (fileIdentifier != acceptedIdentifier && fileIdentifier != wildcard) {
 			throw InvalidOTBFormat {};
 		}
