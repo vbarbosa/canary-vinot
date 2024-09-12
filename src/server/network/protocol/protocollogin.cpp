@@ -72,20 +72,22 @@ void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const
 
 	output->addByte(0x64);
 
-	output->addByte(1); // number of worlds
+	std::vector<std::shared_ptr<World>> worlds = g_game().worlds()->getWorlds();
 
-	output->addByte(0); // world id
-	output->addString(g_configManager().getString(SERVER_NAME, __FUNCTION__), "ProtocolLogin::getCharacterList - _configManager().getString(SERVER_NAME)");
-	output->addString(g_configManager().getString(IP, __FUNCTION__), "ProtocolLogin::getCharacterList - g_configManager().getString(IP)");
+	output->addByte(worlds.size()); // number of worlds
 
-	output->add<uint16_t>(g_configManager().getNumber(GAME_PORT, __FUNCTION__));
-
-	output->addByte(0);
+	for (const auto &world : worlds) {
+		output->addByte(world->id); // world id
+		output->addString(world->name, "ProtocolLogin::getCharacterList - world.name");
+		output->addString(world->ip, "ProtocolLogin::getCharacterList - world.ip");
+		output->add<uint16_t>(world->port);
+		output->addByte(0); // preview state
+	}
 
 	uint8_t size = std::min<size_t>(std::numeric_limits<uint8_t>::max(), players.size());
 	output->addByte(size);
-	for (const auto &[name, deletion] : players) {
-		output->addByte(0);
+	for (const auto &[name, characterInfo] : players) {
+		output->addByte(characterInfo.worldId);
 		output->addString(name, "ProtocolLogin::getCharacterList - name");
 	}
 

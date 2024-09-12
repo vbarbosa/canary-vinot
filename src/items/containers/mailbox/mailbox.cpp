@@ -82,13 +82,14 @@ bool Mailbox::sendItem(std::shared_ptr<Item> item) const {
 		return false;
 	}
 
+	std::shared_ptr<Player> player = g_game().getPlayerByName(receiver, true);
+
 	if (item && item->getContainer() && item->getTile()) {
 		for (const auto &spectator : Spectators().find<Player>(item->getTile()->getPosition())) {
 			spectator->getPlayer()->autoCloseContainers(item->getContainer());
 		}
 	}
 
-	std::shared_ptr<Player> player = g_game().getPlayerByName(receiver, true);
 	std::string writer;
 	time_t date = time(0);
 	std::string text;
