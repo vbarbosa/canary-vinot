@@ -24,6 +24,7 @@
 #include "io/iologindata.hpp"
 #include "io/io_wheel.hpp"
 #include "io/iomarket.hpp"
+#include "io/io_store.hpp"
 #include "items/items.hpp"
 #include "lua/scripts/lua_environment.hpp"
 #include "creatures/monsters/monster.hpp"
@@ -1859,7 +1860,7 @@ ReturnValue Game::checkMoveItemToCylinder(std::shared_ptr<Player> player, std::s
 				return RETURNVALUE_ITEMCANNOTBEMOVEDPOUCH;
 			}
 
-			// prevent move up from ponch to store inbox.
+			// prevent move up from pouch to store inbox
 			if (!item->canBeMovedToStore() && fromCylinder->getContainer() && fromCylinder->getContainer()->getID() == ITEM_GOLD_POUCH) {
 				return RETURNVALUE_NOTBOUGHTINSTORE;
 			}
@@ -1927,7 +1928,7 @@ ReturnValue Game::checkMoveItemToCylinder(std::shared_ptr<Player> player, std::s
 				}
 			}
 
-			if (item->isStoreItem() && !house) {
+			if (item->isStoreItem() && (!item->isWrapable() || !house)) {
 				return RETURNVALUE_ITEMCANNOTBEMOVEDTHERE;
 			}
 		}
@@ -10261,15 +10262,427 @@ bool Game::addInfluencedMonster(std::shared_ptr<Monster> monster) {
 	return false;
 }
 
-bool Game::addItemStoreInbox(std::shared_ptr<Player> player, uint32_t itemId) {
+void Game::addPlayerUniqueLogin(std::shared_ptr<Player> player) {
+	if (!player) {
+		g_logger().error("Attempted to add null player to unique player names list");
+		return;
+	}
+
+	const std::string &lowercase_name = asLowerCaseString(player->getName());
+	m_uniqueLoginPlayerNames[lowercase_name] = player;
+}
+
+void Game::playerOpenStore(uint32_t playerId) {
+	std::shared_ptr<Player> player = getPlayerByID(playerId);
+	if (!player) {
+		return;
+	}
+
+	if (player->isUIExhausted()) {
+		player->sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED);
+		return;
+	}
+
+	player->updateUIExhausted();
+	player->openStore();
+}
+
+void Game::playerCoinTransfer(uint32_t playerId, std::string receptorName, uint32_t coinAmount) {
+	std::shared_ptr<Player> playerDonator = getPlayerByID(playerId);
+	if (!playerDonator) {
+		return;
+	}
+
+	if (playerDonator->isUIExhausted(1000)) {
+		playerDonator->sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED);
+		return;
+	}
+
+	std::shared_ptr<Player> playerReceptor = getPlayerByName(receptorName, true);
+	if (!playerReceptor) {
+		return;
+	}
+
+	if (playerDonator == playerReceptor || playerDonator->getAccount() == playerReceptor->getAccount()) {
+		return;
+	}
+
+	auto [transferableCoins, result] = playerDonator->getAccount()->getCoins(enumToValue(CoinType::Transferable));
+	if (coinAmount > transferableCoins) {
+		playerDonator->sendStoreError(StoreErrors_t::TRANSFER, "You don't have enough coins.");
+		return;
+	}
+
+	std::string historyDesc = fmt::format("{} gifted to {}", playerDonator->getName(), playerReceptor->getName());
+	playerDonator->getAccount()->removeCoins(enumToValue(CoinType::Transferable), coinAmount, historyDesc);
+	playerReceptor->getAccount()->addCoins(enumToValue(CoinType::Transferable), coinAmount, historyDesc);
+
+	StoreHistory tempHistory;
+	tempHistory.description = historyDesc;
+	tempHistory.coinType = enumToValue(CoinType::Transferable);
+	tempHistory.historyType = enumToValue(HistoryTypes_t::NONE);
+	tempHistory.coinAmount = static_cast<int32_t>(coinAmount * -1);
+	tempHistory.createdAt = getTimeNow();
+
+	playerDonator->setStoreHistory(tempHistory);
+
+	if (playerReceptor->isOffline()) {
+		std::shared_ptr<Player> newPlayerReceptor;
+		const auto playersAccountVector = getPlayersByAccount(playerReceptor->getAccount());
+		for (const auto player : playersAccountVector) {
+			if (player->isOnline()) {
+				newPlayerReceptor = player;
+			}
+		}
+
+		if (newPlayerReceptor) {
+			tempHistory.coinAmount = coinAmount;
+			newPlayerReceptor->sendCoinBalance();
+			newPlayerReceptor->setStoreHistory(tempHistory);
+		} else {
+			playerReceptor->getAccount()->registerStoreTransaction(tempHistory.historyType, coinAmount, tempHistory.coinType, historyDesc, tempHistory.createdAt);
+		}
+	} else {
+		tempHistory.coinAmount = coinAmount;
+		playerReceptor->sendCoinBalance();
+		playerReceptor->setStoreHistory(tempHistory);
+	}
+
+	playerDonator->openStore();
+	playerDonator->updateUIExhausted();
+}
+
+void Game::playerOpenStoreHistory(uint32_t playerId, uint32_t page) {
+	std::shared_ptr<Player> player = getPlayerByID(playerId);
+	if (!player) {
+		return;
+	}
+
+	if (player->isUIExhausted()) {
+		player->sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED);
+		return;
+	}
+
+	player->updateUIExhausted();
+	player->sendStoreHistory(page);
+}
+
+void Game::playerBuyStoreOffer(uint32_t playerId, const Offer* offer, std::string newName, uint8_t sexId) {
+	std::shared_ptr<Player> player = getPlayerByID(playerId);
+	if (!player) {
+		return;
+	}
+
+	if (!offer) {
+		return;
+	}
+
+	if (player->isUIExhausted()) {
+		player->sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED);
+		return;
+	}
+
+	bool success = false;
+	auto offerType = offer->getOfferType();
+	switch (offerType) {
+		case OfferTypes_t::HOUSE: {
+			auto itemId = offer->getOfferId();
+			auto offerAmount = offer->getOfferCount();
+
+			success = processHouseOffer(player, itemId, offerAmount);
+			break;
+		}
+
+		case OfferTypes_t::CHARGES: {
+			auto itemId = offer->getOfferId();
+			auto itemCharges = offer->getOfferCount();
+			auto isMovable = offer->isMovable();
+
+			success = processChargesOffer(player, itemId, itemCharges, isMovable);
+			break;
+		}
+
+		case OfferTypes_t::ITEM:
+		case OfferTypes_t::STACKABLE: {
+			auto itemId = offer->getOfferId();
+			auto itemAmount = offer->getOfferCount();
+			auto isMovable = offer->isMovable();
+
+			success = processStackableOffer(player, itemId, itemAmount, isMovable);
+			break;
+		}
+
+		case OfferTypes_t::POUCH: {
+			auto itemId = offer->getOfferId();
+			auto pouchStorageValue = player->getStorageValue(STORAGEVALUE_POUCH);
+
+			if (pouchStorageValue == 1) {
+				break;
+			}
+
+			player->addStorageValue(STORAGEVALUE_POUCH, 1);
+
+			success = processStackableOffer(player, itemId, false);
+			break;
+		}
+
+		case OfferTypes_t::OUTFIT: {
+			auto offerOutfitId = offer->getOutfitIds();
+			auto playerLookType = (player->getSex() == PLAYERSEX_FEMALE ? offerOutfitId.femaleId : offerOutfitId.maleId);
+			auto addons = playerLookType >= 962 && playerLookType <= 975 ? 0 : 3;
+
+			if (!player->canWear(playerLookType, addons)) {
+				player->sendStoreError(StoreErrors_t::PURCHASE, "You already own this outfit.");
+				break;
+			}
+
+			player->addOutfit(offerOutfitId.maleId, addons);
+			player->addOutfit(offerOutfitId.femaleId, addons);
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::MOUNT: {
+			auto mount = g_game().mounts.getMountByID(offer->getOfferId());
+			if (!mount) {
+				player->sendStoreError(StoreErrors_t::PURCHASE, "An error has occurred, please contact your administrator.");
+				break;
+			}
+
+			if (player->hasMount(mount)) {
+				player->sendStoreError(StoreErrors_t::PURCHASE, "You already own this mount.");
+				break;
+			}
+
+			if (!player->tameMount(mount->id)) {
+				player->sendStoreError(StoreErrors_t::PURCHASE, "An error has occurred, please contact your administrator.");
+				break;
+			}
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::NAMECHANGE: {
+			success = processNameChangeOffer(player, newName);
+			break;
+		}
+
+		case OfferTypes_t::SEXCHANGE: {
+			Outfit_t outfit = player->getCurrentOutfit();
+			if (player->getSex() == PLAYERSEX_FEMALE) {
+				player->setSex(PLAYERSEX_MALE);
+				outfit.lookType = 128;
+			} else {
+				player->setSex(PLAYERSEX_FEMALE);
+				outfit.lookType = 136;
+			}
+
+			outfit.lookAddons = 0;
+			playerChangeOutfit(playerId, outfit);
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::EXPBOOST: {
+			auto currentExpBoost = player->getXpBoostTime();
+			auto expBoostCount = player->getStorageValue(STORAGEVALUE_EXPBOOST);
+
+			player->setXpBoostPercent(50);
+			player->setXpBoostTime(currentExpBoost + 3600);
+
+			if (expBoostCount == -1 || expBoostCount == 6) {
+				expBoostCount = 1;
+			}
+
+			player->addStorageValue(STORAGEVALUE_EXPBOOST, expBoostCount + 1);
+			player->sendStats();
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::TEMPLE: {
+			success = processTempleOffer(player);
+			break;
+		}
+
+		case OfferTypes_t::BLESSINGS: {
+			auto blessId = offer->getOfferId();
+			if (blessId < 1 || blessId > 8) {
+				player->sendStoreError(StoreErrors_t::PURCHASE, "An error has occurred, please contact your administrator.");
+			}
+
+			player->addBlessing(blessId, offer->getOfferCount());
+			player->sendBlessStatus();
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::ALLBLESSINGS: {
+			for (uint8_t bless = 1; bless <= 8; ++bless) {
+				player->addBlessing(bless, 1);
+			}
+
+			player->sendBlessStatus();
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::PREMIUM: {
+			auto premiumDaysLeft = player->getPremiumDays();
+			if (premiumDaysLeft > 65175) {
+				break;
+			}
+
+			int32_t premiumDays = offer->getOfferId() - 3000;
+			player->getAccount()->addPremiumDays(premiumDays);
+			if (player->getAccount()->save() != enumToValue(AccountErrors_t::Ok)) {
+				break;
+			}
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::PREYSLOT: {
+			const auto &thirdSlot = player->getPreySlotById(PreySlot_Three);
+
+			if (thirdSlot->state != PreyDataState_Locked) {
+				break;
+			}
+
+			thirdSlot->eraseBonus();
+			thirdSlot->state = PreyDataState_Selection;
+			thirdSlot->reloadMonsterGrid(player->getPreyBlackList(), player->getLevel());
+			player->reloadPreySlot(PreySlot_Three);
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::PREYBONUS: {
+			auto cardsAmount = offer->getOfferCount();
+			if (player->getPreyCards() + cardsAmount >= 50) {
+				break;
+			}
+
+			player->addPreyCards(cardsAmount);
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::CHARM_EXPANSION: {
+			if (player->hasCharmExpansion()) {
+				break;
+			}
+
+			player->setCharmExpansion(true);
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::HUNTINGSLOT: {
+			const auto &thirdSlot = player->getTaskHuntingSlotById(PreySlot_Three);
+
+			if (thirdSlot->state != PreyDataState_Locked) {
+				break;
+			}
+
+			thirdSlot->eraseTask();
+			thirdSlot->reloadReward();
+			thirdSlot->state = PreyTaskDataState_Selection;
+			thirdSlot->reloadMonsterGrid(player->getTaskHuntingBlackList(), player->getLevel());
+			player->reloadTaskSlot(PreySlot_Three);
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::INSTANT_REWARD_ACCESS: {
+			auto offerInstantAmount = offer->getOfferCount();
+			auto playerInstantAmount = player->getStorageValue(14901);
+
+			if (playerInstantAmount + offerInstantAmount >= 90) {
+				break;
+			}
+
+			player->addStorageValue(14901, playerInstantAmount + offerInstantAmount);
+
+			success = true;
+			break;
+		}
+
+		case OfferTypes_t::HIRELING:
+			g_logger().warn("HIRELING");
+			break;
+		case OfferTypes_t::HIRELING_NAMECHANGE:
+			g_logger().warn("HIRELING_NAMECHANGE");
+			break;
+		case OfferTypes_t::HIRELING_SEXCHANGE:
+			g_logger().warn("HIRELING_SEXCHANGE");
+			break;
+		case OfferTypes_t::HIRELING_SKILL:
+			g_logger().warn("HIRELING_SKILL");
+			break;
+		case OfferTypes_t::HIRELING_OUTFIT:
+			g_logger().warn("HIRELING_OUTFIT");
+			break;
+
+		default:
+			break;
+	}
+
+	if (success) {
+		uint32_t offerPrice = offer->getOfferPrice();
+
+		if (offer->getOfferType() == OfferTypes_t::EXPBOOST) {
+			offerPrice = calculateBoostPrice(player->getStorageValue(STORAGEVALUE_EXPBOOST) - 1);
+		}
+
+		std::string returnmessage = fmt::format("You have purchased {} for {} coins.", offer->getOfferName(), offerPrice);
+		uint8_t result = player->getAccount()->removeCoins(enumToValue(CoinType::Transferable), offerPrice, returnmessage);
+		if (result == enumToValue(AccountErrors_t::RemoveCoins)) {
+			player->sendStoreError(StoreErrors_t::PURCHASE, "You don't have enough coins.");
+			return;
+		}
+
+		StoreHistory tempHistory;
+		tempHistory.description = offer->getOfferName();
+		tempHistory.coinAmount = static_cast<int32_t>(offerPrice * -1);
+		tempHistory.createdAt = getTimeNow();
+
+		player->sendStoreSuccess(returnmessage);
+
+		player->setStoreHistory(tempHistory);
+	} else {
+		player->sendStoreError(StoreErrors_t::PURCHASE, "An error has occurred, please contact your administrator.");
+	}
+
+	player->updateUIExhausted();
+	player->openStore();
+}
+
+bool Game::processHouseOffer(std::shared_ptr<Player> player, uint32_t itemId, uint16_t charges /* = 0*/) {
 	std::shared_ptr<Item> decoKit = Item::CreateItem(ITEM_DECORATION_KIT, 1);
 	if (!decoKit) {
 		return false;
 	}
+
 	const ItemType &itemType = Item::items[itemId];
-	std::string description = fmt::format("Unwrap it in your own house to create a <{}>.", itemType.name);
+	std::string description = fmt::format("You bought this item in the Store.\nUnwrap it in your own house to create a <{}>.", itemType.name);
 	decoKit->setAttribute(ItemAttribute_t::DESCRIPTION, description);
 	decoKit->setCustomAttribute("unWrapId", static_cast<int64_t>(itemId));
+
+	if (charges > 0) {
+		decoKit->setAttribute(ItemAttribute_t::CHARGES, charges);
+		decoKit->setAttribute(ItemAttribute_t::DATE, charges);
+	}
+
+	decoKit->setAttribute(ItemAttribute_t::STORE, getTimeNow());
 
 	std::shared_ptr<Thing> thing = player->getThing(CONST_SLOT_STORE_INBOX);
 	if (!thing) {
@@ -10287,20 +10700,133 @@ bool Game::addItemStoreInbox(std::shared_ptr<Player> player, uint32_t itemId) {
 	}
 
 	if (internalAddItem(inboxContainer, decoKit) != RETURNVALUE_NOERROR) {
-		inboxContainer->internalAddThing(decoKit);
+		return false;
 	}
 
 	return true;
 }
 
-void Game::addPlayerUniqueLogin(std::shared_ptr<Player> player) {
-	if (!player) {
-		g_logger().error("Attempted to add null player to unique player names list");
-		return;
+bool Game::processChargesOffer(std::shared_ptr<Player> player, uint32_t itemId, uint16_t charges /* = 0*/, bool movable /* = false*/) {
+	std::shared_ptr<Item> newItem = Item::CreateItem(itemId, 1);
+	if (!newItem) {
+		return false;
 	}
 
-	const std::string &lowercase_name = asLowerCaseString(player->getName());
-	m_uniqueLoginPlayerNames[lowercase_name] = player;
+	if (charges > 0) {
+		newItem->setAttribute(ItemAttribute_t::CHARGES, charges);
+	}
+
+	if (!movable) {
+		newItem->setAttribute(ItemAttribute_t::STORE, getTimeNow());
+	}
+
+	newItem->setOwner(player);
+
+	std::shared_ptr<Thing> thing = player->getThing(CONST_SLOT_STORE_INBOX);
+	if (!thing) {
+		return false;
+	}
+
+	std::shared_ptr<Item> inboxItem = thing->getItem();
+	if (!inboxItem) {
+		return false;
+	}
+
+	std::shared_ptr<Container> inboxContainer = inboxItem->getContainer();
+	if (!inboxContainer) {
+		return false;
+	}
+
+	auto ret = internalAddItem(inboxContainer, newItem);
+	if (ret != RETURNVALUE_NOERROR) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Game::processStackableOffer(std::shared_ptr<Player> player, uint32_t itemId, uint16_t amount /* = 1*/, bool movable /* = false*/) {
+	std::shared_ptr<Item> newItem = Item::CreateItem(itemId, amount);
+	if (!newItem) {
+		return false;
+	}
+
+	if (!movable) {
+		newItem->setAttribute(ItemAttribute_t::STORE, getTimeNow());
+	}
+
+	newItem->setOwner(player);
+
+	std::shared_ptr<Thing> thing = player->getThing(CONST_SLOT_STORE_INBOX);
+	if (!thing) {
+		return false;
+	}
+
+	std::shared_ptr<Item> inboxItem = thing->getItem();
+	if (!inboxItem) {
+		return false;
+	}
+
+	std::shared_ptr<Container> inboxContainer = inboxItem->getContainer();
+	if (!inboxContainer) {
+		return false;
+	}
+
+	auto ret = internalAddItem(inboxContainer, newItem);
+	if (ret != RETURNVALUE_NOERROR) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Game::processNameChangeOffer(std::shared_ptr<Player> player, std::string &name) {
+	std::string newName = name;
+	trimString(newName);
+
+	auto isValidName = validateName(newName);
+	if (isValidName != VALID) {
+		return false;
+	}
+
+	capitalizeWords(newName);
+
+	if (g_monsters().getMonsterType(newName, true)) {
+		return false;
+	} else if (getNpcByName(newName)) {
+		return false;
+	}
+
+	Database &db = Database::getInstance();
+	DBResult_ptr result = db.storeQuery(fmt::format("SELECT `id` FROM `players` WHERE `name` = {}", db.escapeString(newName)));
+	if (result) {
+		return false;
+	}
+
+	std::string query = fmt::format("UPDATE `players` SET `name` = {} WHERE `id` = {}", db.escapeString(newName), player->getGUID());
+	if (!db.executeQuery(query)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Game::processTempleOffer(std::shared_ptr<Player> player) {
+	if (player->isPzLocked() || player->hasCondition(CONDITION_INFIGHT)) {
+		return false;
+	}
+
+	const auto &position = player->getTemplePosition();
+	const auto oldPos = player->getPosition();
+
+	if (internalTeleport(player, position, false) != RETURNVALUE_NOERROR) {
+		return false;
+	}
+
+	addMagicEffect(position, CONST_ME_TELEPORT);
+	player->sendTextMessage(MESSAGE_EVENT_ADVANCE, "You have been teleported to your hometown.");
+
+	return true;
 }
 
 std::shared_ptr<Player> Game::getPlayerUniqueLogin(const std::string &playerName) const {

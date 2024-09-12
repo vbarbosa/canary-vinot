@@ -34,6 +34,7 @@
 #include "io/iologindata.hpp"
 #include "items/bed.hpp"
 #include "items/weapons/weapons.hpp"
+#include "io/io_store.hpp"
 #include "core.hpp"
 #include "map/spectators.hpp"
 #include "lib/metrics/metrics.hpp"
@@ -7763,6 +7764,128 @@ void Player::closeAllExternalContainers() {
 	for (const std::shared_ptr<Container> &container : containerToClose) {
 		autoCloseContainers(container);
 	}
+}
+
+bool Player::canBuyStoreOffer(const Offer* offer) {
+	auto offerType = offer->getOfferType();
+	auto canBuy = true;
+
+	switch (offerType) {
+		case OfferTypes_t::OUTFIT: {
+			auto offerOutfitId = offer->getOutfitIds();
+			auto playerLookType = (getSex() == PLAYERSEX_FEMALE ? offerOutfitId.femaleId : offerOutfitId.maleId);
+			auto addons = playerLookType >= 962 && playerLookType <= 975 ? 0 : 3;
+
+			if (canWear(playerLookType, addons)) {
+				canBuy = false;
+			}
+			break;
+		}
+
+		case OfferTypes_t::MOUNT: {
+			auto mount = g_game().mounts.getMountByID(offer->getOfferId());
+
+			if (hasMount(mount)) {
+				canBuy = false;
+			}
+			break;
+		}
+
+		case OfferTypes_t::EXPBOOST: {
+			auto expBoostCount = getStorageValue(STORAGEVALUE_EXPBOOST);
+
+			if (expBoostCount >= 6 || getXpBoostTime() > 0) {
+				canBuy = false;
+			}
+			break;
+		}
+
+		case OfferTypes_t::PREYSLOT: {
+			const auto &thirdSlot = getPreySlotById(PreySlot_Three);
+
+			if (thirdSlot->state != PreyDataState_Locked) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		case OfferTypes_t::PREYBONUS: {
+			auto cardsAmount = offer->getOfferCount();
+			if (getPreyCards() + cardsAmount >= 50) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		case OfferTypes_t::BLESSINGS: {
+			auto blessId = offer->getOfferId();
+			if (blessId < 1 || blessId > 8) {
+				break;
+			}
+
+			auto blessingAmount = getBlessingCount(blessId);
+			if (blessingAmount >= 5) {
+				canBuy = false;
+			}
+			break;
+		}
+
+		case OfferTypes_t::ALLBLESSINGS: {
+			for (uint8_t bless = 1; bless <= 8; ++bless) {
+				auto blessingAmount = getBlessingCount(bless);
+				if (blessingAmount >= 5) {
+					canBuy = false;
+					break;
+				}
+			}
+			break;
+		}
+
+		case OfferTypes_t::POUCH: {
+			auto pouchStorageValue = getStorageValue(STORAGEVALUE_POUCH);
+
+			if (pouchStorageValue == 1) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		case OfferTypes_t::INSTANT_REWARD_ACCESS: {
+			auto offerInstantAmount = offer->getOfferCount();
+			auto playerInstantAmount = getStorageValue(14901);
+
+			if (playerInstantAmount + offerInstantAmount >= 90) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		case OfferTypes_t::CHARM_EXPANSION: {
+			if (hasCharmExpansion()) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		case OfferTypes_t::HUNTINGSLOT: {
+			const auto &thirdSlot = getTaskHuntingSlotById(PreySlot_Three);
+			if (thirdSlot->state != PreyDataState_Locked) {
+				canBuy = false;
+			}
+
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return canBuy;
 }
 
 SoundEffect_t Player::getHitSoundEffect() const {

@@ -93,6 +93,16 @@ struct ForgeHistory {
 	std::string secondItemName;
 };
 
+struct StoreHistory {
+	time_t createdAt;
+
+	int32_t coinAmount = 0;
+	uint8_t coinType = 0;
+	uint8_t historyType = 0;
+
+	std::string description;
+};
+
 struct OpenContainer {
 	std::shared_ptr<Container> container;
 	uint16_t index;
@@ -2657,6 +2667,41 @@ public:
 
 	uint16_t getPlayerVocationEnum() const;
 
+	// Store functions
+	void openStore() {
+		if (client) {
+			client->openStore();
+		}
+	}
+
+	void sendStoreHistory(uint32_t page) const {
+		if (client) {
+			client->sendStoreHistory(page);
+		}
+	}
+
+	void sendStoreSuccess(const std::string &successMessage) {
+		if (client) {
+			client->sendStoreSuccess(successMessage);
+		}
+	}
+
+	void sendStoreError(StoreErrors_t errorType, std::string errorMessage) {
+		if (client) {
+			client->sendStoreError(errorType, errorMessage);
+		}
+	}
+
+	std::vector<StoreHistory> &getStoreHistory() {
+		return storeHistoryVector;
+	}
+
+	void setStoreHistory(const StoreHistory &history) {
+		storeHistoryVector.push_back(history);
+	}
+
+	bool canBuyStoreOffer(const Offer* offer);
+
 private:
 	friend class PlayerLock;
 	std::mutex mutex;
@@ -2749,6 +2794,7 @@ private:
 
 	std::map<ObjectCategory_t, std::pair<std::shared_ptr<Container>, std::shared_ptr<Container>>> m_managedContainers;
 	std::vector<ForgeHistory> forgeHistoryVector;
+	std::vector<StoreHistory> storeHistoryVector;
 
 	std::vector<uint16_t> quickLootListItemIds;
 
