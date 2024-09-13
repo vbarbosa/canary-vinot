@@ -368,6 +368,27 @@ function onUseShovel(player, item, fromPosition, target, toPosition, isHotkey)
 		return true
 	end
 
+	local specificPositions = {
+		{ pos = Position(33064, 32435, 10), storage = Storage.Quest.U10_10.TheGravediggerOfDrefia.SmallDragonTears1 },
+		{ pos = Position(33061, 32428, 10), storage = Storage.Quest.U10_10.TheGravediggerOfDrefia.SmallDragonTears2 },
+		{ pos = Position(33065, 32423, 10), storage = Storage.Quest.U10_10.TheGravediggerOfDrefia.SmallDragonTears3 },
+	}
+	for i = 1, #specificPositions do
+		local data = specificPositions[i]
+		if toPosition == data.pos and player:getStorageValue(data.storage) < 1 then
+			if player:getStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission14) == 1 then
+				player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You found a small dragon tear. You pocket it quickly.")
+				player:getPosition():sendMagicEffect(CONST_ME_POFF)
+				player:addItem(19084, 1)
+				player:setStorageValue(data.storage, 1)
+				return true
+			else
+				player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You find nothing of interest.")
+				return true
+			end
+		end
+	end
+
 	if table.contains(holes, target.itemid) then
 		target:transform(target.itemid + 1)
 		target:decay()
@@ -403,17 +424,17 @@ function onUseShovel(player, item, fromPosition, target, toPosition, isHotkey)
 		Position(32070, 32266, 7):sendMagicEffect(CONST_ME_TUTORIALSQUARE)
 		target:transform(594)
 		addEvent(revertItem, 30 * 1000, toPosition, 594, 7749)
-	elseif target.actionid == 4654 and player:getStorageValue(Storage.GravediggerOfDrefia.Mission49) == 1 and player:getStorageValue(Storage.GravediggerOfDrefia.Mission50) < 1 then
+	elseif target.actionid == 4654 and player:getStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission49) == 1 and player:getStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission50) < 1 then
 		-- Gravedigger Quest
 		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You found a piece of the scroll. You pocket it quickly.")
 		player:getPosition():sendMagicEffect(CONST_ME_POFF)
 		player:addItem(18933, 1)
-		player:setStorageValue(Storage.GravediggerOfDrefia.Mission50, 1)
-	elseif target.actionid == 4668 and player:getStorageValue(Storage.GravediggerOfDrefia.Mission69) == 1 and player:getStorageValue(Storage.GravediggerOfDrefia.Mission70) < 1 then
+		player:setStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission50, 1)
+	elseif target.actionid == 4668 and player:getStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission71) == 1 then
 		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "A torn scroll piece emerges. Probably gnawed off by rats.")
 		player:getPosition():sendMagicEffect(CONST_ME_POFF)
 		player:addItem(18933, 1)
-		player:setStorageValue(Storage.GravediggerOfDrefia.Mission70, 1)
+		player:setStorageValue(Storage.Quest.U10_10.TheGravediggerOfDrefia.Mission71, 2)
 	elseif target.actionid == 50118 then
 		local wagonItem = Tile(Position(32717, 31492, 11)):getItemById(7131)
 		if wagonItem then
@@ -752,23 +773,21 @@ function onUsePick(player, item, fromPosition, target, toPosition, isHotkey)
 				addEvent(revertItem, 2 * 60 * 1000, { x = 33277, y = 31754, z = 7 }, 2066, 2071)
 			end
 		end
-	else
-		return false
-	end
-	if (target ~= nil) and target:isItem() and (target:getId() == 20135) then
-		--Lower Roshamuul
-		if math.random(100) > 50 then
+	elseif target.itemid == 20135 then
+		local chance = math.random(100)
+		if chance > 50 then
 			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Crushing the stone produces some fine gravel.")
 			target:transform(20133)
-			target:decay()
 		else
 			Game.createMonster("Frazzlemaw", toPosition)
 			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Crushing the stone yields nothing but slightly finer, yet still unusable rubber.")
 			target:transform(20134)
-			target:decay()
 		end
-		return true
+		target:decay()
+	else
+		return false
 	end
+
 	return true
 end
 

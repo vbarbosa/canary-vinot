@@ -115,37 +115,37 @@ if not Quests then
 		},
 		[3] = {
 			name = "Spike Task",
-			startStorageId = Storage.SpikeTaskQuest.QuestLine,
+			startStorageId = Storage.Quest.U10_20.SpikeTaskQuest.QuestLine,
 			startStorageValue = 1,
 			missions = {
 				[1] = {
 					name = "First Task",
-					storageId = Storage.SpikeTaskQuest.Gnomilly,
+					storageId = Storage.Quest.U10_20.SpikeTaskQuest.Gnomilly,
 					missionId = 1021,
 					startValue = 0,
 					endValue = 100,
 					description = function(player)
-						return string.format("You have %d points of task. You need 100 points to take Cave Explorer outfit.", (math.max(player:getStorageValue(Storage.SpikeTaskQuest.Gnomilly), 0)))
+						return string.format("You have %d points of task. You need 100 points to take Cave Explorer outfit.", (math.max(player:getStorageValue(Storage.Quest.U10_20.SpikeTaskQuest.Gnomilly), 0)))
 					end,
 				},
 				[2] = {
 					name = "Second Task",
-					storageId = Storage.SpikeTaskQuest.Gnombold.Points,
+					storageId = Storage.Quest.U10_20.SpikeTaskQuest.Gnombold.Points,
 					missionId = 1022,
 					startValue = 0,
 					endValue = 100,
 					description = function(player)
-						return string.format("You have %d points of task. You need 100 points to take first addon.", (math.max(player:getStorageValue(Storage.SpikeTaskQuest.Gnombold.Points), 0)))
+						return string.format("You have %d points of task. You need 100 points to take first addon.", (math.max(player:getStorageValue(Storage.Quest.U10_20.SpikeTaskQuest.Gnombold.Points), 0)))
 					end,
 				},
 				[3] = {
 					name = "Third Task",
-					storageId = Storage.SpikeTaskQuest.Gnomargery.Points,
+					storageId = Storage.Quest.U10_20.SpikeTaskQuest.Gnomargery.Points,
 					missionId = 1023,
 					startValue = 0,
 					endValue = 100,
 					description = function(player)
-						return string.format("You have %d points of task. You need 100 points to take second addon.", (math.max(player:getStorageValue(Storage.SpikeTaskQuest.Gnomargery.Points), 0)))
+						return string.format("You have %d points of task. You need 100 points to take second addon.", (math.max(player:getStorageValue(Storage.Quest.U10_20.SpikeTaskQuest.Gnomargery.Points), 0)))
 					end,
 				},
 			},
@@ -4443,7 +4443,7 @@ if not Quests then
 				},
 				[3] = {
 					name = "Lion's Rock",
-					storageId = Storage.LionsRock.Questline,
+					storageId = Storage.Quest.U10_70.LionsRock.Questline,
 					missionId = 10319,
 					startValue = 1,
 					endValue = 11,
@@ -4451,25 +4451,25 @@ if not Quests then
 						[1] = function(player)
 							return string.format(
 								"You have discovered the Lion's Rock. If you pass the following tests you may enter the inner sanctum.\n\nThe Lion's Strength %d/1\nThe Lion's Beauty %d/1\nThe Lion's Tears %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsStrength), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsBeauty), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsTears), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsStrength), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsBeauty), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsTears), 0))
 							)
 						end,
 						[2] = function(player)
 							return string.format(
 								"You have discovered the Lion's Rock. If you pass the following tests you may enter the inner sanctum.\n\nThe Lion's Strength %d/1\nThe Lion's Beauty %d/1\nThe Lion's Tears %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsStrength), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsBeauty), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsTears), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsStrength), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsBeauty), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsTears), 0))
 							)
 						end,
 						[3] = function(player)
 							return string.format(
 								"You have discovered the Lion's Rock. If you pass the following tests you may enter the inner sanctum.\n\nThe Lion's Strength %d/1\nThe Lion's Beauty %d/1\nThe Lion's Tears %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsStrength), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsBeauty), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.OuterSanctum.LionsTears), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsStrength), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsBeauty), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.OuterSanctum.LionsTears), 0))
 							)
 						end,
 						[4] = "You have passed the three tests of Lion's Rock and thus lit the three mystical pyramids. You may enter the inner sanctum now. - What other secrets could be hidden down there?",
@@ -4477,28 +4477,28 @@ if not Quests then
 						[6] = function(player)
 							return string.format(
 								"lions' enemies in this area of the temple. What could be the resolution?\n\nblood %d/1\negg %d/1\neye %d/1\npoison %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.SnakeSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.LizardSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.ScorpionSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.HyenaSign), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.SnakeSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.LizardSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.ScorpionSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.HyenaSign), 0))
 							)
 						end,
 						[7] = function(player)
 							return string.format(
 								"lions' enemies in this area of the temple. What could be the resolution?\n\nblood %d/1\negg %d/1\neye %d/1\npoison %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.SnakeSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.LizardSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.ScorpionSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.HyenaSign), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.SnakeSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.LizardSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.ScorpionSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.HyenaSign), 0))
 							)
 						end,
 						[8] = function(player)
 							return string.format(
 								"lions' enemies in this area of the temple. What could be the resolution?\n\nblood %d/1\negg %d/1\neye %d/1\npoison %d/1",
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.SnakeSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.LizardSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.ScorpionSign), 0)),
-								(math.max(player:getStorageValue(Storage.LionsRock.InnerSanctum.HyenaSign), 0))
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.SnakeSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.LizardSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.ScorpionSign), 0)),
+								(math.max(player:getStorageValue(Storage.Quest.U10_70.LionsRock.InnerSanctum.HyenaSign), 0))
 							)
 						end,
 						[9] = 'In the north-west area of the Inner Sanctum, find the southern rectangular room to the south-west. In this room you will find 4 "sun" floor inscriptions as well as a rock in the center. The sun inscriptions represent gem slots.',
@@ -5153,12 +5153,12 @@ if not Quests then
 		},
 		[35] = {
 			name = "Oramond",
-			startStorageId = Storage.Oramond.QuestLine,
+			startStorageId = Storage.Quest.U10_50.OramondQuest.QuestLine,
 			startStorageValue = 1,
 			missions = {
 				[1] = {
 					name = "To Take Roots",
-					storageId = Storage.Oramond.MissionToTakeRoots,
+					storageId = Storage.Quest.U10_50.OramondQuest.ToTakeRoots.Mission,
 					missionId = 10360,
 					startValue = 1,
 					endValue = 3000,
