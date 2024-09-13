@@ -28,7 +28,7 @@ class KV;
 
 struct LuaVariant;
 
-#define reportErrorFunc(a) reportError(__FUNCTION__, a, true)
+#define reportErrorFunc(a) LuaFunctionsLoader::reportError(__FUNCTION__, a, true)
 
 class LuaFunctionsLoader {
 public:
@@ -227,6 +227,14 @@ public:
 		// Copy constructor, bumps ref count.
 		new (userData) std::shared_ptr<T>(value);
 	}
+
+	static void createCastTable(lua_State* L, const char* index);
+	static void createCastTable(lua_State* L, const char* index, int32_t narr, int32_t nrec);
+	static void createCastTable(lua_State* L, int32_t index);
+	static void createCastTable(lua_State* L, int32_t index, int32_t narr, int32_t nrec);
+	static void setCastFieldBool(lua_State* L, const char* index, bool val);
+	static bool getCastFieldBool(lua_State* L, const char* key);
+	static std::string getCastFieldString(lua_State* L, const char* key);
 
 protected:
 	static void registerClass(lua_State* L, const std::string &className, const std::string &baseClass, lua_CFunction newFunction = nullptr);
