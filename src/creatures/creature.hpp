@@ -800,8 +800,6 @@ protected:
 
 	uint8_t wheelOfDestinyDrainBodyDebuff = 0;
 
-	std::atomic_bool pathfinderRunning = false;
-
 	// use map here instead of phmap to keep the keys in a predictable order
 	std::map<std::string, CreatureIcon> creatureIcons = {};
 
@@ -836,10 +834,23 @@ protected:
 	friend class Map;
 	friend class CreatureFunctions;
 
+	// async
+	void sendAsyncTasks();
+	virtual void callAsyncTasks() {};
+	std::atomic_bool asyncTasksRunning = false;
+	bool m_goToFollowCreature = false;
+
+	void addAsyncTask(std::function<void()> &&fnc) {
+		asyncTasks.emplace_back(std::move(fnc));
+		sendAsyncTasks();
+	}
+
 private:
 	bool canFollowMaster();
 	bool isLostSummon();
 	void handleLostSummon(bool teleportSummons);
+
+	std::vector<std::function<void()>> asyncTasks;
 
 	struct {
 		uint16_t groundSpeed { 0 };
