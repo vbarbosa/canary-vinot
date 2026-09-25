@@ -24,6 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
+from . import places
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -960,6 +961,75 @@ def _log_selection(pasta, arquivo, linhas=500, filtro=""):
     st = os.stat(path)
     sel = {"pasta": pasta, "arquivo": arquivo, "size": st.st_size, "mtime": int(st.st_mtime), "active": system.is_active(st.st_mtime)}
     return sel, [(line, system.level(line)) for line in system.tail(path, linhas, filtro)]
+
+
+# ---------------------------------------------------------------- teleport
+
+
+@app.get("/teleporte", response_class=HTMLResponse)
+def teleport_page(request: Request, q: str = "", tipo: str = ""):
+    user = require(request)
+    online = db.all("SELECT o.player_id AS id, o.name, o.level, o.vocation, o.posx, o.posy, o.posz, g.player_id IS NOT NULL AS in_group "
+                    "FROM cockpit_online o LEFT JOIN cockpit_group g ON g.player_id = o.player_id ORDER BY o.name")
+    rows, total = places.search(q, tipo)
+    return page(request, "teleport.html", user, rows=rows, total=total, q=q, tipo=tipo, kinds=places.KINDS, online=online)
+
+
+@app.get("/teleporte/lugares", response_class=HTMLResponse)
+def teleport_places(request: Request, q: str = "", tipo: str = ""):
+    user = require(request)
+    rows, total = places.search(q, tipo)
+    return page(request, "_places.html", user, rows=rows, total=total, q=q, kinds=places.KINDS)
+
+
+@app.get("/mapa/{x}/{y}/{z}.png")
+def map_thumb(request: Request, x: int, y: int, z: int):
+    require(request)
+    png = places.thumbnail(x, y, z)
+    if not png:
+        return FileResponse(os.path.join(HERE, "static", "no-map.svg"), media_type="image/svg+xml")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "max-age=86400"})
+
+
+@app.post("/teleporte", response_class=HTMLResponse)
+async def teleport_go(request: Request):
+    """Teleport the ticked online players (you included, if you tick yourself) to one place."""
+    user = require(request, post=True)
+    f = await request.form()
+    x, y, z = clamp(f.get("x"), 0, 65535), clamp(f.get("y"), 0, 65535), clamp(f.get("z"), 0, 15)
+    ids = [int(i) for i in f.getlist("pid") if str(i).isdigit()][:100]
+    names = [r["name"] for r in db.all(f"SELECT name FROM cockpit_online WHERE player_id IN ({','.join(['%s'] * len(ids))})", *ids)] if ids else []
+    if not names:
+        return toast("Marque quem vai (só quem está online).", ok=False)
+    for n in names:
+        db.enqueue(user["account"], "teleport", n, x, y, z, text=str(f.get("lugar", ""))[:100])
+    where = f.get("lugar") or f"{x},{y},{z}"
+    return toast(f"Levando {len(names)} para {where}.")
+
+
+@app.post("/teleporte/salvar", response_class=HTMLResponse)
+def place_save(request: Request, nome: str = Form(...), nota: str = Form(""), x: int = Form(...), y: int = Form(...), z: int = Form(...), id: str = Form("")):
+    """Create or edit a saved place."""
+    user = require(request, post=True)
+    nome = nome.strip()[:64]
+    if not nome or not (0 <= z <= 15):
+        return toast("Dê um nome e uma posição válida.", ok=False)
+    if id.isdigit():
+        db.run("UPDATE cockpit_places SET name = %s, note = %s, x = %s, y = %s, z = %s WHERE id = %s", nome, nota[:255], x, y, z, int(id))
+        db.audit(user["account"], "lugar_editado", nome, f"{x},{y},{z}")
+    else:
+        db.run("INSERT INTO cockpit_places (name, note, x, y, z, created_by) VALUES (%s,%s,%s,%s,%s,%s)", nome, nota[:255], x, y, z, user["account"])
+        db.audit(user["account"], "lugar_salvo", nome, f"{x},{y},{z}")
+    return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+@app.post("/teleporte/{lid}/apagar", response_class=HTMLResponse)
+def place_delete(request: Request, lid: int):
+    user = require(request, post=True)
+    p = db.one("SELECT name FROM cockpit_places WHERE id = %s", lid)
+    db.run("DELETE FROM cockpit_places WHERE id = %s", lid)
+    db.audit(user["account"], "lugar_apagado", p["name"] if p else str(lid))
+    return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
 
 
 # ---------------------------------------------------------------- economy

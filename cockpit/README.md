@@ -25,6 +25,11 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   (`COCKPIT_TZ`). Com o painel desligado, as tarefas esperam ele voltar.
 - Gráficos: o painel grava CPU, memória, carga, disco e o tempo de resposta do jogo a cada minuto
   em `cockpit_host_metrics` (7 dias). Os gráficos usam uPlot, copiado em `app/static`.
+- Teleporte: a lista de lugares vem do datapack (templos, paradas de viagem dos NPCs, NPCs, a área
+  com mais spawns de cada monstro e casas), mais os lugares salvos no painel. A foto é um recorte do
+  mapa público do TibiaMaps, baixado na primeira vez para `COCKPIT_MAP_DIR`.
+- Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
+  retrato por hora em `cockpit_economy` (90 dias).
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

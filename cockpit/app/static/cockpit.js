@@ -142,6 +142,53 @@
   });
   document.addEventListener("DOMContentLoaded", syncJobForm);
 
+  // Teleport: pick a place card, choose who goes, save or edit places.
+  document.addEventListener("click", e => {
+    const card = e.target.closest(".place");
+    if (card && !e.target.closest("button")) {
+      const p = JSON.parse(card.dataset.place), form = document.getElementById("tp-form");
+      ["x", "y", "z"].forEach(k => (form.elements[k].value = p[k]));
+      form.elements.lugar.value = p.name;
+      document.querySelectorAll(".place.selected").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      const dest = document.getElementById("tp-dest");
+      dest.classList.remove("muted");
+      dest.innerHTML = `<img src="/mapa/${p.x}/${p.y}/${p.z}.png" alt=""><strong></strong><small class="muted"></small>`;
+      dest.querySelector("strong").textContent = p.name;
+      dest.querySelector("small").textContent = `${p.kind} · ${p.x}, ${p.y}, ${p.z}`;
+      document.getElementById("tp-go").disabled = false;
+      if (window.innerWidth < 900) dest.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    const pick = e.target.closest("[data-pick]");
+    if (pick) {
+      document.querySelectorAll("#tp-form input[name=pid]").forEach(c => {
+        c.checked = pick.dataset.pick === "all" || (pick.dataset.pick === "group" && c.dataset.group === "1");
+      });
+      return;
+    }
+    const ed = e.target.closest("[data-edit-place]");
+    const pf = document.getElementById("place-form");
+    if (ed && pf) {
+      const d = JSON.parse(ed.dataset.editPlace);
+      ["id", "nome", "nota", "x", "y", "z"].forEach(k => (pf.elements[k].value = d[k]));
+      document.getElementById("place-title").textContent = "Editando: " + d.nome;
+      document.getElementById("place-save").textContent = "Salvar alterações";
+      document.getElementById("place-cancel").hidden = false;
+      pf.scrollIntoView({ behavior: "smooth" });
+    } else if (e.target.id === "place-cancel") {
+      pf.reset(); pf.elements.id.value = "";
+      document.getElementById("place-title").textContent = "⭐ Salvar um lugar";
+      document.getElementById("place-save").textContent = "Salvar lugar";
+      e.target.hidden = true;
+    }
+  });
+  document.addEventListener("change", e => {
+    if (e.target.id !== "place-from" || !e.target.value) return;
+    const [x, y, z] = e.target.value.split(","), pf = document.getElementById("place-form");
+    Object.assign(pf.elements.x, { value: x }); pf.elements.y.value = y; pf.elements.z.value = z;
+  });
+
   document.addEventListener("htmx:load", e => init(e.detail.elt));
   document.addEventListener("htmx:afterSwap", e => {
     if (e.detail.target.id === "toast") setTimeout(() => (e.detail.target.innerHTML = ""), 4000);

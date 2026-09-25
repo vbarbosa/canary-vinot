@@ -1,0 +1,19 @@
+<p class="muted small">{{ total }} lugar(es){% if total > rows|length %}, mostrando {{ rows|length }}. Refine a busca para ver outros{% endif %}.</p>
+<div class="places">
+  {% for p in rows %}
+  <article class="place" data-place='{{ {"x": p.x, "y": p.y, "z": p.z, "name": p.name, "kind": kinds[p.kind]}|tojson }}' tabindex="0">
+    <img src="/mapa/{{ p.x }}/{{ p.y }}/{{ p.z }}.png" alt="Mapa de {{ p.name }}" loading="lazy">
+    <div class="place-body">
+      <strong>{{ p.name }}</strong>
+      <small class="muted">{{ kinds[p.kind] }} · {{ p.detail }}</small>
+      <small class="muted mono">{{ p.x }}, {{ p.y }}, {{ p.z }}</small>
+      {% if p.kind == 'meu' %}
+      <span class="row small">
+        <button type="button" class="outline small" data-edit-place='{{ {"id": p.id, "nome": p.name, "nota": p.detail, "x": p.x, "y": p.y, "z": p.z}|tojson }}'>Editar</button>
+        <button type="button" class="outline small danger" hx-post="/teleporte/{{ p.id }}/apagar" hx-confirm="Apagar o lugar {{ p.name }}?">Apagar</button>
+      </span>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}<p class="muted">Nenhum lugar com “{{ q }}”.</p>{% endfor %}
+</div>

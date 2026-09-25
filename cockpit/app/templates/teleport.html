@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Teleporte{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🌀 Teleporte</h3>
+  <p class="muted">Escolha um lugar, marque quem vai junto e leve a turma. Só quem está online pode ser teleportado.</p>
+</div>
+<div class="with-catalog tp">
+  <section>
+    <form class="row wrap tp-search" hx-get="/teleporte/lugares" hx-target="#places" hx-trigger="input changed delay:300ms from:input[name=q], change from:input[name=tipo], submit">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar: Thais, dragon, Rashid, Ferumbras…" autofocus>
+      <div class="chips" role="radiogroup">
+        <label><input type="radio" name="tipo" value="" {{ 'checked' if not tipo }}> Tudo</label>
+        {% for k, label in kinds.items() %}<label><input type="radio" name="tipo" value="{{ k }}" {{ 'checked' if tipo == k }}> {{ label }}</label>{% endfor %}
+      </div>
+    </form>
+    <div id="places">{% include "_places.html" %}</div>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>Destino</h4></header>
+      <div id="tp-dest" class="tp-dest muted">Clique num lugar da lista.</div>
+      <form hx-post="/teleporte" hx-target="#toast" id="tp-form">
+        <input type="hidden" name="x"><input type="hidden" name="y"><input type="hidden" name="z"><input type="hidden" name="lugar">
+        <p class="small muted" style="margin:.6rem 0 .3rem">Quem vai:</p>
+        {% if online %}
+        <div class="row wrap small">
+          <button type="button" class="outline small" data-pick="all">Todos</button>
+          <button type="button" class="outline small" data-pick="group">Só a turma</button>
+          <button type="button" class="outline small" data-pick="none">Ninguém</button>
+        </div>
+        <ul class="pick-list">
+          {% for o in online %}
+          <li><label><input type="checkbox" name="pid" value="{{ o.id }}" data-group="{{ 1 if o.in_group else 0 }}" {{ 'checked' if o.name == user.me }}>
+            <strong>{{ o.name }}</strong>{% if o.name == user.me %} <span class="tag">você</span>{% endif %}
+            <span class="muted small">nível {{ o.level }}</span></label></li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="muted small">Ninguém online agora.</p>{% endif %}
+        <button id="tp-go" disabled>🌀 Teleportar</button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header><h4 id="place-title">⭐ Salvar um lugar</h4></header>
+      <form hx-post="/teleporte/salvar" hx-target="#toast" id="place-form">
+        <input type="hidden" name="id">
+        <input name="nome" placeholder="Nome (ex.: Nossa base secreta)" required maxlength="64">
+        <input name="nota" placeholder="Nota (opcional)" maxlength="255">
+        <div class="row coords"><input name="x" type="number" placeholder="x" required><input name="y" type="number" placeholder="y" required><input name="z" type="number" min="0" max="15" placeholder="z" required></div>
+        {% if online %}
+        <select id="place-from"><option value="">Usar a posição atual de…</option>
+          {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
+        </select>
+        {% endif %}
+        <div class="row"><button id="place-save">Salvar lugar</button><button type="button" class="outline secondary" id="place-cancel" hidden>Cancelar</button></div>
+      </form>
+    </article>
+  </aside>
+</div>
+{% endblock %}
