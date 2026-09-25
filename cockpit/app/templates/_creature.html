@@ -1,0 +1,17 @@
+<div class="row wrap creature-head">
+  <button type="button" class="outline small" hx-get="/teleporte/lugares?tipo=criatura&q={{ q|urlencode }}" hx-target="#places">‹ Criaturas</button>
+  <h4>🐉 {{ creature }}</h4>
+  <span class="muted small">{{ count }} no mapa, em {{ total }} lugar(es){% if total > rows|length %}; mostrando os {{ rows|length }} com mais{% endif %}. Clique num lugar e teleporte.</span>
+</div>
+<div class="places">
+  {% for a in rows %}
+  <article class="place" data-place='{{ {"x": a.x, "y": a.y, "z": a.z, "name": creature ~ " perto de " ~ a.town if a.town else creature, "kind": "🐉 " ~ a.n ~ " " ~ creature}|tojson }}' tabindex="0">
+    <img src="/mapa/{{ a.x }}/{{ a.y }}/{{ a.z }}.png" alt="Mapa: {{ creature }} perto de {{ a.town }}" loading="lazy">
+    <div class="place-body">
+      <strong>{% if loop.first %}🏆 {% endif %}{{ a.n }} {{ creature }}{% if a.town %} <span class="muted">· perto de {{ a.town }}</span>{% endif %}</strong>
+      <small class="muted">{% if a.near %}junto com {{ a.near|join(', ') }}{% else %}só {{ creature }} aqui{% endif %}</small>
+      <small class="muted mono">{{ a.x }}, {{ a.y }}, {{ a.z }} · {{ 'térreo' if a.z == 7 else ('andar +' ~ (7 - a.z) if a.z < 7 else 'subsolo ' ~ (a.z - 7)) }}</small>
+    </div>
+  </article>
+  {% else %}<p class="muted">Não achei “{{ creature }}” no mapa.</p>{% endfor %}
+</div>

@@ -27,7 +27,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   em `cockpit_host_metrics` (7 dias). Os gráficos usam uPlot, copiado em `app/static`.
 - Teleporte: a lista de lugares vem do datapack (templos, paradas de viagem dos NPCs, NPCs, a área
   com mais spawns de cada monstro e casas), mais os lugares salvos no painel. A foto é um recorte do
-  mapa público do TibiaMaps, baixado na primeira vez para `COCKPIT_MAP_DIR`.
+  mapa público do TibiaMaps, baixado na primeira vez para `COCKPIT_MAP_DIR`. O filtro Criaturas lista
+  os monstros do mapa; escolhendo um, aparecem todos os pontos onde ele nasce (áreas vizinhas juntas),
+  com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.

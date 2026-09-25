@@ -971,15 +971,34 @@ def teleport_page(request: Request, q: str = "", tipo: str = ""):
     user = require(request)
     online = db.all("SELECT o.player_id AS id, o.name, o.level, o.vocation, o.posx, o.posy, o.posz, g.player_id IS NOT NULL AS in_group "
                     "FROM cockpit_online o LEFT JOIN cockpit_group g ON g.player_id = o.player_id ORDER BY o.name")
+    return page(request, "teleport.html", user, q=q, tipo=tipo, kinds=places.KINDS, online=online, **_place_list(q, tipo))
+
+
+def _place_list(q, tipo):
+    """Context for the list under the search box: creatures when that chip is on, places otherwise."""
+    if tipo == "criatura":
+        rows, total = places.creatures(q)
+        return {"list_tpl": "_creatures.html", "rows": rows, "total": total}
     rows, total = places.search(q, tipo)
-    return page(request, "teleport.html", user, rows=rows, total=total, q=q, tipo=tipo, kinds=places.KINDS, online=online)
+    return {"list_tpl": "_places.html", "rows": rows, "total": total}
 
 
 @app.get("/teleporte/lugares", response_class=HTMLResponse)
 def teleport_places(request: Request, q: str = "", tipo: str = ""):
     user = require(request)
-    rows, total = places.search(q, tipo)
-    return page(request, "_places.html", user, rows=rows, total=total, q=q, kinds=places.KINDS)
+    ctx = _place_list(q, tipo)
+    return page(request, ctx["list_tpl"], user, q=q, kinds=places.KINDS, **ctx)
+
+
+@app.get("/teleporte/criatura", response_class=HTMLResponse)
+def teleport_creature(request: Request, nome: str = "", q: str = ""):
+    """Every spot where one creature spawns, as place cards that can be picked as the destination."""
+    user = require(request)
+    name, areas = places.creature(nome)
+    marks = places.landmarks()
+    rows = [dict(a, town=places.nearest(a["x"], a["y"], marks)) for a in areas[:80]]
+    return page(request, "_creature.html", user, creature=name or nome, rows=rows, total=len(areas),
+                count=sum(a["n"] for a in areas), q=q)
 
 
 @app.get("/mapa/{x}/{y}/{z}.png")

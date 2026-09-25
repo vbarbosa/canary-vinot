@@ -8,13 +8,13 @@
 <div class="with-catalog tp">
   <section>
     <form class="row wrap tp-search" hx-get="/teleporte/lugares" hx-target="#places" hx-trigger="input changed delay:300ms from:input[name=q], change from:input[name=tipo], submit">
-      <input type="search" name="q" value="{{ q }}" placeholder="Buscar: Thais, dragon, Rashid, Ferumbras…" autofocus>
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar: Thais, dragon, Rashid, Ferumbras…" id="tp-q" autofocus>
       <div class="chips" role="radiogroup">
         <label><input type="radio" name="tipo" value="" {{ 'checked' if not tipo }}> Tudo</label>
         {% for k, label in kinds.items() %}<label><input type="radio" name="tipo" value="{{ k }}" {{ 'checked' if tipo == k }}> {{ label }}</label>{% endfor %}
       </div>
     </form>
-    <div id="places">{% include "_places.html" %}</div>
+    <div id="places">{% include list_tpl %}</div>
   </section>
 
   <aside class="tp-side">

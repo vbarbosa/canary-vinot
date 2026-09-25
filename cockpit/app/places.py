@@ -21,7 +21,9 @@ MAP_DIR = os.environ.get("COCKPIT_MAP_DIR", os.path.join(os.environ.get("COCKPIT
 MAP_URL = "https://raw.githubusercontent.com/tibiamaps/tibia-map-data/main/data/floor-{:02d}-map.png"
 MAP_X, MAP_Y, MAP_W, MAP_H = 31744, 30976, 2560, 2048
 
-KINDS = {"meu": "⭐ Salvos", "cidade": "🏛 Cidades", "viagem": "⛵ Viagens", "hunt": "⚔ Hunts", "npc": "🧙 NPCs", "casa": "🏠 Casas"}
+KINDS = {"meu": "⭐ Salvos", "criatura": "🐉 Criaturas", "cidade": "🏛 Cidades", "viagem": "⛵ Viagens", "hunt": "⚔ Hunts", "npc": "🧙 NPCs", "casa": "🏠 Casas"}
+
+JOIN = 40  # spawn squares whose centres are this close (in sqm, same floor) count as one hunting spot
 
 TRAVEL_RE = re.compile(
     r'addTravelKeyword\(\s*"([^"]+)"\s*,\s*\d+\s*,\s*(?:\{\s*x\s*=\s*(\d+)\s*,\s*y\s*=\s*(\d+)\s*,\s*z\s*=\s*(\d+)\s*\}|Position\((\d+),\s*(\d+),\s*(\d+)\))'
@@ -53,11 +55,28 @@ def world_places():
     except (OSError, ET.ParseError):
         pass
 
-    # hunting spots: for each monster, the 32x32 area (per floor) where most of them spawn
-    buckets = defaultdict(lambda: defaultdict(lambda: [0, 0, 0, Counter()]))  # name -> area -> [count, sum x, sum y, neighbours]
-    totals = Counter()
+    # hunting spots: for each monster, the area where most of them spawn
+    for name, areas in spawns().items():
+        a = areas[0]
+        others = ", ".join(a["near"][:3])
+        out.append(_place("hunt", name, a["x"], a["y"], a["z"],
+                          f"{sum(r['n'] for r in areas)} no mapa · {a['n']} aqui" + (f" com {others}" if others else "")))
+
     try:
-        for _, spawn in ET.iterparse(os.path.join(world, "otservbr-monster.xml")):
+        for h in ET.parse(os.path.join(world, "otservbr-house.xml")).getroot():
+            out.append(_place("casa", h.get("name"), h.get("entryx"), h.get("entryy"), h.get("entryz"),
+                              "guildhall" if h.get("guildhall") == "true" else "casa"))
+    except (OSError, ET.ParseError):
+        pass
+    return out
+
+
+@lru_cache(maxsize=1)
+def spawns():
+    """Every monster's spawn areas (32x32 squares per floor), busiest first: name -> [{x, y, z, n, near}]."""
+    buckets = defaultdict(lambda: defaultdict(lambda: [0, 0, 0, Counter()]))  # name -> area -> [count, sum x, sum y, neighbours]
+    try:
+        for _, spawn in ET.iterparse(os.path.join(DATAPACK, "world", "otservbr-monster.xml")):
             if spawn.tag != "monster" or spawn.get("centerx") is None:
                 continue
             x, y, z = int(spawn.get("centerx")), int(spawn.get("centery")), int(spawn.get("centerz"))
@@ -68,22 +87,53 @@ def world_places():
                 b[1] += x * n
                 b[2] += y * n
                 b[3].update(counts)
-                totals[name] += n
             spawn.clear()
     except (OSError, ET.ParseError):
         pass
+    out = {}
     for name, areas in buckets.items():
-        (_, _, z), (n, sx, sy, near) = max(areas.items(), key=lambda kv: kv[1][0])
-        others = ", ".join(m for m, _ in near.most_common(4) if m != name)
-        out.append(_place("hunt", name, sx // n, sy // n, z, f"{totals[name]} no mapa · {n} aqui" + (f" com {others}" if others else "")))
-
-    try:
-        for h in ET.parse(os.path.join(world, "otservbr-house.xml")).getroot():
-            out.append(_place("casa", h.get("name"), h.get("entryx"), h.get("entryy"), h.get("entryz"),
-                              "guildhall" if h.get("guildhall") == "true" else "casa"))
-    except (OSError, ET.ParseError):
-        pass
+        # join squares that touch into one hunting spot, growing from the busiest square
+        clusters = []
+        for (_, _, z), (n, sx, sy, near) in sorted(areas.items(), key=lambda kv: -kv[1][0]):
+            x, y = sx / n, sy / n
+            c = next((c for c in clusters if c["z"] == z and abs(c["sx"] / c["n"] - x) <= JOIN and abs(c["sy"] / c["n"] - y) <= JOIN), None)
+            if c is None:
+                clusters.append({"z": z, "n": n, "sx": sx, "sy": sy, "near": Counter(near)})
+            else:
+                c["n"] += n
+                c["sx"] += sx
+                c["sy"] += sy
+                c["near"].update(near)
+        rows = [{"x": c["sx"] // c["n"], "y": c["sy"] // c["n"], "z": c["z"], "n": c["n"],
+                 "near": [m for m, _ in c["near"].most_common(5) if m != name][:4]} for c in clusters]
+        out[name] = sorted(rows, key=lambda r: -r["n"])
     return out
+
+
+def creatures(q="", limit=60):
+    """Monsters whose name matches, most common first: [{name, total, areas, x, y, z}]."""
+    q = q.strip().lower()
+    rows = [{"name": name, "total": sum(a["n"] for a in areas), "areas": len(areas), **{k: areas[0][k] for k in "xyz"}}
+            for name, areas in spawns().items() if not q or q in name.lower()]
+    rows.sort(key=lambda r: (bool(q) and not r["name"].lower().startswith(q), -r["total"], r["name"]))
+    return rows[:limit], len(rows)
+
+
+def creature(name):
+    """(canonical name, spawn areas) for one monster, matching the name case-insensitively."""
+    for n, areas in spawns().items():
+        if n.lower() == name.strip().lower():
+            return n, areas
+    return None, []
+
+
+def landmarks():
+    """Town temples, to say roughly where a spot is."""
+    return [(t["name"], t["posx"], t["posy"]) for t in db.all("SELECT name, posx, posy FROM towns")]
+
+
+def nearest(x, y, marks):
+    return min(marks, key=lambda m: (m[1] - x) ** 2 + (m[2] - y) ** 2)[0] if marks else ""
 
 
 def all_places():
