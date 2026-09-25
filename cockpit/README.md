@@ -83,6 +83,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 - Mercado: as ofertas abertas (`market_offers`, busca por item ou jogador) e os últimos negócios (`market_history`). Cancelar
   marca a oferta como vencida (`created = 0`): some do mercado na hora e a checagem de ofertas vencidas do próprio jogo (a cada
   `checkExpiredMarketOffersEachMinutes` e ao ligar) devolve os itens no inbox ou o gold no banco.
+- Criatura e boss do dia (Jogo ao vivo › Criatura do dia): o jogo sorteia ao ligar, pelas tabelas `boosted_creature` e
+  `boosted_boss`, e mantém a linha quando a data é o dia de hoje. O painel escolhe gravando a linha com o dia de hoje (vale no
+  próximo início do jogo); "fixar" faz o laço de minuto regravar todo dia. Bosses: só Archfoe, como no sorteio.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

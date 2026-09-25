@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db, gamedata, scheduler, system
+from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
 from . import events, guilds, market, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
@@ -91,7 +91,7 @@ def current_user(request: Request):
 # a co-admin sees only the areas ticked for them. "/" and the small shared parts are open to both.
 SECTIONS = {
     "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
-    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, roleta, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/roleta", "/agenda", "/acao")),
+    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, roleta, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/roleta", "/boosted", "/agenda", "/acao")),
     "pessoas": ("👥 Pessoas", "Jogadores, contas, guilds, ban, senha", ("/jogador", "/conta", "/guild")),
     "economia": ("💰 Itens e economia", "Kits, economia, mercado e imobiliária", ("/kits", "/economia", "/mercado", "/imobiliaria")),
     "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
@@ -1795,6 +1795,39 @@ def realty_rules(request: Request, periodo: str = Form("off"), porcentagem: int 
     s = realty.save_settings(periodo, max(0, min(1000, porcentagem)), max(1, min(30, avisos)))
     db.audit(user["account"], "regras_aluguel", "", f"{periodo} {s['percent']}% {s['grace']} avisos")
     return Response(headers={"HX-Redirect": "/imobiliaria"})
+
+
+# ---------------------------------------------------------------- boosted creature and boss
+
+
+@app.get("/boosted", response_class=HTMLResponse)
+def boosted_page(request: Request):
+    user = require(request)
+    creatures, bosses = boosted.monsters()
+    info = {k: {"cur": boosted.current(k), "pin": boosted.pinned(k)} for k in boosted.TABLES}
+    for k, v in info.items():
+        v["today"] = bool(v["cur"]) and str(v["cur"]["date"]) == str(boosted.today())
+        pool = creatures if k == "creature" else bosses
+        v["look"] = pool.get((v["cur"] or {}).get("boostname", ""))
+    return page(request, "boosted.html", user, info=info, creatures=list(creatures), bosses=list(bosses))
+
+
+@app.post("/boosted/{kind}", response_class=HTMLResponse)
+async def boosted_save(request: Request, kind: str):
+    user = require(request, post=True)
+    if kind not in boosted.TABLES:
+        return toast("Tipo desconhecido.", ok=False)
+    f = await request.form()
+    if f.get("sortear"):
+        boosted.draw(kind)
+        db.audit(user["account"], "boosted_sortear", kind)
+        return Response(headers={"HX-Redirect": "/boosted"})
+    name = str(f.get("nome", "")).strip()
+    err = boosted.choose(kind, name, bool(f.get("fixar")))
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "boosted", kind, name + (" (fixo)" if f.get("fixar") else ""))
+    return Response(headers={"HX-Redirect": "/boosted"})
 
 
 # ---------------------------------------------------------------- market

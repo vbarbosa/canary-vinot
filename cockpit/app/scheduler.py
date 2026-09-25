@@ -11,7 +11,7 @@ import threading
 import time
 from zoneinfo import ZoneInfo
 
-from . import db, economy, events, realty, system
+from . import boosted, db, economy, events, realty, system
 
 TZ = ZoneInfo(os.environ.get("COCKPIT_TZ", "America/Sao_Paulo"))
 KEEP_DAYS = 7
@@ -104,6 +104,10 @@ def tick(dispatch):
         realty.tick()
     except Exception:
         log.exception("realty")
+    try:
+        boosted.tick()
+    except Exception:
+        log.exception("boosted")
     try:
         events.signup_tick()
     except Exception:
