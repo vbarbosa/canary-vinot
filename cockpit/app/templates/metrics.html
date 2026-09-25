@@ -14,7 +14,7 @@
     {% for p in ['1h', '6h', '24h', '7d'] %}<button type="button" data-period="{{ p }}" class="{{ 'active' if p == '6h' }}">{{ p }}</button>{% endfor %}
   </div>
 </div>
-<div class="charts">
+<div class="charts" data-src="/metricas/dados">
   {% for key, title, unit, group in [
     ('cpu', 'CPU da VM', '%', 'host'), ('mem', 'Memória da VM', '%', 'host'),
     ('players', 'Jogadores online', '', 'game'), ('game_ms', 'Tempo de resposta do jogo', ' ms', 'host'),

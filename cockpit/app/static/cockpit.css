@@ -78,7 +78,19 @@ label.slider output { color: var(--pico-primary); font-weight: 700; }
 .palette b { aspect-ratio: 1; border-radius: 2px; cursor: pointer; border: 1px solid #0006; }
 .palette b:hover { outline: 2px solid #fff; }
 details summary { font-weight: 600; }
-.kit-list { font-size: .85rem; }
+.kit-rows { list-style: none; padding: 0; margin: 0 0 .8rem; }
+.kit-rows li { list-style: none; display: flex; align-items: center; gap: .5rem; padding: .25rem 0; border-bottom: 1px solid #2a251c; font-size: .9rem; }
+.kit-rows .grow { flex: 1; }
+.kit-rows input { width: 5.5rem; margin: 0; padding: .2rem .4rem; height: auto; }
+.kit-rows button { margin: 0; padding: .15rem .5rem; }
+.kit-card header { gap: .6rem; }
+.pick-list { list-style: none; padding: 0; margin: .4rem 0 .8rem; max-height: 320px; overflow: auto; }
+.pick-list li { list-style: none; padding: .3rem 0; border-bottom: 1px solid #2a251c; }
+.pick-list label { margin: 0; }
+.char-edit { display: flex; flex-direction: column; gap: .3rem; }
+.char-edit select, .char-edit button { margin: 0; }
+.ban-form { margin: 0; }
+.ban-form input { flex: 1; min-width: 8rem; }
 
 /* toast */
 #toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; }
@@ -209,3 +221,13 @@ nav.top .brand { display: flex; align-items: center; gap: .5rem; text-decoration
 .job.off { opacity: .55; }
 .job-form label { margin-bottom: .4rem; }
 .days label { margin: 0 .6rem 0 0; }
+
+/* economy */
+.stat.big strong { font-size: 1.7rem; color: #f3d27a; white-space: nowrap; }
+.split-bar { display: flex; gap: 2px; height: 18px; border-radius: 6px; overflow: hidden; margin-bottom: .6rem; background: #2a251c; }
+.split-bar span { min-width: 3px; }
+.split-legend { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; font-size: .9rem; }
+.split-legend li { list-style: none; display: flex; align-items: center; gap: .4rem; }
+.split-legend i { width: .8rem; height: .8rem; border-radius: 3px; display: inline-block; }
+.seg-1 { background: #3987e5; } .seg-2 { background: #d95926; } .seg-3 { background: #199e70; } .seg-4 { background: #c98500; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }

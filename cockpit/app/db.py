@@ -85,6 +85,13 @@ SCHEMA = [
         `login_ms` INT NULL,
         PRIMARY KEY (`ts`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_economy` (
+        `ts` INT UNSIGNED NOT NULL,
+        `gold` BIGINT NOT NULL DEFAULT 0,
+        `bank` BIGINT NOT NULL DEFAULT 0,
+        `coins` BIGINT NOT NULL DEFAULT 0,
+        PRIMARY KEY (`ts`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_schedules` (
         `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
         `name` VARCHAR(64) NOT NULL,

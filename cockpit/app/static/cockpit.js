@@ -18,13 +18,48 @@
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
 
-  const kit = [];
+  // Kit editor: add by dragging, change quantities, remove, or load an existing kit to edit or duplicate.
+  let kit = [];
+  function renderKit() {
+    const list = document.getElementById("kit-list");
+    if (!list) return;
+    document.getElementById("kit-items").value = kit.map(k => k.id + ":" + k.qty).join(",");
+    list.innerHTML = kit.length ? "" : '<li class="muted small">Nenhum item ainda.</li>';
+    kit.forEach((k, i) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<img src="/icone/${k.id}.png" class="mini" alt=""><span class="grow"></span>
+        <input type="number" min="1" max="1000" value="${k.qty}" aria-label="Quantidade">
+        <button type="button" class="outline small danger" title="Tirar do kit">✕</button>`;
+      li.querySelector(".grow").textContent = k.name;
+      li.querySelector("input").addEventListener("change", e => { k.qty = Math.min(1000, Math.max(1, parseInt(e.target.value, 10) || 1)); renderKit(); });
+      li.querySelector("button").addEventListener("click", () => { kit.splice(i, 1); renderKit(); });
+      list.appendChild(li);
+    });
+  }
   function addToKit(id, title) {
     if (!id) return;
-    kit.push([id, qty(), title]);
-    document.getElementById("kit-items").value = kit.map(k => k[0] + ":" + k[1]).join(",");
-    document.getElementById("kit-list").innerHTML = kit.map(k => `<li><img src="/icone/${k[0]}.png" class="mini"> ${k[1]}x ${k[2]}</li>`).join("");
+    const found = kit.find(k => k.id == id);
+    if (found) found.qty = Math.min(1000, found.qty + qty());
+    else kit.push({ id, qty: qty(), name: title });
+    renderKit();
   }
+  function loadKit(data) {
+    const form = document.getElementById("kit-form");
+    form.elements.id.value = data.id;
+    form.elements.nome.value = data.name;
+    kit = data.items.map(([id, q, name]) => ({ id, qty: q, name }));
+    document.getElementById("kit-title").textContent = data.id ? "Editando: " + data.name : "Novo kit";
+    document.getElementById("kit-save").textContent = data.id ? "Salvar alterações" : "Salvar kit";
+    document.getElementById("kit-cancel").hidden = false;
+    renderKit();
+    document.getElementById("kit-editor").scrollIntoView({ behavior: "smooth" });
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-edit-kit]");
+    if (b) return loadKit(JSON.parse(b.dataset.editKit));
+    if (e.target.id === "kit-cancel") loadKit({ id: "", name: "", items: [] }), (e.target.hidden = true);
+  });
+  document.addEventListener("DOMContentLoaded", renderKit);
 
   function init(root) {
     root.querySelectorAll("[data-source]").forEach(el => {
@@ -86,6 +121,25 @@
     pick("data-kind", form.querySelector("#job-kind").value);
   }
   document.addEventListener("change", e => { if (e.target.closest(".job-form")) syncJobForm(); });
+  function loadJob(d) {
+    const form = document.getElementById("job-form");
+    form.reset();
+    form.elements.id.value = d.id || "";
+    ["nome", "acao", "alvo", "texto", "tipo", "minutos", "hora"].forEach(k => { if (d[k] !== undefined && d[k] !== "") form.elements[k].value = d[k]; });
+    form.querySelectorAll("[name=arg1]").forEach(el => (el.value = d.arg1 || el.value));
+    if (d.arg2) form.querySelector("[name=arg2]").value = d.arg2;
+    form.querySelectorAll("[name=dias]").forEach(c => (c.checked = (d.dias || "").includes(c.value)));
+    document.getElementById("job-title").textContent = d.id ? "Editando: " + d.nome : "Nova tarefa";
+    document.getElementById("job-save").textContent = d.id ? "Salvar alterações" : "Agendar";
+    document.getElementById("job-cancel").hidden = !d.id;
+    syncJobForm();
+    form.scrollIntoView({ behavior: "smooth" });
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-edit-job]");
+    if (b) loadJob(JSON.parse(b.dataset.editJob));
+    else if (e.target.id === "job-cancel") loadJob({});
+  });
   document.addEventListener("DOMContentLoaded", syncJobForm);
 
   document.addEventListener("htmx:load", e => init(e.detail.elt));

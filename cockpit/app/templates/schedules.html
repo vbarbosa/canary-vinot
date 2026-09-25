@@ -25,6 +25,7 @@
         <span class="muted">· Última: {% if j.last_run %}<span data-ts="{{ j.last_run }}"></span> {{ j.last_result }}{% else %}nunca{% endif %}</span>
         <span class="right row">
           <button class="outline small" hx-post="/agenda/{{ j.id }}/rodar" hx-target="#toast">Rodar agora</button>
+          <button class="outline small" data-edit-job='{{ {"id": j.id, "nome": j.name, "acao": j.action, "alvo": j.alvo, "arg1": j.arg1, "arg2": j.arg2, "texto": j.text, "tipo": j.kind, "minutos": j.every_min, "hora": j.at_time, "dias": j.weekdays}|tojson }}'>Editar</button>
           <button class="outline small danger" hx-post="/agenda/{{ j.id }}/apagar" hx-confirm="Apagar a tarefa {{ j.name }}?">Apagar</button>
         </span>
       </footer>
@@ -49,8 +50,9 @@
     </article>
 
     <article>
-      <h4>Nova tarefa</h4>
-      <form hx-post="/agenda" hx-target="#toast" class="job-form">
+      <h4 id="job-title">Nova tarefa</h4>
+      <form hx-post="/agenda" hx-target="#toast" class="job-form" id="job-form">
+        <input type="hidden" name="id" value="">
         <label>O que fazer
           <select name="acao" id="job-action" required>
             {% for k, v in job_actions.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
@@ -80,7 +82,10 @@
           {% for d in weekdays %}<label><input type="checkbox" name="dias" value="{{ loop.index0 }}"> {{ d }}</label>{% endfor %}
         </div>
         <input name="nome" placeholder="Nome (opcional, ex.: Presente de sexta)">
-        <button>Agendar</button>
+        <div class="row">
+          <button id="job-save">Agendar</button>
+          <button type="button" class="outline secondary" id="job-cancel" hidden>Cancelar edição</button>
+        </div>
       </form>
     </article>
   </section>

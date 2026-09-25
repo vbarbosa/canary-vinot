@@ -119,6 +119,17 @@ actions.give_money = function(player, cmd)
 	return true, amount .. " gold no banco"
 end
 
+-- arg1 = amount; never takes more than the player has in the bank
+actions.take_money = function(player, cmd)
+	local amount = math.min(math.max(1, cmd.arg1), player:getBankBalance())
+	if amount <= 0 then
+		return false, "banco vazio"
+	end
+	player:setBankBalance(player:getBankBalance() - amount)
+	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "O Mestre retirou " .. amount .. " gold do seu banco.")
+	return true, amount .. " gold retirado"
+end
+
 -- arg1 = level
 actions.set_level = function(player, cmd)
 	return setLevel(player, cmd.arg1)

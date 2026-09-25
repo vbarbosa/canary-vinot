@@ -2,9 +2,10 @@
 (function () {
   const INK = "#9a8f7c", GRID = "rgba(154,143,124,.15)", LINE = "#d9a441", FILL = "rgba(217,164,65,.14)";
   const PERCENT = new Set(["cpu", "mem", "disk"]);
-  let period = "6h", charts = [], timer;
+  let period, charts = [], timer;
 
-  const fmt = (v, unit) => (v == null ? "—" : (Math.round(v * 10) / 10).toLocaleString("pt-BR") + unit);
+  const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+  const fmt = (v, unit) => (v == null ? "—" : (Math.abs(v) >= 100000 ? compact.format(v) : (Math.round(v * 10) / 10).toLocaleString("pt-BR")) + unit);
 
   function build(el, t, y) {
     const key = el.dataset.key, unit = el.dataset.unit, box = el.querySelector(".plot");
@@ -20,7 +21,7 @@
           values: (u, vals) => { const long = u.scales.x.max - u.scales.x.min > 2 * 86400;
             return vals.map(v => new Date(v * 1000).toLocaleString("pt-BR", long ? { day: "2-digit", month: "2-digit" } : { hour: "2-digit", minute: "2-digit" })); } },
         { stroke: INK, grid: { stroke: GRID, width: 1 }, ticks: { show: false }, size: 44, font: "11px system-ui",
-          values: (u, vals) => vals.map(v => v.toLocaleString("pt-BR") + (unit === "%" ? "%" : "")) },
+          values: (u, vals) => vals.map(v => (Math.abs(v) >= 100000 ? compact.format(v) : v.toLocaleString("pt-BR")) + (unit === "%" ? "%" : "")) },
       ],
       series: [{}, { stroke: LINE, width: 2, fill: FILL, points: { show: false }, spanGaps: false }],
     };
@@ -43,7 +44,7 @@
   }
 
   async function load() {
-    const r = await fetch("/metricas/dados?periodo=" + period, { credentials: "same-origin" });
+    const r = await fetch(document.querySelector(".charts").dataset.src + "?periodo=" + period, { credentials: "same-origin" });
     if (r.redirected || !r.ok) return;
     const data = await r.json();
     document.querySelectorAll(".chart").forEach((el, i) => {
@@ -56,6 +57,7 @@
 
   function start() {
     if (!document.querySelector(".charts")) return;
+    period = document.querySelector("#periods button.active").dataset.period;
     document.getElementById("periods").addEventListener("click", e => {
       const b = e.target.closest("button[data-period]");
       if (!b) return;

@@ -1,0 +1,15 @@
+{% if rows %}
+<form hx-post="/conta/{{ aid }}/trazer" hx-target="#toast">
+  <ul class="pick-list">
+    {% for r in rows %}
+    <li><label>
+      <input type="checkbox" name="pid" value="{{ r.id }}" {{ 'disabled' if r.online or r.group_id >= 6 }}>
+      <strong>{{ r.name }}</strong> <span class="muted small">nível {{ r.level }} · {{ vocations.get(r.vocation, '') }} · conta {{ r.email }}</span>
+      {% if r.online %}<span class="tag err">online</span>{% elif r.group_id >= 6 %}<span class="tag">God</span>{% endif %}
+    </label></li>
+    {% endfor %}
+  </ul>
+  <button>Mover marcados para esta conta</button>
+</form>
+{% elif q|length >= 2 %}<p class="muted small">Nenhum personagem de outra conta com “{{ q }}”.</p>
+{% else %}<p class="muted small">Digite pelo menos 2 letras.</p>{% endif %}

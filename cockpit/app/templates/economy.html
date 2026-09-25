@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Economia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/uPlot.min.css"><script src="/static/uPlot.iife.min.js" defer></script><script src="/static/charts.js" defer></script>{% endblock %}
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <h3>🏦 Economia</h3>
+  <p class="muted">O banco central do VinOT: quanto dinheiro existe no mundo, onde ele está e quem tem. Quem está online aparece atualizado depois que o jogo salva.</p>
+</div>
+
+<div class="stats">
+  <article class="stat big"><small class="muted">Gold no mundo</small><strong>{{ gold(e.total) }}</strong><small class="muted">{{ gold(e.per_player) }} por personagem, em média</small></article>
+  <article class="stat"><small class="muted">Nos bancos</small><strong>{{ gold(e.bank) }}</strong><small class="muted">{{ e.savers }} de {{ e.players }} personagens têm conta com saldo</small></article>
+  <article class="stat"><small class="muted">Tibia coins</small><strong>{{ gold(e.coins + e.coins_t) }}</strong><small class="muted">{{ gold(e.coins) }} normais · {{ gold(e.coins_t) }} transferíveis</small></article>
+  <article class="stat"><small class="muted">Mercado (7 dias)</small><strong>{{ gold(market.volume) }}</strong><small class="muted">{{ market.n }} vendas · {{ offers.n }} ofertas abertas</small></article>
+  <article class="stat"><small class="muted">Casas</small><strong>{{ houses.owned or 0 }} de {{ houses.total }}</strong><small class="muted">aluguel somado: {{ gold(houses.rent) }} gold</small></article>
+</div>
+
+{% set parts = [('Bancos', e.bank), ('Mochilas', e.carried), ('Depósitos', e.depot), ('Guildas', e.guild)] %}
+<article class="panel">
+  <header><h4>Onde está o gold</h4></header>
+  <div class="split-bar" role="img" aria-label="Divisão do gold do mundo">
+    {% for label, v in parts if v > 0 %}<span style="flex: {{ v }}" class="seg-{{ loop.index }}" title="{{ label }}: {{ gold(v) }}"></span>{% endfor %}
+  </div>
+  <ul class="split-legend">
+    {% for label, v in parts %}<li><i class="seg-{{ loop.index }}"></i>{{ label }} <strong>{{ gold(v) }}</strong> <span class="muted">{{ ((100 * v / e.total) if e.total else 0)|round(1) }}%</span></li>{% endfor %}
+  </ul>
+</article>
+
+<div class="portal">
+  <div class="col-main">
+    <div class="row wrap chart-bar">
+      <h4>Histórico</h4>
+      <div class="seg right" role="group" id="periods">
+        {% for p in ['24h', '7d', '30d'] %}<button type="button" data-period="{{ p }}" class="{{ 'active' if p == '7d' }}">{{ p }}</button>{% endfor %}
+      </div>
+    </div>
+    <div class="charts" data-src="/economia/dados">
+      {% for key, title in [('gold', 'Gold no mundo'), ('bank', 'Gold nos bancos'), ('coins', 'Tibia coins')] %}
+      <article class="chart" data-key="{{ key }}" data-unit="" data-group="eco">
+        <header class="row"><strong>{{ title }}</strong><span class="right now muted"></span></header>
+        <div class="plot"></div>
+      </article>
+      {% endfor %}
+    </div>
+    <p class="muted small">Um ponto por hora, guardado por 90 dias.</p>
+
+    <article class="panel">
+      <header><h4>💰 Os mais ricos</h4></header>
+      <table class="compact">
+        <thead><tr><th>#</th><th>Jogador</th><th class="num">Banco</th><th class="num">Mochila</th><th class="num">Depósito</th><th class="num">Total</th></tr></thead>
+        <tbody>
+        {% for r in richest %}
+          <tr><td>{{ loop.index }}</td><td><a href="/jogador/{{ r.id }}">{{ r.name }}</a> <span class="muted small">nível {{ r.level }}</span></td>
+            <td class="num">{{ gold(r.bank) }}</td><td class="num">{{ gold(r.carried) }}</td><td class="num">{{ gold(r.depot) }}</td><td class="num"><strong>{{ gold(r.total) }}</strong></td></tr>
+        {% else %}<tr><td colspan="6" class="muted">Ninguém tem dinheiro ainda.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </div>
+
+  <aside class="col-side">
+    <article class="panel">
+      <header><h4>🏦 Operação no banco</h4></header>
+      <form hx-post="/economia/banco" hx-target="#toast">
+        <input name="jogador" list="richest-names" placeholder="Nome do personagem" required>
+        <datalist id="richest-names">{% for r in richest %}<option value="{{ r.name }}">{% endfor %}</datalist>
+        <input name="valor" type="number" min="1" value="10000" required>
+        <div class="row">
+          <button name="operacao" value="depositar" class="secondary">Depositar</button>
+          <button name="operacao" value="sacar" class="outline danger">Sacar</button>
+        </div>
+      </form>
+      <p class="small muted">Vale mesmo com o jogador online. Offline, entra quando ele logar. O saque nunca deixa o saldo negativo.</p>
+      <p class="small"><a href="/contas">Tibia coins e premium ficam na tela da conta →</a></p>
+    </article>
+
+    {% if guilds %}
+    <article class="panel">
+      <header><h4>🛡 Cofres das guildas</h4></header>
+      <ul class="upcoming">{% for g in guilds %}<li class="row"><span>{{ g.name }}</span><strong class="right">{{ gold(g.balance) }}</strong></li>{% endfor %}</ul>
+    </article>
+    {% endif %}
+
+    <article class="panel">
+      <header><h4>🪙 Movimento de coins</h4></header>
+      <ul class="feed">
+        {% for t in coin_log %}<li class="{{ 'done' if t.type == 1 else 'error' }}"><span class="dot"></span>{{ '+' if t.type == 1 else '−' }}{{ gold(t.amount) }}
+          <a href="/conta/{{ t.aid }}">{{ t.email }}</a> <span class="muted">{{ t.description }}</span></li>
+        {% else %}<li class="muted">Sem movimento.</li>{% endfor %}
+      </ul>
+    </article>
+
+    <article class="panel">
+      <header><h4>🛒 Compras na loja</h4></header>
+      <ul class="feed">
+        {% for s in store %}<li><span data-ts="{{ s.time }}"></span> <a href="/conta/{{ s.aid }}">{{ s.email }}</a> {{ s.description }} <span class="muted">{{ s.coin_amount }} coins</span></li>
+        {% else %}<li class="muted">Nenhuma compra ainda.</li>{% endfor %}
+      </ul>
+    </article>
+  </aside>
+</div>
+{% endblock %}

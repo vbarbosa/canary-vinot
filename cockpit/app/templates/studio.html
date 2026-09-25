@@ -75,7 +75,11 @@
         <button class="secondary outline small" hx-post="/acao" hx-vals='{"action":"temple","alvo":"{{ p.id }}"}' hx-target="#toast">Templo</button>
         {% if p.group_id < 6 %}
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"kick","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Kickar {{ p.name }}?">Kick</button>
-        <button class="outline small danger" hx-post="/jogadores/{{ p.id }}/ban" hx-vals='{"dias":"7"}' hx-target="#toast" hx-confirm="Banir a conta de {{ p.name }} por 7 dias?">Banir 7 dias</button>
+        <form class="row wrap ban-form" hx-post="/jogadores/{{ p.id }}/ban" hx-target="#toast" hx-confirm="Banir a conta de {{ p.name }}?">
+          <select name="dias" class="w8">{% for d, label in [(1, '1 dia'), (3, '3 dias'), (7, '7 dias'), (30, '30 dias'), (365, '1 ano')] %}<option value="{{ d }}" {{ 'selected' if d == 7 }}>{{ label }}</option>{% endfor %}</select>
+          <input name="motivo" placeholder="Motivo (opcional)" maxlength="200">
+          <button class="outline small danger">Banir</button>
+        </form>
         {% endif %}
       </div>
     </details>

@@ -26,6 +26,11 @@
               <summary class="outline small">Mais</summary>
               <ul>
                 <li><form hx-post="/jogador/{{ c.id }}/renomear" hx-target="#toast" class="row"><input name="nome" placeholder="Novo nome" required><button class="small">Renomear</button></form></li>
+                <li><form hx-post="/jogador/{{ c.id }}/editar" hx-target="#toast" class="char-edit">
+                  <select name="sexo"><option value="1" {{ 'selected' if c.sex == 1 }}>Masculino</option><option value="0" {{ 'selected' if c.sex == 0 }}>Feminino</option></select>
+                  <select name="vocacao">{% for id, name in vocations_list %}<option value="{{ id }}" {{ 'selected' if id == c.vocation }}>{{ name }}</option>{% endfor %}</select>
+                  <select name="cidade">{% for t in towns %}<option value="{{ t.id }}" {{ 'selected' if t.id == c.town_id }}>{{ t.name }}</option>{% endfor %}</select>
+                  <button class="small">Salvar sexo, vocação e cidade</button></form></li>
                 <li><button class="outline small danger" hx-post="/jogador/{{ c.id }}/apagar" hx-target="#toast" hx-confirm="Apagar {{ c.name }} para sempre? Itens, level e tudo mais somem.">Apagar personagem</button></li>
               </ul>
             </details>
@@ -36,6 +41,12 @@
       </tbody>
     </table>
     <article>
+      <h4>Trazer personagens de outras contas</h4>
+      <input type="search" name="q" placeholder="Nome do personagem ou e-mail da conta dele…"
+             hx-get="/conta/{{ acc.id }}/buscar-personagens" hx-trigger="input changed delay:300ms, search" hx-target="#move-results">
+      <div id="move-results"><p class="muted small">Busque e marque quantos quiser. Só dá para mover personagem offline.</p></div>
+    </article>
+    <article>
       <h4>Novo personagem</h4>
       <form hx-post="/conta/{{ acc.id }}/personagem" hx-target="#toast">
         <input name="nome" placeholder="Nome do personagem" required>
@@ -45,6 +56,12 @@
     </article>
   </section>
   <section>
+    <h4>Dados da conta</h4>
+    <form class="row wrap" hx-post="/conta/{{ acc.id }}/dados" hx-target="#toast">
+      <input name="email" type="email" value="{{ acc.email }}" required placeholder="E-mail de login">
+      <input name="nome" value="{{ acc.name }}" placeholder="Nome da conta" class="w8">
+      <button class="secondary outline">Salvar</button>
+    </form>
     <h4>Loja e moedas</h4>
     <form class="row wrap" hx-post="/conta/{{ acc.id }}/coins" hx-target="#toast">
       <input type="number" name="quantidade" value="250" class="w8" required>

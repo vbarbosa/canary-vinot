@@ -23,6 +23,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
+from . import economy as economy_mod
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -190,6 +191,7 @@ def clamp(v, lo, hi):
 ACTIONS = {
     "give_item": {"arg1": (100, 100000), "arg2": (1, 1000)},
     "give_money": {"arg1": (1, 100000000)},
+    "take_money": {"arg1": (1, 1000000000)},
     "set_level": {"arg1": (1, 2000)},
     "set_skill": {"arg1": (0, 99), "arg2": (0, 200)},
     "set_outfit": {"arg1": (0, 5000), "arg2": (0, 3), "arg3": (0, 1000)},
@@ -241,7 +243,7 @@ def part_online(request: Request):
 
 
 ACTION_LABELS = {
-    "give_item": "🎁 item", "give_money": "💰 dinheiro", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
+    "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão",
@@ -383,13 +385,20 @@ def _parse_kit(items):
 
 
 @app.post("/kits", response_class=HTMLResponse)
-def kit_create(request: Request, nome: str = Form(...), itens: str = Form("")):
+def kit_save(request: Request, nome: str = Form(...), itens: str = Form(""), id: str = Form("")):
+    """Create a kit, or update it when the form carries its id."""
     user = require(request, post=True)
-    items = _parse_kit(itens)
-    if not nome.strip() or not items:
-        return toast("Dê um nome e arraste ao menos um item.", ok=False)
-    db.run("INSERT INTO cockpit_kits (name, items) VALUES (%s, %s)", nome.strip()[:64], items)
-    db.audit(user["account"], "kit_criado", nome.strip()[:64], items)
+    items, name = _parse_kit(itens), nome.strip()[:64]
+    if not name or not items:
+        return toast("Dê um nome e deixe ao menos um item no kit.", ok=False)
+    if id.isdigit():
+        if not db.one("SELECT id FROM cockpit_kits WHERE id = %s", int(id)):
+            return toast("Esse kit não existe mais.", ok=False)
+        db.run("UPDATE cockpit_kits SET name = %s, items = %s WHERE id = %s", name, items, int(id))
+        db.audit(user["account"], "kit_editado", name, items)
+    else:
+        db.run("INSERT INTO cockpit_kits (name, items) VALUES (%s, %s)", name, items)
+        db.audit(user["account"], "kit_criado", name, items)
     return Response(headers={"HX-Redirect": "/kits"})
 
 
@@ -508,14 +517,26 @@ async def schedule_create(request: Request):
         return toast("Hora inválida (use HH:MM).", ok=False)
     if kind == "weekly" and not job["weekdays"]:
         return toast("Marque pelo menos um dia da semana.", ok=False)
+    sid = int(f["id"]) if str(f.get("id", "")).isdigit() else 0
     same = db.one(
-        "SELECT name FROM cockpit_schedules WHERE action = %s AND alvo = %s AND arg1 = %s AND text = %s AND kind = %s AND every_min = %s AND at_time = %s AND weekdays = %s",
-        action, alvo, arg1, text, kind, job["every_min"], job["at_time"], job["weekdays"],
+        "SELECT name FROM cockpit_schedules WHERE action = %s AND alvo = %s AND arg1 = %s AND text = %s AND kind = %s AND every_min = %s "
+        "AND at_time = %s AND weekdays = %s AND id <> %s",
+        action, alvo, arg1, text, kind, job["every_min"], job["at_time"], job["weekdays"], sid,
     )
     if same:
         return toast(f"Essa tarefa já existe: {same['name']}.", ok=False)
     now = int(time.time())
     nxt = scheduler.next_run(job, now)
+    if sid:
+        old = _job(sid)
+        db.run(
+            "UPDATE cockpit_schedules SET name = %s, action = %s, alvo = %s, arg1 = %s, arg2 = %s, text = %s, kind = %s, every_min = %s, "
+            "at_time = %s, weekdays = %s, next_run = %s WHERE id = %s",
+            name or scheduler.JOB_ACTIONS[action], action, alvo, arg1, arg2, text, kind, job["every_min"], job["at_time"], job["weekdays"],
+            nxt if old["enabled"] else 0, sid,
+        )
+        db.audit(user["account"], "schedule_edit", name or action, scheduler.describe(job))
+        return Response(headers={"HX-Redirect": "/agenda"})
     db.run(
         "INSERT INTO cockpit_schedules (name, action, alvo, arg1, arg2, text, kind, every_min, at_time, weekdays, created_by, next_run) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -650,7 +671,7 @@ def account_detail(request: Request, aid: int):
     if not acc:
         raise HTTPException(404)
     chars = db.all(
-        "SELECT p.id, p.name, p.level, p.vocation, p.group_id, p.town_id, o.player_id IS NOT NULL AS online "
+        "SELECT p.id, p.name, p.level, p.vocation, p.group_id, p.town_id, p.sex, o.player_id IS NOT NULL AS online "
         "FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id WHERE p.account_id = %s ORDER BY p.name", aid,
     )
     premium = max(0, (acc["lastday"] - int(time.time()) + 86399) // 86400) if acc["lastday"] else 0
@@ -660,6 +681,66 @@ def account_detail(request: Request, aid: int):
         request, "account.html", user, acc=acc, chars=chars, premium=premium, groups=GROUPS, towns=towns(),
         vocations_list=list(gamedata.vocations().items())[:5], purchases=purchases, coin_log=coin_log,
     )
+
+
+@app.post("/conta/{aid}/dados", response_class=HTMLResponse)
+def account_edit(request: Request, aid: int, nome: str = Form(""), email: str = Form(...)):
+    user = require(request, post=True)
+    acc = db.one("SELECT * FROM accounts WHERE id = %s", aid)
+    if not acc:
+        raise HTTPException(404)
+    email, nome = email.strip().lower()[:255], nome.strip()[:32]
+    if not EMAIL_RE.match(email):
+        return toast("E-mail inválido.", ok=False)
+    if db.one("SELECT id FROM accounts WHERE email = %s AND id <> %s", email, aid):
+        return toast("Já existe outra conta com esse e-mail.", ok=False)
+    if nome and db.one("SELECT id FROM accounts WHERE name = %s AND id <> %s", nome, aid):
+        return toast("Já existe outra conta com esse nome.", ok=False)
+    db.run("UPDATE accounts SET email = %s, name = %s WHERE id = %s", email, nome or acc["name"], aid)
+    db.audit(user["account"], "conta_editada", acc["email"], f"{email} {nome}")
+    return Response(headers={"HX-Redirect": f"/conta/{aid}"})
+
+
+@app.get("/conta/{aid}/buscar-personagens", response_class=HTMLResponse)
+def account_find_chars(request: Request, aid: int, q: str = ""):
+    """Characters of other accounts, for moving them into this one."""
+    user = require(request)
+    q = q.strip()
+    rows = []
+    if len(q) >= 2:
+        rows = db.all(
+            "SELECT p.id, p.name, p.level, p.vocation, p.group_id, a.email, o.player_id IS NOT NULL AS online FROM players p "
+            "JOIN accounts a ON a.id = p.account_id LEFT JOIN cockpit_online o ON o.player_id = p.id "
+            "WHERE p.account_id <> %s AND (p.name LIKE %s OR a.email LIKE %s) ORDER BY p.name LIMIT 30",
+            aid, f"%{q}%", f"%{q}%",
+        )
+    return page(request, "_move_chars.html", user, rows=rows, q=q, aid=aid)
+
+
+@app.post("/conta/{aid}/trazer", response_class=HTMLResponse)
+async def account_take_chars(request: Request, aid: int):
+    """Move the ticked characters (offline, not God) into this account."""
+    user = require(request, post=True)
+    acc = db.one("SELECT id, email FROM accounts WHERE id = %s", aid)
+    if not acc:
+        raise HTTPException(404)
+    pids = [int(x) for x in (await request.form()).getlist("pid") if str(x).isdigit()][:50]
+    if not pids:
+        return toast("Marque pelo menos um personagem.", ok=False)
+    moved, skipped = [], []
+    for pid in pids:
+        p = db.one("SELECT id, name, account_id, group_id FROM players WHERE id = %s", pid)
+        if not p or p["account_id"] == aid:
+            continue
+        if p["group_id"] >= GOD_GROUP or is_online(pid):
+            skipped.append(p["name"])
+            continue
+        db.run("UPDATE players SET account_id = %s WHERE id = %s", aid, pid)
+        db.audit(user["account"], "personagem_movido", p["name"], f"conta {p['account_id']} -> {aid} ({acc['email']})")
+        moved.append(p["name"])
+    if not moved:
+        return toast("Nenhum movido. Personagem online ou God não pode ser movido.", ok=False)
+    return Response(headers={"HX-Redirect": f"/conta/{aid}"})
 
 
 @app.post("/conta/{aid}/senha", response_class=HTMLResponse)
@@ -762,6 +843,25 @@ def character_rename(request: Request, pid: int, nome: str = Form(...)):
     return Response(headers={"HX-Redirect": f"/conta/{p['account_id']}"})
 
 
+@app.post("/jogador/{pid}/editar", response_class=HTMLResponse)
+def character_edit(request: Request, pid: int, sexo: int = Form(...), vocacao: int = Form(...), cidade: int = Form(...)):
+    user = require(request, post=True)
+    p = db.one("SELECT name, account_id, sex, looktype FROM players WHERE id = %s", pid)
+    if not p:
+        return toast("Personagem não encontrado.", ok=False)
+    if is_online(pid):
+        return toast(f"{p['name']} está online. Kicke antes de editar.", ok=False)
+    if vocacao not in gamedata.vocations() or cidade not in {t["id"] for t in towns()}:
+        return toast("Vocação ou cidade inválida.", ok=False)
+    sex = 1 if sexo else 0
+    looktype = p["looktype"]
+    if sex != p["sex"] and looktype in (128, 136):  # keep the default citizen outfit matching the sex
+        looktype = 128 if sex else 136
+    db.run("UPDATE players SET sex = %s, vocation = %s, town_id = %s, looktype = %s WHERE id = %s", sex, vocacao, cidade, looktype, pid)
+    db.audit(user["account"], "personagem_editado", p["name"], f"sexo {sex} vocação {vocacao} cidade {cidade}")
+    return Response(headers={"HX-Redirect": f"/conta/{p['account_id']}"})
+
+
 @app.post("/jogador/{pid}/grupo", response_class=HTMLResponse)
 def character_group(request: Request, pid: int, grupo: int = Form(...)):
     user = require(request, post=True)
@@ -842,6 +942,49 @@ def _log_selection(pasta, arquivo, linhas=500, filtro=""):
     st = os.stat(path)
     sel = {"pasta": pasta, "arquivo": arquivo, "size": st.st_size, "mtime": int(st.st_mtime), "active": system.is_active(st.st_mtime)}
     return sel, [(line, system.level(line)) for line in system.tail(path, linhas, filtro)]
+
+
+# ---------------------------------------------------------------- economy
+
+
+@app.get("/economia", response_class=HTMLResponse)
+def economy(request: Request):
+    user = require(request)
+    e = economy_mod.snapshot()
+    week = int(time.time()) - 7 * 86400
+    market = db.one(
+        "SELECT COUNT(*) AS n, COALESCE(SUM(price * amount), 0) AS volume FROM market_history WHERE state IN (3, 255) AND inserted >= %s", week
+    )
+    offers = db.one("SELECT COUNT(*) AS n, COALESCE(SUM(price * amount), 0) AS value FROM market_offers")
+    houses = db.one("SELECT COUNT(*) AS total, SUM(owner > 0) AS owned, COALESCE(SUM(CASE WHEN owner > 0 THEN rent END), 0) AS rent FROM houses")
+    richest = economy_mod.richest(10)
+    guilds = db.all("SELECT id, name, balance FROM guilds WHERE balance > 0 ORDER BY balance DESC LIMIT 5")
+    coin_log = db.all(
+        "SELECT t.*, a.email, a.id AS aid FROM coins_transactions t JOIN accounts a ON a.id = t.account_id ORDER BY t.id DESC LIMIT 15"
+    )
+    store = db.all("SELECT s.*, a.email, a.id AS aid FROM store_history s JOIN accounts a ON a.id = s.account_id ORDER BY s.id DESC LIMIT 10")
+    return page(request, "economy.html", user, e=e, market=market, offers=offers, houses=houses, richest=richest, guilds=guilds,
+                coin_log=coin_log, store=store)
+
+
+@app.get("/economia/dados")
+def economy_data(request: Request, periodo: str = "7d"):
+    require(request)
+    span = {"24h": 86400, "7d": 7 * 86400, "30d": 30 * 86400}.get(periodo, 7 * 86400)
+    rows = db.all("SELECT * FROM cockpit_economy WHERE ts >= %s ORDER BY ts", int(time.time()) - span)
+    col = lambda k: [int(r[k]) for r in rows]  # noqa: E731
+    return {"eco": {"t": col("ts"), "gold": col("gold"), "bank": col("bank"), "coins": col("coins")}}
+
+
+@app.post("/economia/banco", response_class=HTMLResponse)
+def economy_bank(request: Request, jogador: str = Form(...), valor: int = Form(...), operacao: str = Form("depositar")):
+    """Deposit into or withdraw from one player's bank, through the Lua bridge so it is safe while they are online."""
+    user = require(request, post=True)
+    p = db.one("SELECT id, name, balance FROM players WHERE name = %s", " ".join(jogador.split()))
+    if not p:
+        return toast("Jogador não encontrado.", ok=False)
+    ok, msg = dispatch(user["account"], "give_money" if operacao == "depositar" else "take_money", str(p["id"]), "", {"arg1": valor})
+    return toast(msg, ok)
 
 
 @app.get("/logs", response_class=HTMLResponse)
