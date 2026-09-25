@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places
+from . import places, realty
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -1049,6 +1049,107 @@ def place_delete(request: Request, lid: int):
     db.run("DELETE FROM cockpit_places WHERE id = %s", lid)
     db.audit(user["account"], "lugar_apagado", p["name"] if p else str(lid))
     return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+# ---------------------------------------------------------------- real estate
+
+
+def _house_list(q, cidade, situacao, s=None):
+    all_houses = realty.houses(s)
+    rows = realty.search(all_houses, q, cidade, situacao)
+    return all_houses, {"rows": rows[:60], "total": len(rows)}
+
+
+@app.get("/imobiliaria", response_class=HTMLResponse)
+def realty_page(request: Request, q: str = "", cidade: str = "", situacao: str = "", casa: int = 0):
+    user = require(request)
+    s = realty.settings()
+    all_houses, ctx = _house_list(q, cidade, situacao, s)
+    owned = [h for h in all_houses if h["owner"]]
+    stats = {"total": len(all_houses), "owned": len(owned), "late": sum(h["late"] for h in owned),
+             "guildhalls": sum(h["guildhall"] for h in all_houses), "rent": sum(h["rent"] for h in owned)}
+    got, n = realty.income(30)
+    towns_used = sorted({(h["town_id"], h["town"]) for h in all_houses}, key=lambda t: t[1])
+    return page(request, "realty.html", user, s=s, stats=stats, income=got, income_n=n, q=q, cidade=cidade, situacao=situacao,
+                towns_used=towns_used, periods=realty.PERIODS, log=realty.history(limit=15), log_kinds=realty.LOG_KINDS,
+                casa=casa, **ctx)
+
+
+@app.get("/imobiliaria/casas", response_class=HTMLResponse)
+def realty_list(request: Request, q: str = "", cidade: str = "", situacao: str = ""):
+    user = require(request)
+    _, ctx = _house_list(q, cidade, situacao)
+    return page(request, "_houses.html", user, q=q, **ctx)
+
+
+@app.get("/imobiliaria/{hid}", response_class=HTMLResponse)
+def realty_house(request: Request, hid: int):
+    user = require(request)
+    s = realty.settings()
+    h = realty.one(hid, s)
+    if not h:
+        return HTMLResponse('<p class="muted">Casa não encontrada.</p>')
+    guests = db.all("SELECT listid, list FROM house_lists WHERE house_id = %s", hid)
+    players = db.all("SELECT name FROM players WHERE group_id < %s ORDER BY name", GOD_GROUP)
+    return page(request, "_house.html", user, h=h, s=s, guests=guests, players=players, log=realty.history(hid, 10), log_kinds=realty.LOG_KINDS)
+
+
+def _house_done(msg, ok=True):
+    r = toast(msg, ok)
+    if ok:
+        r.headers["HX-Trigger"] = "house-changed"
+    return r
+
+
+@app.post("/imobiliaria/{hid}/{acao}", response_class=HTMLResponse)
+async def realty_action(request: Request, hid: int, acao: str):
+    user = require(request, post=True)
+    f = await request.form()
+    s = realty.settings()
+    h = realty.one(hid, s)
+    if not h:
+        return toast("Casa não encontrada.", ok=False)
+    me = user["account"]
+    if acao == "dono":
+        p = db.one("SELECT id, name FROM players WHERE name = %s", str(f.get("jogador", "")).strip())
+        if not p:
+            return toast("Não achei esse personagem.", ok=False)
+        other = db.one("SELECT name FROM houses WHERE owner = %s AND id <> %s", p["id"], hid)
+        realty.set_owner(me, h, p["id"], p["name"])
+        return _house_done(f"{h['name']} vai para {p['name']} em instantes." + (f" Esse personagem também tem {other['name']}." if other else ""))
+    if not h["owner"] and acao in ("despejar", "cobrar", "perdoar"):
+        return toast("Essa casa não tem dono.", ok=False)
+    if acao == "despejar":
+        realty.set_owner(me, h, 0)
+        realty.log("despejo", h, h["owner_name"], note="pelo painel; os itens vão para o depot", actor=me)
+        return _house_done(f"{h['owner_name']} sai de {h['name']}. Os itens vão para o depot.")
+    if acao == "cobrar":
+        if h["charging"]:
+            return toast("Já tem uma cobrança em andamento.", ok=False)
+        if h["rent"] <= 0:
+            return toast("O aluguel dessa casa é zero.", ok=False)
+        realty.charge(me, h, h["rent"])
+        return _house_done(f"Cobrando {h['rent']} gold de {h['owner_name']}. O resultado aparece no livro-caixa.")
+    if acao == "perdoar":
+        realty.forgive(me, h, s)
+        return _house_done(f"Dívida de {h['owner_name']} perdoada.")
+    if acao == "aluguel":
+        v = str(f.get("valor", "")).strip()
+        if v and not v.isdigit():
+            return toast("Aluguel precisa ser um número de gold.", ok=False)
+        realty.set_rent(me, h, min(int(v), 100_000_000) if v else None)
+        return _house_done("Aluguel próprio salvo." if v else "Aluguel voltou ao padrão.")
+    return toast("Ação desconhecida.", ok=False)
+
+
+@app.post("/imobiliaria-regras", response_class=HTMLResponse)
+def realty_rules(request: Request, periodo: str = Form("off"), porcentagem: int = Form(100), avisos: int = Form(3)):
+    user = require(request, post=True)
+    if periodo not in realty.PERIODS:
+        return toast("Período inválido.", ok=False)
+    s = realty.save_settings(periodo, max(0, min(1000, porcentagem)), max(1, min(30, avisos)))
+    db.audit(user["account"], "regras_aluguel", "", f"{periodo} {s['percent']}% {s['grace']} avisos")
+    return Response(headers={"HX-Redirect": "/imobiliaria"})
 
 
 # ---------------------------------------------------------------- economy

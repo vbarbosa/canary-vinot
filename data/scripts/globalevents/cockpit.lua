@@ -305,6 +305,59 @@ globalActions.save = function()
 	return true, "servidor salvo"
 end
 
+-- arg1 = house id, arg2 = new owner guid (0 = evict; the old owner's items go to their depot)
+globalActions.house_owner = function(cmd)
+	local house = House(cmd.arg1)
+	if not house then
+		return false, "casa nao existe"
+	end
+	local name = ""
+	if cmd.arg2 > 0 then
+		local resultId = db.storeQuery("SELECT `name` FROM `players` WHERE `id` = " .. cmd.arg2)
+		if not resultId then
+			return false, "jogador nao existe"
+		end
+		name = Result.getString(resultId, "name")
+		Result.free(resultId)
+	end
+	house:setHouseOwner(cmd.arg2)
+	local owner = Player(name)
+	if owner and cmd.text ~= "" then
+		owner:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+	end
+	return true, cmd.arg2 > 0 and (house:getName() .. " agora e de " .. name) or (house:getName() .. " ficou livre")
+end
+
+-- arg1 = house id, arg2 = rent in gold, arg3 = owner guid the panel expects; paid from the bank, online or not
+globalActions.house_rent = function(cmd)
+	local house = House(cmd.arg1)
+	if not house or house:getOwnerGuid() ~= cmd.arg3 or cmd.arg3 == 0 then
+		return false, "dono mudou"
+	end
+	local amount = math.max(0, cmd.arg2)
+	local player = Player(cmd.target)
+	if player and player:getGuid() == cmd.arg3 then
+		if player:getBankBalance() < amount then
+			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Seu banco nao tem " .. amount .. " gold para o aluguel da casa " .. house:getName() .. ".")
+			return false, "sem saldo"
+		end
+		player:setBankBalance(player:getBankBalance() - amount)
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+		return true, amount .. " gold pago"
+	end
+	local resultId = db.storeQuery("SELECT `balance` FROM `players` WHERE `id` = " .. cmd.arg3)
+	if not resultId then
+		return false, "dono mudou"
+	end
+	local balance = Result.getNumber(resultId, "balance")
+	Result.free(resultId)
+	if balance < amount then
+		return false, "sem saldo"
+	end
+	db.query("UPDATE `players` SET `balance` = `balance` - " .. amount .. " WHERE `id` = " .. cmd.arg3 .. " AND `balance` >= " .. amount)
+	return true, amount .. " gold pago (offline)"
+end
+
 local function run(cmd, player)
 	local handler = actions[cmd.action]
 	if not handler then

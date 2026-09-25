@@ -1,0 +1,8 @@
+<ul class="ledger">
+  {% for e in log %}
+  <li class="k-{{ e.kind }}">
+    <span>{{ log_kinds.get(e.kind, e.kind) }}{% if e.amount and e.kind in ('aluguel', 'atraso', 'valor') %} <strong>{{ '{:,}'.format(e.amount).replace(',', '.') }}</strong>{% endif %}</span>
+    <small class="muted"><a href="/imobiliaria?casa={{ e.house_id }}">{{ e.house }}</a>{% if e.player %} · {{ e.player }}{% endif %}{% if e.note %} · {{ e.note }}{% endif %} · <span data-ts="{{ e.ts }}"></span></small>
+  </li>
+  {% else %}<li class="muted small">Nada ainda. Compras, pagamentos e despejos aparecem aqui.</li>{% endfor %}
+</ul>

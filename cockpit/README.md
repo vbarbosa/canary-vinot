@@ -32,6 +32,12 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
+- Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
+  passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
+  (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do
+  mapa ou um valor próprio por casa, direto do banco do dono (`house_rent`, online ou offline). Sem saldo,
+  tenta de novo no dia seguinte; depois de N falhas, despeja. Tudo fica no livro-caixa
+  (`cockpit_house_log`), inclusive quem comprou casa no jogo.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Imobiliária{% endblock %}
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <h3>🏘 Imobiliária</h3>
+  <p class="muted">Todas as casas do mapa, quem mora em cada uma e o aluguel. O aluguel é cobrado pelo painel, direto do banco do dono.</p>
+</div>
+
+<div class="stats">
+  <article class="stat big"><small class="muted">Casas ocupadas</small><strong>{{ stats.owned }} de {{ stats.total }}</strong><small class="muted">{{ stats.total - stats.owned }} livres · {{ stats.guildhalls }} guildhalls</small></article>
+  <article class="stat"><small class="muted">Aluguel</small><strong>{{ periods[s.period][0] }}</strong><small class="muted">{% if s.seconds %}{{ s.percent }}% do valor do mapa · despejo no {{ s.grace }}º atraso{% else %}ninguém paga nada{% endif %}</small></article>
+  <article class="stat"><small class="muted">Recebido em 30 dias</small><strong>{{ gold(income) }}</strong><small class="muted">{{ income_n }} pagamento(s)</small></article>
+  <article class="stat"><small class="muted">Em atraso</small><strong class="{{ 'warn' if stats.late }}">{{ stats.late }}</strong><small class="muted">aluguel por período, somado: {{ gold(stats.rent) }}</small></article>
+</div>
+
+<div class="with-catalog tp">
+  <section>
+    <form class="row wrap tp-search" hx-get="/imobiliaria/casas" hx-target="#houses" hx-trigger="input changed delay:300ms from:input[name=q], change, submit">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar casa ou dono…">
+      <select name="cidade" class="w12">
+        <option value="">Todas as cidades</option>
+        {% for tid, tname in towns_used %}<option value="{{ tid }}" {{ 'selected' if cidade == tid|string }}>{{ tname }}</option>{% endfor %}
+      </select>
+      <div class="chips" role="radiogroup">
+        {% for k, label in [('', 'Todas'), ('livre', '🏚 Livres'), ('ocupada', '🔑 Ocupadas'), ('atrasada', '⏰ Atrasadas'), ('guildhall', '🏰 Guildhalls')] %}
+        <label><input type="radio" name="situacao" value="{{ k }}" {{ 'checked' if situacao == k }}> {{ label }}</label>
+        {% endfor %}
+      </div>
+    </form>
+    <div id="houses">{% include "_houses.html" %}</div>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel" id="house" {% if casa %}hx-get="/imobiliaria/{{ casa }}" hx-trigger="load"{% endif %}>
+      <header><h4>Casa</h4></header>
+      <p class="muted">Clique numa casa da lista para ver o dono, cobrar, despejar ou dar de presente.</p>
+    </article>
+
+    <article class="panel">
+      <header><h4>📜 Regras do aluguel</h4></header>
+      <form hx-post="/imobiliaria-regras" hx-target="#toast" class="rules">
+        <label>Cobrar
+          <select name="periodo">{% for k, v in periods.items() %}<option value="{{ k }}" {{ 'selected' if s.period == k }}>{{ v[0] }}</option>{% endfor %}</select>
+        </label>
+        <label>Valor: <input name="porcentagem" type="number" min="0" max="1000" value="{{ s.percent }}" class="w6">% do aluguel do mapa</label>
+        <label>Despejar depois de <input name="avisos" type="number" min="1" max="30" value="{{ s.grace }}" class="w6"> cobrança(s) sem saldo</label>
+        <p class="small muted">Quando falta saldo, o painel tenta de novo no dia seguinte. No despejo, os itens da casa vão para o depot do dono. Ao ligar o aluguel, o primeiro período é grátis.</p>
+        <button>Salvar regras</button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header><h4>📒 Livro-caixa</h4></header>
+      {% include "_house_log.html" %}
+    </article>
+  </aside>
+</div>
+{% endblock %}

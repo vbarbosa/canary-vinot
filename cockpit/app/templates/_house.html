@@ -1,0 +1,43 @@
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+<div hx-get="/imobiliaria/{{ h.id }}" hx-trigger="house-changed from:body delay:1500ms" hx-target="#house">
+<header><h4>{% if h.guildhall %}🏰{% else %}🏠{% endif %} {{ h.name }}</h4></header>
+<img class="house-map" src="/mapa/{{ h.x }}/{{ h.y }}/{{ h.z }}.png" alt="Mapa de {{ h.name }}">
+<dl class="facts">
+  <dt>Cidade</dt><dd>{{ h.town }}</dd>
+  <dt>Tamanho</dt><dd>{{ h.size }} sqm · {{ h.beds }} cama(s)</dd>
+  <dt>Preço</dt><dd>{{ gold(h.price) }} gold</dd>
+  <dt>Aluguel</dt><dd>{{ gold(h.rent) }} gold {% if h.rent_override is not none %}<span class="tag">próprio</span>{% else %}<span class="muted small">(mapa: {{ gold(h.base_rent) }})</span>{% endif %}</dd>
+  <dt>Dono</dt><dd>{% if h.owner %}<strong>{{ h.owner_name }}</strong> <span class="muted small">nível {{ h.owner_level }}</span>{% else %}<span class="muted">ninguém, está à venda</span>{% endif %}</dd>
+  {% if h.owner and s.seconds %}
+  <dt>Pago até</dt><dd>{% if h.paid_until %}<span data-ts="{{ h.paid_until }}"></span>{% if h.days_left is not none and h.days_left >= 0 %} <span class="muted small">({{ h.days_left }} dia(s))</span>{% endif %}{% else %}—{% endif %}
+    {% if h.warnings %}<br><span class="warn">⏰ {{ h.warnings }} de {{ s.grace }} cobranças sem saldo</span>{% endif %}
+    {% if h.charging %}<br><span class="muted small">cobrança em andamento…</span>{% endif %}</dd>
+  {% endif %}
+  {% if guests %}
+  <dt>Convidados</dt><dd class="small">{% for g in guests %}{{ {256: 'Hóspedes', 257: 'Subdonos'}.get(g.listid, 'Porta ' ~ g.listid) }}: {{ g.list|replace('\n', ', ') }}<br>{% endfor %}</dd>
+  {% endif %}
+</dl>
+
+<form hx-post="/imobiliaria/{{ h.id }}/dono" hx-target="#toast" class="row">
+  <input name="jogador" list="house-players" placeholder="{{ 'Passar para…' if h.owner else 'Dar ou vender para…' }}" required>
+  <datalist id="house-players">{% for p in players %}<option value="{{ p.name }}">{% endfor %}</datalist>
+  <button class="small">🔑 Entregar</button>
+</form>
+<div class="row wrap small house-actions">
+  {% if h.owner %}
+  {% if s.seconds and h.rent %}<button class="outline small" hx-post="/imobiliaria/{{ h.id }}/cobrar" hx-target="#toast">💰 Cobrar agora</button>{% endif %}
+  {% if h.warnings or (s.seconds and h.owner) %}<button class="outline small" hx-post="/imobiliaria/{{ h.id }}/perdoar" hx-target="#toast" title="Zera os atrasos e dá um período grátis">🤝 Perdoar</button>{% endif %}
+  <button class="outline small danger" hx-post="/imobiliaria/{{ h.id }}/despejar" hx-target="#toast" hx-confirm="Despejar {{ h.owner_name }} de {{ h.name }}? Os itens vão para o depot.">🚪 Despejar</button>
+  {% endif %}
+  <a class="outline small" role="button" href="/teleporte?tipo=casa&q={{ h.name|urlencode }}">🌀 Ir até a porta</a>
+</div>
+<form hx-post="/imobiliaria/{{ h.id }}/aluguel" hx-target="#toast" class="row">
+  <input name="valor" type="number" min="0" value="{{ h.rent_override if h.rent_override is not none else '' }}" placeholder="Aluguel próprio (vazio = padrão)">
+  <button class="outline small">Salvar</button>
+</form>
+
+{% if log %}
+<p class="small muted" style="margin:.8rem 0 .3rem">Histórico desta casa</p>
+{% include "_house_log.html" %}
+{% endif %}
+</div>

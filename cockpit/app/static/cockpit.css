@@ -257,3 +257,31 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .creature .accent { color: var(--pico-primary); margin-top: .2rem; }
 .creature-head { align-items: center; gap: .6rem; margin-bottom: .6rem; }
 .creature-head h4 { margin: 0; }
+/* Imobiliária */
+.house { position: relative; margin: 0; padding: 0; overflow: hidden; cursor: pointer; border: 1px solid #3a3326; transition: border-color .15s, transform .15s; }
+.house:hover { border-color: #8a7440; transform: translateY(-2px); }
+.house img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; image-rendering: pixelated; background: #26211a; }
+.house .badge { position: absolute; top: .4rem; right: .4rem; font-size: .7rem; padding: .1rem .45rem; border-radius: 999px; background: #1f1b14e0; border: 1px solid #3a3326; }
+.house.st-livre .badge { color: #7fd1a8; border-color: #199e70; }
+.house.st-ocupada .badge { color: #e7c77a; border-color: #8a7440; }
+.house.st-atrasada .badge { color: #f0a080; border-color: #d95926; }
+.house.st-atrasada { border-color: #d9592680; }
+.house-map { width: 100%; border-radius: .4rem; image-rendering: pixelated; margin-bottom: .6rem; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: .25rem .8rem; margin: 0 0 .8rem; font-size: .9rem; }
+.facts dt { color: var(--pico-muted-color); margin: 0; }
+.facts dd { margin: 0; }
+.warn { color: #f0a080; }
+.house-actions { gap: .4rem; margin: .5rem 0; }
+.house-actions > * { margin: 0; }
+#house form.row { gap: .4rem; align-items: center; }
+#house form.row input { margin: 0; }
+#house form.row button { margin: 0; white-space: nowrap; }
+.rules label { font-size: .9rem; }
+.ledger { list-style: none; padding: 0; margin: 0; }
+.ledger li { display: flex; flex-direction: column; padding: .35rem 0; border-bottom: 1px solid #2c261c; font-size: .88rem; list-style: none; }
+.ledger li.k-despejo span, .ledger li.k-atraso span { color: #f0a080; }
+.ledger li.k-aluguel span { color: #7fd1a8; }
+@media (max-width: 900px) {
+  nav.top > ul:last-child { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  nav.top > ul:last-child li { white-space: nowrap; }
+}

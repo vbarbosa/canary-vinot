@@ -11,7 +11,7 @@ import threading
 import time
 from zoneinfo import ZoneInfo
 
-from . import db, economy, system
+from . import db, economy, realty, system
 
 TZ = ZoneInfo(os.environ.get("COCKPIT_TZ", "America/Sao_Paulo"))
 KEEP_DAYS = 7
@@ -98,6 +98,10 @@ def tick(dispatch):
         economy.record()
     except Exception:
         log.exception("economy")
+    try:
+        realty.tick()
+    except Exception:
+        log.exception("realty")
     now = int(time.time())
     for job in db.all("SELECT * FROM cockpit_schedules WHERE enabled = 1 AND next_run > 0 AND next_run <= %s", now):
         try:

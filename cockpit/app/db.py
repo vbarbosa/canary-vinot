@@ -124,6 +124,38 @@ SCHEMA = [
 ]
 
 
+SCHEMA += [
+    """CREATE TABLE IF NOT EXISTS `cockpit_settings` (
+        `k` VARCHAR(64) NOT NULL,
+        `v` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`k`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_house_rent` (
+        `house_id` INT NOT NULL,
+        `owner` INT NOT NULL DEFAULT 0,
+        `rent` BIGINT NULL DEFAULT NULL,
+        `paid_until` INT UNSIGNED NOT NULL DEFAULT 0,
+        `warnings` INT NOT NULL DEFAULT 0,
+        `next_try` INT UNSIGNED NOT NULL DEFAULT 0,
+        `cmd_id` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`house_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_house_log` (
+        `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `ts` INT UNSIGNED NOT NULL,
+        `house_id` INT NOT NULL,
+        `house` VARCHAR(255) NOT NULL DEFAULT '',
+        `player` VARCHAR(255) NOT NULL DEFAULT '',
+        `kind` VARCHAR(16) NOT NULL,
+        `amount` BIGINT NOT NULL DEFAULT 0,
+        `note` VARCHAR(255) NOT NULL DEFAULT '',
+        `actor` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`),
+        KEY `cockpit_house_log_house` (`house_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+]
+
+
 def connect():
     return pymysql.connect(**CONFIG, charset="utf8mb4", autocommit=True, cursorclass=pymysql.cursors.DictCursor)
 
@@ -151,12 +183,13 @@ def init_schema():
 
 
 def enqueue(actor, action, target="", arg1=0, arg2=0, arg3=0, arg4=0, text=""):
-    """Queue one command for the Lua bridge and record it in the audit log."""
-    run(
+    """Queue one command for the Lua bridge, record it in the audit log and return its id."""
+    cid = run(
         "INSERT INTO cockpit_commands (action, target, arg1, arg2, arg3, arg4, text, created_by, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         action, target, int(arg1), int(arg2), int(arg3), int(arg4), text[:1024], actor, int(time.time()),
     )
     audit(actor, action, target, " ".join(str(a) for a in (arg1, arg2, arg3, arg4) if a) + (f" {text}" if text else ""))
+    return cid
 
 
 def audit(actor, action, target="", detail=""):
