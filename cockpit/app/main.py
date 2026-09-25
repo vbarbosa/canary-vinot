@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places, realty, world
+from . import places, realty, sheet, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -359,6 +359,16 @@ def studio(request: Request, pid: int):
         request, "studio.html", user, p=p, skills=gamedata.SKILLS, outfits=gamedata.outfits().get(p["sex"], []),
         mounts=gamedata.mounts(), effects=gamedata.EFFECTS, palette=PALETTE, kits=kits, cats=gamedata.CATEGORIES,
     )
+
+
+@app.get("/jogador/{pid}/ficha", response_class=HTMLResponse)
+def player_sheet(request: Request, pid: int):
+    user = require(request)
+    s = sheet.load(pid)
+    if not s:
+        raise HTTPException(404)
+    town = next((t["name"] for t in towns() if t["id"] == s["p"]["town_id"]), f"cidade {s['p']['town_id']}")
+    return page(request, "_sheet.html", user, s=s, town_name=town)
 
 
 @app.get("/itens", response_class=HTMLResponse)

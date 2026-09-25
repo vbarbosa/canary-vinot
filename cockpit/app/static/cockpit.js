@@ -219,6 +219,11 @@
       e.target.hidden = true;
     }
   });
+  document.addEventListener("input", e => {
+    if (!e.target.classList.contains("raw-filter")) return;
+    const q = e.target.value.toLowerCase();
+    e.target.nextElementSibling.querySelectorAll("tr").forEach(tr => (tr.hidden = q && !tr.textContent.toLowerCase().includes(q)));
+  });
   document.addEventListener("keydown", e => {
     if (e.key === "Enter" && e.target.classList.contains("who-search")) e.preventDefault();
   });

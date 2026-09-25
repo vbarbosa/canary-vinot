@@ -1,0 +1,75 @@
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+{% macro node(n) %}
+<li>
+  {% if n.inside %}<details><summary>{% endif %}
+  <img src="/icone/{{ n.id }}.png" alt="" loading="lazy" class="ico"> {{ n.name }}{% if n.count > 1 %} <span class="muted">×{{ n.count }}</span>{% endif %}
+  {% if n.inside %} <span class="tag">{{ n.total - 1 }} dentro</span></summary>
+  <ul class="tree">{% for k in n.inside %}{{ node(k) }}{% endfor %}</ul></details>{% endif %}
+</li>
+{% endmacro %}
+{% set p = s.p %}
+<div class="sheet">
+  <div class="stats sheet-stats">
+    <article class="stat"><small class="muted">Vida</small><strong>{{ p.health }}/{{ p.healthmax }}</strong><small class="muted">mana {{ p.mana }}/{{ p.manamax }}</small></article>
+    <article class="stat"><small class="muted">Dinheiro</small><strong>{{ gold(s.money.total) }}</strong><small class="muted">banco {{ gold(s.money.bank) }} · mochila {{ gold(s.money.carried) }} · depot {{ gold(s.money.depot) }}</small></article>
+    <article class="stat"><small class="muted">Conta</small><strong>{{ p.coins }} coins</strong><small class="muted"><a href="/conta/{{ p.account_id }}">{{ p.account_name }}</a> · {{ 'premium ' ~ p.premdays ~ ' dias' if p.premdays else 'free' }}</small></article>
+    <article class="stat"><small class="muted">Stamina</small><strong>{{ p.stamina // 60 }}h{{ '%02d'|format(p.stamina % 60) }}</strong><small class="muted">cap {{ p.cap }} · soul {{ p.soul }}</small></article>
+  </div>
+
+  <dl class="facts cols">
+    <dt>Vocação</dt><dd>{{ vocations.get(p.vocation, p.vocation) }} · {{ s.sex }}</dd>
+    <dt>Experiência</dt><dd>{{ gold(p.experience) }}</dd>
+    <dt>Cidade</dt><dd>{{ town_name }}</dd>
+    <dt>Posição</dt><dd class="mono">{{ p.posx }}, {{ p.posy }}, {{ p.posz }}</dd>
+    <dt>Última entrada</dt><dd>{% if p.lastlogin %}<span data-ts="{{ p.lastlogin }}"></span>{% else %}nunca{% endif %}</dd>
+    <dt>Tempo de jogo</dt><dd>{{ hd(p.onlinetime) }}</dd>
+    <dt>Guild</dt><dd>{% if s.guild %}{{ s.guild.name }} · {{ s.guild.rank_name }}{% if s.guild.nick %} ({{ s.guild.nick }}){% endif %}{% else %}—{% endif %}</dd>
+    <dt>Casa</dt><dd>{% for h in s.houses %}<a href="/imobiliaria?casa={{ h.id }}">{{ h.name }}</a> <span class="muted small">{{ h.town }}</span>{% if not loop.last %}, {% endif %}{% else %}nenhuma{% endfor %}</dd>
+    <dt>Bênçãos</dt><dd>{{ [p.blessings1, p.blessings2, p.blessings3, p.blessings4, p.blessings5, p.blessings6, p.blessings7, p.blessings8]|select|list|length }} de 8</dd>
+    <dt>PvP</dt><dd>{{ s.kills.n }} morte(s) causadas{% if s.kills.unavenged %}, {{ s.kills.unavenged }} injusta(s){% endif %}{% if p.skull %} · skull {{ p.skull }}{% endif %}</dd>
+    <dt>Forja</dt><dd>{{ p.forge_dusts }} dust · boss points {{ p.boss_points }}</dd>
+    <dt>Storages</dt><dd>{{ s.storages }} (progresso de quests)</dd>
+  </dl>
+  {% if p.online %}<p class="small muted">Está online: itens e dinheiro abaixo são do último save do jogo.</p>{% endif %}
+
+  <details open class="sheet-block">
+    <summary>🛡 Equipamento <span class="muted small">{{ s.counts.worn }} item(ns) no corpo e nas mochilas</span></summary>
+    <div class="slots">
+      {% for sid, sname in s.slots.items() %}
+      {% set it = s.worn|selectattr('slot', 'equalto', sid)|first %}
+      <div class="slot {{ 'empty' if not it }}" title="{{ sname }}{{ ': ' ~ it.name if it }}">
+        {% if it %}<img src="/icone/{{ it.id }}.png" alt="{{ it.name }}">{% if it.count > 1 %}<i>{{ it.count }}</i>{% endif %}{% endif %}
+        <small>{{ sname }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    <ul class="tree">{% for n in s.worn %}{% if n.inside %}{{ node(n) }}{% endif %}{% endfor %}</ul>
+  </details>
+
+  {% for key, label, rows in [('depot', '📦 Depot', s.depot), ('inbox', '📬 Caixa de entrada', s.inbox)] %}
+  <details class="sheet-block">
+    <summary>{{ label }} <span class="muted small">{{ s.counts[key] }} item(ns)</span></summary>
+    {% if rows %}<ul class="tree">{% for n in rows %}{{ node(n) }}{% endfor %}</ul>{% else %}<p class="muted small">Vazio.</p>{% endif %}
+  </details>
+  {% endfor %}
+
+  <details class="sheet-block">
+    <summary>🧺 Stash <span class="muted small">{{ s.counts.stash }} unidade(s)</span></summary>
+    {% if s.stash %}<ul class="tree flat">{% for n in s.stash %}<li><img src="/icone/{{ n.id }}.png" alt="" class="ico"> {{ n.name }} <span class="muted">×{{ n.count }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted small">Vazio.</p>{% endif %}
+  </details>
+
+  <details class="sheet-block">
+    <summary>💀 Mortes <span class="muted small">{{ s.deaths|length }}{{ '+' if s.deaths|length == 10 }}</span></summary>
+    {% if s.deaths %}<ul class="tree flat">{% for d in s.deaths %}<li>Nível {{ d.level }}, por {{ d.killed_by }}{% if d.mostdamage_by and d.mostdamage_by != d.killed_by %} e {{ d.mostdamage_by }}{% endif %} · <span class="muted small" data-ts="{{ d.time }}"></span></li>{% endfor %}</ul>
+    {% else %}<p class="muted small">Nunca morreu.</p>{% endif %}
+  </details>
+
+  <details class="sheet-block">
+    <summary>🔎 Todos os atributos <span class="muted small">{{ s.raw|length }} campos do banco</span></summary>
+    <input type="search" placeholder="Filtrar atributo…" class="raw-filter">
+    <table class="compact raw">
+      {% for k, v in s.raw.items() %}<tr><th class="mono">{{ k }}</th><td class="mono">{{ v }}</td></tr>{% endfor %}
+    </table>
+  </details>
+</div>

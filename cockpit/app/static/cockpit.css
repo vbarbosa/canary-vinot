@@ -299,3 +299,24 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .stage-table input { margin: 0; padding: .25rem .4rem; height: auto; }
 .stage-table td, .stage-table th { padding: .2rem .25rem; }
 .stage-table button { margin: 0; padding: .1rem .4rem; }
+/* Ficha do jogador */
+.sheet-stats { margin-bottom: .8rem; }
+.facts.cols { grid-template-columns: auto 1fr auto 1fr; }
+@media (max-width: 700px) { .facts.cols { grid-template-columns: auto 1fr; } }
+.sheet-block { border: 1px solid #3a3326; border-radius: .5rem; padding: .4rem .8rem; margin-bottom: .6rem; }
+.sheet-block > summary { font-weight: 600; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: .4rem; margin: .5rem 0; }
+.slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .35rem; border: 1px solid #3a3326; border-radius: .4rem; background: #1f1b14; }
+.slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+.slot.empty { opacity: .45; }
+.slot.empty::before { content: ""; width: 32px; height: 32px; }
+.slot i { position: absolute; top: .2rem; right: .35rem; font-style: normal; font-size: .7rem; color: #e7c77a; }
+.slot small { font-size: .65rem; color: var(--pico-muted-color); text-align: center; }
+.tree { list-style: none; padding-left: 1rem; margin: .2rem 0; }
+.tree li { list-style: none; padding: .1rem 0; font-size: .9rem; }
+.tree details { margin: 0; }
+.tree summary { cursor: pointer; }
+.tree.flat { padding-left: 0; }
+.ico { width: 24px; height: 24px; vertical-align: middle; image-rendering: pixelated; }
+.raw { font-size: .8rem; }
+.raw th { width: 40%; font-weight: normal; color: var(--pico-muted-color); }
