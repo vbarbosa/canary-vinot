@@ -6,6 +6,7 @@ config and rebuilds the stage tables. The list below is the whole allowlist: not
 """
 
 import re
+import unicodedata
 
 from . import db
 
@@ -26,6 +27,22 @@ NUMBERS = {
     "protectionLevel": ("Proteção até o nível", "Abaixo desse nível ninguém pode ser atacado por jogador.", 1, 1000, 7),
     "pzLockedSeconds": ("Tempo de PZ lock (s)", "Quanto tempo fica sem entrar em área protegida depois de atacar alguém.", 0, 3600, 60),
 }
+# Text shown to players. Accents become plain letters (the game client does not always show them) and quotes go.
+TEXTS = {
+    "serverName": ("Nome do servidor", "Aparece no jogo e no status. Na lista de personagens quem manda é o login (veja a nota).", 30, "VinOT"),
+    "serverMotd": ("Mensagem do dia", "Mensagem do servidor para o cliente.", 200, "Bem-vindo ao VinOT, o mundo do Vinot!"),
+    "welcome": ("Boas-vindas no jogo", "Aparece no meio da tela toda vez que alguém entra.", 200, "Bem-vindo ao VinOT! Aqui quem manda e o Vinot. Bom jogo!"),
+    "signText": ("Texto da estátua do Vinot", "Aparece quando alguém dá look na estátua do templo. Vazio = sem estátua.", 200,
+                 "Estatua do Vinot, o Mestre deste mundo. Que seus loots sejam gordos e suas mortes poucas."),
+}
+SIGN_RE = re.compile(r"^\d{1,5},\d{1,5},\d{1,2}$")
+
+
+def plain_text(text, limit):
+    text = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode()
+    return " ".join(text.replace('"', "").replace("\\", "").split())[:limit]
+
+
 RATES = {
     "rateExp": ("XP fixa", 1),
     "rateSkill": ("Skill fixa", 1),
@@ -71,6 +88,10 @@ def load():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     for k, (_, default) in STAGES.items():
         s[k] = parse_stages(saved.get(k, default)) or parse_stages(default)
+    for k, (*_, default) in TEXTS.items():
+        s[k] = saved.get(k, default)
+    s["signPos"] = saved.get("signPos", "")
+    s["signAt"] = saved.get("_signAt", "")
     return s
 
 
@@ -92,6 +113,14 @@ def save(values):
         if not v.isdigit() or not lo <= int(v) <= hi:
             return f"{label}: use um número de {lo} a {hi}."
         rows[k] = v
+    for k, (label, _, limit, _) in TEXTS.items():
+        rows[k] = plain_text(values.get(k, ""), limit)
+    if not rows["serverName"]:
+        return "Dê um nome para o servidor."
+    pos = str(values.get("signPos", "")).replace(" ", "")
+    if pos and not SIGN_RE.match(pos):
+        return "Lugar da estátua: use x,y,z (ex.: 32369,32241,7) ou deixe vazio para perto do templo de Thais."
+    rows["signPos"] = pos
     for k, (label, _) in STAGES.items():
         parsed = parse_stages(values.get(k, ""))
         if not parsed or any(m > 100 for _, _, m in parsed):
@@ -110,9 +139,16 @@ def apply(actor):
 def seed(actor="cockpit"):
     """First run: store the approved pack and send it to the game once."""
     if db.one("SELECT 1 AS x FROM cockpit_settings WHERE k LIKE 'world.%%' LIMIT 1"):
+        # settings added in a later version: store their defaults once and apply
+        missing = [k for k in TEXTS if not db.one("SELECT 1 AS x FROM cockpit_settings WHERE k = %s", f"world.{k}")]
+        for k in missing:
+            db.run("INSERT INTO cockpit_settings (k, v) VALUES (%s, %s)", f"world.{k}", TEXTS[k][3])
+        if missing:
+            apply(actor)
         return
     s = load()
     save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, "worldType": s["worldType"],
+          **{k: s[k] for k in TEXTS}, "signPos": "",
           **{k: format_stages(s[k]) for k in STAGES}})
     apply(actor)
 

@@ -129,6 +129,14 @@ actions.give_item = function(player, cmd)
 	return true, count .. "x " .. itemType:getName()
 end
 
+-- text = inscription on the trophy
+actions.give_trophy = function(player, cmd)
+	if not CockpitGiveTrophy(player, cmd.text) then
+		return false, "sem espaco"
+	end
+	return true, "trofeu entregue"
+end
+
 -- arg1 = gold coins
 actions.give_money = function(player, cmd)
 	local amount = math.max(1, math.min(cmd.arg1, 1000000000))
@@ -358,6 +366,24 @@ globalActions.house_rent = function(cmd)
 	return true, amount .. " gold pago (offline)"
 end
 
+-- The Vinot trophy: a golden goblet with the panel's inscription, only given from the panel.
+local TROPHY_ITEM = 5805
+local function trophyText(v)
+	return (tostring(v or ""):gsub("%c", " "):sub(1, 200))
+end
+
+function CockpitGiveTrophy(player, text)
+	local item = player:addItem(TROPHY_ITEM, 1)
+	if not item then
+		return false
+	end
+	item:setActionId(45002)
+	item:setAttribute(ITEM_ATTRIBUTE_NAME, "trofeu do Vinot")
+	item:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, trophyText(text))
+	player:getPosition():sendMagicEffect(CONST_ME_FIREWORK_YELLOW)
+	return true
+end
+
 -- Guilds. The game keeps a loaded guild's bank balance and motd in memory (and writes the balance back
 -- on save), so change them here when it is loaded; otherwise the database is the truth.
 globalActions.guild_balance = function(cmd)
@@ -498,6 +524,79 @@ local function applyStages(saved)
 	end
 end
 
+-- Plain printable text for config.lua strings (the panel already strips accents and quotes)
+local function worldText(v, max)
+	v = tostring(v or ""):gsub('[%c\\"]', ""):sub(1, max)
+	return v
+end
+
+-- The Vinot statue: an item placed next to the Thais temple (or where the panel says) with the panel's text.
+-- Items created here are not saved with the map, so it is placed again on every start.
+local SIGN_ITEM = 2027 -- hero statue
+local SIGN_AID = 45001
+CockpitWelcome = CockpitWelcome or ""
+
+local function signSpot(saved)
+	local x, y, z = (saved.signPos or ""):match("^(%d+),(%d+),(%d+)$")
+	if x then
+		return Position(tonumber(x), tonumber(y), tonumber(z))
+	end
+	local town = Town("Thais")
+	local temple = town and town:getTemplePosition()
+	if not temple then
+		return nil
+	end
+	for r = 2, 4 do
+		for dx = -r, r do
+			for dy = -r, r do
+				if math.max(math.abs(dx), math.abs(dy)) == r then
+					local pos = Position(temple.x + dx, temple.y + dy, temple.z)
+					local tile = Tile(pos)
+					if tile and tile:getGround() and not tile:hasFlag(TILESTATE_BLOCKSOLID) and not tile:hasFlag(TILESTATE_FLOORCHANGE) and not tile:hasFlag(TILESTATE_TELEPORT) and tile:getItemCount() == 0 and not tile:getTopCreature() then
+						return pos
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
+local function placeSign(saved)
+	if CockpitSignPos then
+		local tile = Tile(CockpitSignPos)
+		local old = tile and tile:getItemById(SIGN_ITEM)
+		if old and old:getActionId() == SIGN_AID then
+			old:remove()
+		end
+		CockpitSignPos = nil
+	end
+	local text = worldText(saved.signText, 200)
+	if text == "" then
+		return
+	end
+	local pos = signSpot(saved)
+	local item = pos and Game.createItem(SIGN_ITEM, 1, pos)
+	if not item then
+		logger.warn("[cockpit] nao achei lugar para a estatua do templo")
+		return
+	end
+	item:setActionId(SIGN_AID)
+	item:setAttribute(ITEM_ATTRIBUTE_NAME, "estatua do Vinot")
+	item:setAttribute(ITEM_ATTRIBUTE_ARTICLE, "uma")
+	item:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, text)
+	CockpitSignPos = pos
+	db.query(string.format("INSERT INTO `cockpit_settings` (`k`, `v`) VALUES ('world._signAt', '%d,%d,%d') ON DUPLICATE KEY UPDATE `v` = VALUES(`v`)", pos.x, pos.y, pos.z))
+end
+
+local function applyTexts(saved)
+	CockpitWelcome = worldText(saved.welcome, 200)
+	if saved.serverName and saved.serverName ~= "" then
+		SERVER_NAME = worldText(saved.serverName, 30)
+	end
+	placeSign(saved)
+end
+
 globalActions.apply_world = function()
 	local saved = readWorld()
 	local lines = { "-- Written by the Cockpit panel (tela Mundo). Edit it there, not here." }
@@ -523,6 +622,12 @@ globalActions.apply_world = function()
 	if pz then
 		lines[#lines + 1] = "pzLocked = " .. math.max(0, math.min(3600, math.floor(pz))) * 1000
 	end
+	if saved.serverName and saved.serverName ~= "" then
+		lines[#lines + 1] = string.format("serverName = %q", worldText(saved.serverName, 30))
+	end
+	if saved.serverMotd then
+		lines[#lines + 1] = string.format("serverMotd = %q", worldText(saved.serverMotd, 200))
+	end
 	local f = io.open(WORLD_FILE, "w")
 	if not f then
 		return false, "nao consegui gravar " .. WORLD_FILE
@@ -536,6 +641,7 @@ globalActions.apply_world = function()
 	if not Game.reload(RELOAD_TYPE_CONFIG) then
 		return false, "config.lua nao recarregou"
 	end
+	applyTexts(saved)
 	-- the world type is read only at startup; set it live too
 	if WORLD_TYPES[saved.worldType or ""] then
 		Game.setWorldType(WORLD_TYPES[saved.worldType])
@@ -632,7 +738,9 @@ function startup.onStartup()
 		db.query(sql)
 	end
 	db.query("DELETE FROM `cockpit_online`")
-	applyStages(readWorld()) -- config.lua already read cockpit-world.lua; the stage tables live here
+	local saved = readWorld()
+	applyStages(saved) -- config.lua already read cockpit-world.lua; the stage tables live here
+	applyTexts(saved)
 	startedAt = os.time()
 	writeMetrics()
 	logger.info("[cockpit] bridge ready")
@@ -689,3 +797,20 @@ function login.onLogin(player)
 end
 
 login:register()
+
+-- Welcome text from the panel (tela Mundo), shown in the middle of the screen on every login
+local welcome = CreatureEvent("CockpitWelcome")
+
+function welcome.onLogin(player)
+	if CockpitWelcome and CockpitWelcome ~= "" then
+		addEvent(function(name)
+			local p = Player(name)
+			if p then
+				p:sendTextMessage(MESSAGE_EVENT_ADVANCE, CockpitWelcome)
+			end
+		end, 1500, player:getName())
+	end
+	return true
+end
+
+welcome:register()

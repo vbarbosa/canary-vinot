@@ -60,6 +60,7 @@ def settings_from(f, kind="zombie"):
         "gold": clamp(f.get("gold"), 0, 100_000_000, 0),
     }
     s["extra"] = {k: clamp(f.get(k), lo, hi, d) for k, (_, lo, hi, d, _) in FIELDS.get(kind, {}).items()}
+    s["extra"]["trophy"] = 1 if f.get("trofeu") else 0
     return s
 
 
@@ -69,13 +70,15 @@ def extra_text(extra):
 
 def parse_extra(text, kind):
     raw = dict(part.split("=", 1) for part in (text or "").split(";") if "=" in part)
-    return {k: clamp(raw.get(k), lo, hi, d) for k, (_, lo, hi, d, _) in FIELDS.get(kind, {}).items()}
+    extra = {k: clamp(raw.get(k), lo, hi, d) for k, (_, lo, hi, d, _) in FIELDS.get(kind, {}).items()}
+    extra["trophy"] = clamp(raw.get("trophy"), 0, 1, 0)
+    return extra
 
 
 def preset_settings(p):
     extra = parse_extra(p.get("extra"), p["kind"])
     if p["kind"] == "zombie" and not p.get("extra"):  # presets saved before `extra` existed
-        extra = {"first": p["first"], "every": p["every"], "speed": p["speed"]}
+        extra = {"first": p["first"], "every": p["every"], "speed": p["speed"], "trophy": 0}
     return {"radius": p["radius"], "minutes": p["minutes"], "kit_id": p["kit_id"], "gold": p["gold"], "extra": extra}
 
 

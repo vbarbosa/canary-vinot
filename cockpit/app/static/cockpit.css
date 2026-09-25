@@ -423,3 +423,5 @@ a.kind.on { border-color: #e0b65a; background: #2a2418; box-shadow: inset 0 0 0 
 .quiz-list li { padding: .3rem 0; }
 .quiz-list li.off { opacity: .55; }
 @media (max-width: 800px) { .quiz-row { grid-template-columns: 1fr; } }
+.text-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .6rem 1rem; }
+.text-grid textarea { margin-bottom: .2rem; }

@@ -139,7 +139,10 @@ function A.leave(G, guid, why)
 	G.out[#G.out + 1] = info.name
 end
 
-function A.givePrize(G, p)
+function A.givePrize(G, p, title)
+	if G.raw.trophy == "1" and CockpitGiveTrophy then
+		CockpitGiveTrophy(p, "Campeao de " .. (title or "evento") .. " em " .. os.date("%d/%m/%Y") .. ".")
+	end
 	for id, count in G.prize:gmatch("(%d+):(%d+)") do
 		p:addItem(tonumber(id), tonumber(count))
 	end
@@ -162,7 +165,7 @@ function A.finish(G, title, winners, details)
 	end
 	A.each(G, function(p, info)
 		if won[info.name] then
-			A.givePrize(G, p)
+			A.givePrize(G, p, title)
 		end
 		if not G.stayPut then
 			A.home(p)

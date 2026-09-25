@@ -57,6 +57,8 @@
             <select name="kit"><option value="0">nenhum</option>{% for k in kits %}<option value="{{ k.id }}" {{ 'selected' if edit and edit.kit_id == k.id }}>{{ k.name }}</option>{% endfor %}</select>
           </label>
           <label>Prêmio: gold no banco<input name="gold" type="number" min="0" value="{{ edit.gold if edit else d.gold }}"></label>
+          <label class="switch-row"><input type="checkbox" role="switch" name="trofeu" value="1" {{ 'checked' if edit and edit.x_extra.trophy }}>
+            <span>🏆 Troféu do Vinot<br><small class="muted">Taça com o nome do evento e a data.</small></span></label>
         </div>
 
         <p class="small muted" style="margin:.6rem 0 .3rem">Quem joga agora:</p>

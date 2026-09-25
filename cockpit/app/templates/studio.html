@@ -63,6 +63,11 @@
         <label>Gold no banco <input type="number" name="arg1" value="10000" min="1" class="w8"></label>
         <button class="secondary">Depositar</button>
       </form>
+      <form class="row wrap" hx-post="/acao" hx-target="#toast">
+        <input type="hidden" name="action" value="give_trophy"><input type="hidden" name="alvo" value="{{ p.id }}">
+        <input name="text" placeholder="Inscrição do troféu (ex.: Melhor caçador de setembro)" maxlength="200" required>
+        <button class="secondary">🏆 Dar troféu do Vinot</button>
+      </form>
       <div class="row wrap">
         {% for id, name in effects %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"effect","alvo":"{{ p.id }}","arg1":"{{ id }}"}' hx-target="#toast">{{ name }}</button>{% endfor %}
       </div>

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h3>🌍 Mundo</h3>
-  <p class="muted">As regras do servidor: PvP, autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
+  <p class="muted">As regras do servidor: PvP, nome e boas-vindas, autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
 </div>
 {% if last %}
 <p class="small {{ 'muted' if last.status == 'done' else 'warn' }}">
@@ -24,6 +24,24 @@
       {% endfor %}
     </div>
     <p class="small muted">Retro PvP fica em "Liga e desliga". Tudo aqui vale na hora, sem reiniciar.</p>
+  </article>
+
+  <article class="panel">
+    <header><h4>🏷 Nome, boas-vindas e estátua do Vinot</h4></header>
+    <div class="text-grid">
+      {% for k, (label, help, limit, _) in texts.items() %}
+      <label>{{ label }}
+        {% if limit > 60 %}<textarea name="{{ k }}" rows="3" maxlength="{{ limit }}">{{ s[k] }}</textarea>
+        {% else %}<input name="{{ k }}" value="{{ s[k] }}" maxlength="{{ limit }}">{% endif %}
+        <small class="muted">{{ help }}</small></label>
+      {% endfor %}
+      <label>Lugar da estátua (x,y,z)
+        <input name="signPos" value="{{ s.signPos }}" placeholder="vazio = perto do templo de Thais">
+        <small class="muted">{% if s.signAt %}Hoje ela está em {{ s.signAt }}.{% else %}Ainda não foi colocada no jogo.{% endif %}
+          Dá para pegar as coordenadas no Teleporte.</small></label>
+    </div>
+    <p class="small muted">Acentos viram letras simples e aspas saem, porque o cliente do jogo nem sempre mostra acento.
+      O nome na lista de personagens vem do servidor de login (arquivo docker/.env na Oracle), que eu ajusto à parte.</p>
   </article>
 
   <div class="grid2">

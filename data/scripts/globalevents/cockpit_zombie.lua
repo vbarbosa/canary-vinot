@@ -85,6 +85,9 @@ local function eliminate(player, why)
 end
 
 local function givePrize(player)
+	if Z.trophy and CockpitGiveTrophy then
+		CockpitGiveTrophy(player, "Campeao do Zombie em " .. os.date("%d/%m/%Y") .. ".")
+	end
 	for id, count in Z.prize:gmatch("(%d+):(%d+)") do
 		player:addItem(tonumber(id), tonumber(count))
 	end
@@ -161,6 +164,7 @@ function Z.start(cfg)
 	Z.center, Z.radius = cfg.center, math.max(4, math.min(cfg.radius, 30))
 	Z.seconds, Z.first, Z.every = cfg.seconds + COUNTDOWN, math.max(1, cfg.first), math.max(5, cfg.every)
 	Z.speed, Z.prize, Z.gold, Z.eventId = cfg.speed, cfg.prize or "", cfg.gold or 0, cfg.eventId
+	Z.trophy = (cfg.raw or {}).trophy == "1"
 	Z.alive, Z.names, Z.zombies, Z.out, Z.elapsed = {}, {}, {}, {}, 0
 	for _, name in ipairs(cfg.names) do
 		local p = Player(name)

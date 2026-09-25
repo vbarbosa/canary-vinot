@@ -276,6 +276,7 @@ ACTIONS = {
     "narrate_to": {"text": True},
     "kick": {},
     "place_dummy": {},
+    "give_trophy": {"text": True},
 }
 
 # Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
@@ -327,7 +328,7 @@ def part_online(request: Request):
 ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
-    "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
+    "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
 }
 
@@ -560,6 +561,8 @@ def dispatch(actor, name, alvo, text, form, me=""):
         if not me:
             return False, "Ação não permitida."
         text = me
+    if name == "give_trophy":
+        text = world.plain_text(text, 200)
     if name == "set_outfit":
         text = ",".join(str(clamp(form.get(k), 0, 132)) for k in ("head", "body", "legs", "feet"))
 
@@ -1547,7 +1550,7 @@ def raid_start(request: Request, nome: str = Form(...)):
 def world_page(request: Request):
     user = require(request)
     return page(request, "world.html", user, s=world.load(), switches=world.SWITCHES, rates=world.RATES, stages=world.STAGES,
-                world_types=world.WORLD_TYPES, numbers=world.NUMBERS,
+                world_types=world.WORLD_TYPES, numbers=world.NUMBERS, texts=world.TEXTS,
                 last=world.last_result())
 
 
@@ -1555,7 +1558,7 @@ def world_page(request: Request):
 async def world_save(request: Request):
     user = require(request, post=True)
     f = await request.form()
-    values = {k: f.get(k) for k in world.SWITCHES} | {k: f.get(k, "") for k in (*world.RATES, *world.NUMBERS, "worldType")}
+    values = {k: f.get(k) for k in world.SWITCHES} | {k: f.get(k, "") for k in (*world.RATES, *world.NUMBERS, *world.TEXTS, "worldType", "signPos")}
     for k in world.STAGES:
         rows = zip(f.getlist(f"{k}_de"), f.getlist(f"{k}_ate"), f.getlist(f"{k}_x"))
         values[k] = ",".join(f"{lo.strip()}-{hi.strip()}:{x.strip()}" for lo, hi, x in rows if lo.strip() and x.strip())
