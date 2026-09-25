@@ -358,6 +358,26 @@ globalActions.house_rent = function(cmd)
 	return true, amount .. " gold pago (offline)"
 end
 
+-- Guilds. The game keeps a loaded guild's bank balance and motd in memory (and writes the balance back
+-- on save), so change them here when it is loaded; otherwise the database is the truth.
+globalActions.guild_balance = function(cmd)
+	local amount = math.max(0, math.floor(cmd.arg2))
+	local guild = Guild(cmd.arg1)
+	if guild then
+		guild:setBankBalance(amount)
+	end
+	db.query("UPDATE `guilds` SET `balance` = " .. amount .. " WHERE `id` = " .. math.floor(cmd.arg1))
+	return true, "banco da guild: " .. amount .. " gold" .. (guild and "" or " (ninguem online)")
+end
+
+globalActions.guild_motd = function(cmd)
+	local guild = Guild(cmd.arg1)
+	if guild then
+		guild:setMotd(cmd.text)
+	end
+	return true, "mensagem da guild trocada"
+end
+
 -- text = raid name: a Lua raid (Raid.registry) or a legacy XML raid, like the /raid command
 globalActions.start_raid = function(cmd)
 	if Raid and Raid.registry and Raid.registry[cmd.text] then

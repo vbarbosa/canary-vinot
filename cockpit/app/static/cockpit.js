@@ -70,7 +70,7 @@
       if (el._sortable) return;
       el._sortable = Sortable.create(el, { group: { name: "gift", pull: false, put: true }, sort: false, onAdd: onDrop });
     });
-    root.querySelectorAll("[data-ts]").forEach(el => { el.textContent = new Date(el.dataset.ts * 1000).toLocaleString("pt-BR"); });
+    root.querySelectorAll("[data-ts]").forEach(el => { const d = new Date(el.dataset.ts * 1000); el.textContent = el.dataset.fmt === "date" ? d.toLocaleDateString("pt-BR") : d.toLocaleString("pt-BR"); });
     root.querySelectorAll("[data-ago]").forEach(el => { el.textContent = ago(el.dataset.ago); });
     // Logs read bottom-up: open with the newest line in view.
     root.querySelectorAll("pre.log").forEach(el => { el.scrollTop = el.scrollHeight; });

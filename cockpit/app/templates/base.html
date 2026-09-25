@@ -20,7 +20,7 @@
   {% set menu = [
     ('painel', '🏠', 'Painel', [('/', '🌅', 'Visão geral'), ('/ranking', '🏆', 'Ranking'), ('/historico', '📜', 'Histórico')]),
     ('jogo', '🎮', 'Jogo ao vivo', [('/turma', '🧑‍🤝‍🧑', 'A Turma'), ('/teleporte', '🌀', 'Teleporte'), ('/raids', '👹', 'Raids'), ('/eventos', '🎪', 'Eventos'), ('/agenda', '⏰', 'Agenda')]),
-    ('pessoas', '👥', 'Pessoas', [('/jogadores', '🧙', 'Jogadores'), ('/contas', '🔑', 'Contas')]),
+    ('pessoas', '👥', 'Pessoas', [('/jogadores', '🧙', 'Jogadores'), ('/contas', '🔑', 'Contas'), ('/guilds', '🛡', 'Guilds')]),
     ('economia', '💰', 'Itens e economia', [('/kits', '🎁', 'Kits'), ('/economia', '🏦', 'Economia'), ('/imobiliaria', '🏘', 'Imobiliária')]),
     ('servidor', '🛠', 'Servidor', [('/mundo', '🌍', 'Mundo'), ('/metricas', '📈', 'Métricas'), ('/logs', '📄', 'Logs')]),
   ] %}
@@ -47,7 +47,7 @@
           <summary><span class="ic">{{ icon }}</span><span class="lbl">{{ title }}</span></summary>
           <ul>
             {% for href, lic, label in links %}
-            {% set active = (href == '/' and path == '/') or (href != '/' and (path == href or path.startswith(href ~ '/') or (href == '/jogadores' and path.startswith('/jogador/')) or (href == '/contas' and path.startswith('/conta/')))) %}
+            {% set active = (href == '/' and path == '/') or (href != '/' and (path == href or path.startswith(href ~ '/') or (href == '/jogadores' and path.startswith('/jogador/')) or (href == '/contas' and path.startswith('/conta/')) or (href == '/guilds' and path.startswith('/guild/')))) %}
             <li><a href="{{ href }}" class="{{ 'active' if active }}" title="{{ label }}"{% if active %} aria-current="page"{% endif %}><span class="ic">{{ lic }}</span><span class="lbl">{{ label }}</span></a></li>
             {% endfor %}
           </ul>

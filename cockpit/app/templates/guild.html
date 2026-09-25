@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ g.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🛡 {{ g.name }}</h3>
+  <p class="muted">Líder: <strong>{{ g.leader or '—' }}</strong> · {{ g.members|length }} membros{% if g.online %} ({{ g.online }} online){% endif %}
+    · criada em <span data-ts="{{ g.creationdata }}" data-fmt="date"></span> · <a href="/guilds">todas as guilds</a></p>
+  {% if g.online %}<p class="small muted">Tem gente online: mudanças de membros e cargos aparecem para eles quando relogarem. Banco e mensagem mudam na hora.</p>{% endif %}
+</div>
+
+<div class="with-catalog tp">
+  <section>
+    <article class="panel">
+      <header><h4>👥 Membros</h4></header>
+      <table class="compact guild-members">
+        <thead><tr><th>Jogador</th><th>Cargo e apelido</th><th></th></tr></thead>
+        <tbody>
+        {% for m in g.members %}
+        <tr>
+          <td><span class="dot {{ 'on' if m.online }}"></span> <a href="/jogador/{{ m.id }}"><strong>{{ m.name }}</strong></a>
+            <div class="muted small">nível {{ m.level }} · {{ vocations.get(m.vocation, '') }}</div></td>
+          <td>
+            <form hx-post="/guild/{{ g.id }}/membro" hx-target="#toast" class="row">
+              <input type="hidden" name="pid" value="{{ m.id }}">
+              <select name="rank" class="w12">{% for r in g.ranks %}<option value="{{ r.id }}" {{ 'selected' if r.id == m.rank_id }}>{{ r.name }}</option>{% endfor %}</select>
+              <input name="nick" value="{{ m.nick }}" placeholder="apelido" maxlength="15" class="w12">
+              <button class="outline small">Salvar</button>
+            </form>
+          </td>
+          <td><div class="row small">
+            {% if m.id != g.ownerid %}
+            <button class="outline small" hx-post="/guild/{{ g.id }}/lider" hx-vals='{"pid": "{{ m.id }}"}' hx-confirm="Passar a liderança para {{ m.name }}?">👑 Tornar líder</button>
+            <button class="outline small danger" hx-post="/guild/{{ g.id }}/membro_sair" hx-vals='{"pid": "{{ m.id }}"}' hx-target="#toast" hx-confirm="Tirar {{ m.name }} da guild?">Tirar</button>
+            {% else %}<span class="tag">líder</span>{% endif %}
+          </div></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <form hx-post="/guild/{{ g.id }}/membro_add" hx-target="#toast" class="add-member">
+        <p class="small muted">Adicionar membro (sem convite):</p>
+        <div class="row wrap">
+          <input type="search" name="q" placeholder="Buscar jogador sem guild…" hx-get="/guilds/livres" hx-trigger="input changed delay:300ms" hx-target="#member-pick" class="who-search">
+          <select name="nivel" class="w12"><option value="1">como Membro</option><option value="2">como Vice</option></select>
+          <button class="small">Adicionar</button>
+        </div>
+        <ul class="pick-list" id="member-pick"></ul>
+      </form>
+      {% if g.invites %}
+      <p class="small muted">Convites pendentes:</p>
+      <ul class="ledger">{% for i in g.invites %}<li><span>{{ i.name }}</span><small class="muted" data-ts="{{ i.date }}"></small>
+        <button class="outline small" hx-post="/guild/{{ g.id }}/convite_apagar" hx-vals='{"pid": "{{ i.id }}"}' hx-target="#toast">Cancelar</button></li>{% endfor %}</ul>
+      {% endif %}
+    </article>
+
+    <article class="panel">
+      <header><h4>⚔ Guerras</h4></header>
+      <ul class="ledger">
+        {% for w in g.wars %}
+        {% set mine = w.guild1 == g.id %}
+        <li><span><strong>{{ w.name2 if mine else w.name1 }}</strong> · {{ war_status.get(w.status, w.status) }}
+          · placar {{ w.kills1 if mine else w.kills2 }} × {{ w.kills2 if mine else w.kills1 }}{% if w.frags_limit %} (até {{ w.frags_limit }}){% endif %}</span>
+          <small class="muted"><span data-ts="{{ w.started }}"></span>{% if w.ended %} até <span data-ts="{{ w.ended }}"></span>{% endif %}</small>
+          {% if w.status in (0, 1) %}<button class="outline small fit" hx-post="/guild/{{ g.id }}/paz" hx-vals='{"war": "{{ w.id }}"}' hx-confirm="Encerrar essa guerra?">🕊 Encerrar</button>{% endif %}</li>
+        {% else %}<li class="muted small">Nenhuma guerra.</li>{% endfor %}
+      </ul>
+      {% if others %}
+      <form hx-post="/guild/{{ g.id }}/guerra" hx-target="#toast" class="row wrap">
+        <select name="outra" class="w12">{% for o in others %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+        <label class="small">Frags<input name="frags" type="number" min="0" max="1000" value="0" class="w6"></label>
+        <button class="small">⚔ Declarar guerra</button>
+      </form>
+      <p class="small muted">Começa valendo na hora, sem convite. Frags 0 = sem limite. Quem está online entra na guerra ao relogar.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>🏦 Banco e mensagem</h4></header>
+      <form hx-post="/guild/{{ g.id }}/banco" hx-target="#toast" class="row">
+        <input name="valor" type="number" min="0" value="{{ g.balance }}"><button class="small">Salvar gold</button>
+      </form>
+      <form hx-post="/guild/{{ g.id }}/motd" hx-target="#toast">
+        <textarea name="texto" rows="2" maxlength="255" placeholder="Mensagem do dia da guild">{{ g.motd }}</textarea>
+        <button class="small">Salvar mensagem</button>
+      </form>
+    </article>
+    <article class="panel">
+      <header><h4>🎖 Cargos</h4></header>
+      <ul class="ledger">
+        {% for r in g.ranks %}
+        <li><form hx-post="/guild/{{ g.id }}/cargo" hx-target="#toast" class="row">
+            <input type="hidden" name="rank" value="{{ r.id }}">
+            <input name="nome" value="{{ r.name }}" maxlength="30">
+            <button class="outline small">Salvar</button>
+          </form>
+          <small class="muted">{{ rank_levels.get(r.level, r.level) }} · {{ r.n }} pessoa(s)
+            {% if not r.n %}<a href="#" hx-post="/guild/{{ g.id }}/cargo_apagar" hx-vals='{"rank": "{{ r.id }}"}' hx-target="#toast" class="danger-text">apagar</a>{% endif %}</small></li>
+        {% endfor %}
+      </ul>
+      <form hx-post="/guild/{{ g.id }}/cargo_novo" hx-target="#toast" class="row wrap">
+        <input name="nome" placeholder="Novo cargo" maxlength="30" class="w12">
+        <select name="nivel" class="w12"><option value="1">nível Membro</option><option value="2">nível Vice</option></select>
+        <button class="outline small">Criar</button>
+      </form>
+    </article>
+    <article class="panel">
+      <header><h4>⚙ Guild</h4></header>
+      <form hx-post="/guild/{{ g.id }}/nome" hx-target="#toast" class="row">
+        <input name="nome" value="{{ g.name }}" maxlength="30"><button class="outline small">Renomear</button>
+      </form>
+      <button class="outline small danger" hx-post="/guild/{{ g.id }}/apagar" hx-target="#toast"
+              hx-confirm="Desfazer a guild {{ g.name }}? Membros, cargos e convites somem.">Desfazer guild</button>
+      <p class="small muted">Renomear e desfazer só com todos os membros offline.</p>
+    </article>
+  </aside>
+</div>
+{% endblock %}

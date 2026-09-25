@@ -405,3 +405,11 @@ p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }
 .staff-add:has(input[value=nova]:checked) .only-existente,
 .staff-add:has(input[value=existente]:checked) .only-nova { display: none; }
 .role-tag { font-size: .7rem; border: 1px solid var(--pico-muted-border-color); border-radius: 1rem; padding: 0 .5rem; }
+
+/* guilds */
+.w12 { max-width: 12rem; }
+.danger-text { color: var(--pico-del-color); }
+.guild-members form.row { gap: .4rem; flex-wrap: wrap; margin: 0; }
+.guild-members form.row > * { margin: 0; }
+.add-member { margin-top: .8rem; }
+.ledger li button.fit { width: auto !important; justify-self: start; align-self: start; }

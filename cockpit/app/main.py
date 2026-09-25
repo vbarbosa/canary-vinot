@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, places, raids, ranking, realty, sheet, world
+from . import events, guilds, places, raids, ranking, realty, sheet, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -89,7 +89,7 @@ def current_user(request: Request):
 SECTIONS = {
     "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
     "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/agenda", "/acao")),
-    "pessoas": ("👥 Pessoas", "Jogadores, contas, ban, senha", ("/jogador", "/conta")),
+    "pessoas": ("👥 Pessoas", "Jogadores, contas, guilds, ban, senha", ("/jogador", "/conta", "/guild")),
     "economia": ("💰 Itens e economia", "Kits, economia e imobiliária", ("/kits", "/economia", "/imobiliaria")),
     "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
 }
@@ -1011,6 +1011,99 @@ def character_group(request: Request, pid: int, grupo: int = Form(...)):
         db.run("UPDATE players SET group_id = %s WHERE id = %s", grupo, pid)
         db.audit(user["account"], "grupo", p["name"], str(grupo))
     return toast(f"{p['name']} agora é {dict(GROUPS)[grupo]}.")
+
+
+# ---------------------------------------------------------------- guilds
+
+
+@app.get("/guilds", response_class=HTMLResponse)
+def guild_list(request: Request, q: str = ""):
+    user = require(request)
+    return page(request, "guilds.html", user, rows=guilds.all_guilds(q.strip()), q=q)
+
+
+@app.get("/guilds/livres", response_class=HTMLResponse)
+def guild_free(request: Request, q: str = ""):
+    user = require(request)
+    return page(request, "_guild_pick.html", user, rows=guilds.free_players(q))
+
+
+@app.post("/guilds", response_class=HTMLResponse)
+def guild_create(request: Request, nome: str = Form(""), pid: int = Form(0)):
+    user = require(request, post=True)
+    gid, msg = guilds.create(nome, pid)
+    if not gid:
+        return toast(msg, ok=False)
+    db.audit(user["account"], "guild_criada", nome.strip(), msg)
+    return Response(headers={"HX-Redirect": f"/guild/{gid}"})
+
+
+@app.get("/guild/{gid}", response_class=HTMLResponse)
+def guild_detail(request: Request, gid: int):
+    user = require(request)
+    g = guilds.one(gid)
+    if not g:
+        raise HTTPException(404)
+    others = db.all("SELECT id, name FROM guilds WHERE id <> %s ORDER BY name", gid)
+    return page(request, "guild.html", user, g=g, others=others, rank_levels=guilds.RANK_LEVELS, war_status=guilds.WAR_STATUS)
+
+
+@app.post("/guild/{gid}/{acao}", response_class=HTMLResponse)
+async def guild_change(request: Request, gid: int, acao: str):
+    user = require(request, post=True)
+    g = guilds.one(gid)
+    if not g:
+        raise HTTPException(404)
+    f = await request.form()
+    num = lambda k, hi=10**12: clamp(f.get(k), 0, hi)  # noqa: E731
+    reload_page, msg = True, ""
+    if acao == "membro_add":
+        err = guilds.add_member(gid, num("pid"), num("nivel", 2))
+    elif acao == "membro_sair":
+        err = guilds.remove_member(gid, num("pid"))
+    elif acao == "membro":
+        err, reload_page, msg = guilds.set_member(gid, num("pid"), num("rank"), str(f.get("nick", ""))), False, "Membro atualizado."
+    elif acao == "lider":
+        err = guilds.set_leader(gid, num("pid"))
+    elif acao == "cargo":
+        err, reload_page, msg = guilds.rename_rank(gid, num("rank"), str(f.get("nome", ""))), False, "Cargo renomeado."
+    elif acao == "cargo_novo":
+        err = guilds.add_rank(gid, str(f.get("nome", "")), num("nivel", 2))
+    elif acao == "cargo_apagar":
+        err = guilds.delete_rank(gid, num("rank"))
+    elif acao == "motd":
+        texto = " ".join(str(f.get("texto", "")).split())[:255]
+        db.run("UPDATE guilds SET motd = %s WHERE id = %s", texto, gid)
+        db.enqueue(user["account"], "guild_motd", g["name"], gid, text=texto)
+        err, reload_page, msg = "", False, "Mensagem da guild trocada."
+    elif acao == "banco":
+        db.enqueue(user["account"], "guild_balance", g["name"], gid, num("valor"))
+        err, reload_page, msg = "", False, f"Banco da guild vai para {num('valor')} gold."
+    elif acao == "nome":
+        err = "Tem membro online. Renomeie com todos offline." if g["online"] else guilds.rename(gid, str(f.get("nome", "")))
+    elif acao == "guerra":
+        err = guilds.declare_war(gid, num("outra"), num("frags", 1000), num("dias", 60))
+    elif acao == "paz":
+        err = guilds.end_war(gid, num("war"))
+    elif acao == "convite_apagar":
+        db.run("DELETE FROM guild_invites WHERE guild_id = %s AND player_id = %s", gid, num("pid"))
+        err = ""
+    elif acao == "apagar":
+        if g["online"]:
+            return toast("Tem membro online. Desfaça a guild com todos offline.", ok=False)
+        db.run("DELETE FROM guild_wars WHERE (guild1 = %s OR guild2 = %s) AND status IN (0, 1)", gid, gid)
+        db.run("DELETE FROM guilds WHERE id = %s", gid)
+        db.audit(user["account"], "guild_apagada", g["name"])
+        return Response(headers={"HX-Redirect": "/guilds"})
+    else:
+        raise HTTPException(404)
+    if err:
+        return toast(err, ok=False)
+    if acao not in ("motd", "banco"):
+        db.audit(user["account"], "guild_" + acao, g["name"], " ".join(f"{k}={v}" for k, v in f.items())[:200])
+    if reload_page:
+        return Response(headers={"HX-Redirect": f"/guild/{gid}"})
+    return toast(msg + (" Quem está online vê ao relogar." if g["online"] and acao == "membro" else ""))
 
 
 # ---------------------------------------------------------------- staff (co-admins)

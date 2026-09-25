@@ -32,6 +32,10 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
+- Guilds: o portal das guilds (o servidor não tem site). Criar guild escolhendo o líder, pôr e tirar membros
+  sem convite, cargos e apelidos, trocar o líder, renomear, desfazer, banco, mensagem do dia e guerras
+  (declarar e encerrar, com placar). Banco e mensagem passam pela ponte (`guild_balance`, `guild_motd`),
+  porque o jogo guarda os dois em memória; o resto vale quando o membro online relogar.
 - Equipe (só o God vê): co-administradores. O God adiciona uma conta (existente ou nova) e marca as áreas do
   menu que ela pode usar; o grupo no jogo (até Community manager) vai junto. Guardado em `cockpit_admins`.
   Co-admin não dá God nem mexe nas contas do God ou de outro co-admin; pausar ou remover vale no próximo clique.
