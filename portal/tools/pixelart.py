@@ -12,6 +12,9 @@ import os
 import random
 import sys
 
+sys.path.insert(0, os.path.dirname(__file__))
+from heroes import H as HERO_H, W as HERO_W, hero  # noqa: E402
+
 OUT = os.path.join(os.path.dirname(__file__), "..", "app", "static", "px")
 
 P = {
@@ -512,6 +515,8 @@ def main(preview=False):
     word, end = word_pixels("VinOT", 20, 4)
     outputs["logo"] = (grid_pixels(SPRITES["emblem"]) + word, end + 1, 16)
     outputs["ground"] = (ground(), 32, 12)
+    for voc in ("knight", "paladin", "sorcerer", "druid"):
+        outputs[f"hero-{voc}"] = (hero(voc, P), HERO_W, HERO_H)
     for name, (pixels, w, h) in outputs.items():
         with open(os.path.join(OUT, f"{name}.svg"), "w") as f:
             f.write(svg(pixels, w, h))

@@ -22,7 +22,15 @@
     </ul>
     {% endif %}
   </div>
-  <img src="/static/px/mascot.svg" alt="" class="px mascot bob" aria-hidden="true">
+  <div class="party" aria-hidden="true">
+    <div class="heroes">
+      {% for id in [4, 3, 1, 2] %}<img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px hero-sprite bob" style="animation-delay: {{ loop.index0 * 0.3 }}s">{% endfor %}
+    </div>
+    <div class="foes">
+      <img src="/static/creatures/dragon.png" alt="" class="px foe float">
+      <img src="/static/creatures/demon.png" alt="" class="px foe big">
+    </div>
+  </div>
 </section>
 
 {% if promos %}
@@ -56,12 +64,27 @@
     <div class="vocations">
       {% for id, name in vocations.items() %}
       <a class="card vocation" href="/criar-conta?vocacao={{ id }}">
-        <img src="/static/px/{{ vocation_art[id] }}.svg" alt="" class="px s64">
+        <div class="stage"><img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px hero-card"></div>
         <h3>{{ name }}</h3>
         <p>{{ blurbs[id] }}</p>
       </a>
       {% endfor %}
     </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <h2 class="title"><img src="/static/px/skull.svg" alt="" class="px s32"> Criaturas que te esperam</h2>
+  <p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p>
+  <div class="bestiary">
+    {% for slug, name, tier, blurb in creatures %}
+    <div class="card creature tier-{{ tier }}">
+      <div class="lair"><img src="/static/creatures/{{ slug }}.png" alt="{{ name }}" class="px"></div>
+      <span class="tag tier">{{ tiers[tier] }}</span>
+      <h3>{{ name }}</h3>
+      <p>{{ blurb }}</p>
+    </div>
+    {% endfor %}
   </div>
 </section>
 

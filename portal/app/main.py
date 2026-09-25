@@ -54,6 +54,25 @@ VOCATION_BLURB = {
     3: "Arqueiro certeiro que equilibra ataque e defesa.",
     4: "Linha de frente: aguenta a pancada pra turma brilhar.",
 }
+HERO_ART = {1: "hero-sorcerer", 2: "hero-druid", 3: "hero-paladin", 4: "hero-knight"}
+# Sprites cut from the 13.40 client by tools/extract_creatures.py
+TIERS = {"facil": "Iniciante", "medio": "Intermediário", "dificil": "Difícil", "chefe": "Chefão"}
+CREATURES = [
+    ("rat", "Rat", "facil", "O primeiro susto de todo aventureiro."),
+    ("wolf", "Wolf", "facil", "Anda em bando. Nunca vá sozinho pra floresta."),
+    ("troll", "Troll", "facil", "Fedorento, mas dá um bom loot pra começar."),
+    ("bear", "Bear", "facil", "Abraço de urso machuca de verdade."),
+    ("minotaur", "Minotaur", "medio", "Guarda os labirintos e bate forte."),
+    ("giant-spider", "Giant Spider", "medio", "Veneno forte e teia pra todo lado."),
+    ("cyclops", "Cyclops", "medio", "Grande, lento e cheio de moedas."),
+    ("vampire", "Vampire", "medio", "Cuidado: ele drena a sua vida."),
+    ("dragon", "Dragon", "dificil", "O rito de passagem de todo herói."),
+    ("dragon-lord", "Dragon Lord", "dificil", "O dragão vermelho que cospe fogo de verdade."),
+    ("hydra", "Hydra", "dificil", "Três cabeças, três vezes mais problemas."),
+    ("behemoth", "Behemoth", "dificil", "Um tanque ambulante das profundezas."),
+    ("demon", "Demon", "chefe", "O pesadelo de todo time. Traga amigos."),
+    ("orshabaal", "Orshabaal", "chefe", "Chefão lendário que aparece nas raids."),
+]
 # Starting stats of a level 8 character, same as the Cockpit and the Canary sample characters.
 NEW_CHAR = {"level": 8, "experience": 4200, "health": 185, "mana": 90, "cap": 470}
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z ']{1,27}[A-Za-z]$")
@@ -97,7 +116,7 @@ def fmt_date(value, with_time=False):
 
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
-    categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART,
+    categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART,
     turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year,
 )
 
@@ -315,6 +334,7 @@ def index(request: Request):
     return page(
         request, "index.html", home=cms.home(), posts=cms.posts(limit=3), promos=cms.promotions(),
         stats=stats(), top=top_players(), vocations=VOCATIONS, blurbs=VOCATION_BLURB, flash=pop_flash(request),
+        creatures=CREATURES, tiers=TIERS,
     )
 
 
