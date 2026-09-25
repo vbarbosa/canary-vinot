@@ -35,7 +35,7 @@
       if (el._sortable) return;
       el._sortable = Sortable.create(el, { group: { name: "gift", pull: false, put: true }, sort: false, onAdd: onDrop });
     });
-    root.querySelectorAll("td[data-ts]").forEach(td => { td.textContent = new Date(td.dataset.ts * 1000).toLocaleString("pt-BR"); });
+    root.querySelectorAll("[data-ts]").forEach(el => { el.textContent = new Date(el.dataset.ts * 1000).toLocaleString("pt-BR"); });
   }
 
   // Outfit palette: pick a body part, then a color.

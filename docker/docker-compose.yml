@@ -68,6 +68,7 @@ services:
       - '${COCKPIT_BIND:-127.0.0.1}:8090:8090'
     volumes:
       - '../data:/srv/canary/data:ro'
+      - '../logs:/srv/canary/logs:ro'
       - 'cockpit-icons:/srv/cockpit/icons'
     depends_on:
       database:

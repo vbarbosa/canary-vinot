@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Métricas{% endblock %}
+{% block content %}
+<h3>Métricas</h3>
+<div hx-get="/parts/metricas" hx-trigger="load, every 10s">Carregando…</div>
+{% endblock %}

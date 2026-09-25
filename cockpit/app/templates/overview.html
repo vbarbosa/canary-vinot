@@ -13,8 +13,11 @@
       <button type="submit">Anunciar na tela de todos</button>
     </form>
     <h3>Servidor</h3>
-    <div class="row">
+    <div class="row wrap">
       <button class="secondary" hx-post="/acao" hx-vals='{"action":"save"}' hx-target="#toast">Salvar o jogo agora</button>
+      <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"clean_map"}' hx-target="#toast" hx-confirm="Limpar os itens jogados no chão do mapa todo?">Limpar o chão do mapa</button>
+      <button class="outline danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar.">Fechar servidor</button>
+      <button class="outline" hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast">Abrir servidor</button>
       <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"effect","alvo":"todos","arg1":"30"}' hx-target="#toast">Fogos em todo mundo</button>
     </div>
     <h3>Últimas ações</h3>

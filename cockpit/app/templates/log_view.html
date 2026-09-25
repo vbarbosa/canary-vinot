@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ arquivo }}{% endblock %}
+{% block content %}
+<p><a href="/logs">← Logs</a></p>
+<h3>{{ arquivo }} <small class="muted">({{ pasta }})</small></h3>
+<form class="row wrap" hx-get="/logs/ver" hx-target="#lines" hx-trigger="submit, input changed delay:400ms from:input[name=filtro], every 5s [document.getElementById('live').checked]">
+  <input type="hidden" name="pasta" value="{{ pasta }}"><input type="hidden" name="arquivo" value="{{ arquivo }}">
+  <input name="filtro" value="{{ filtro }}" placeholder="Filtrar (ex.: error, nome do jogador)…">
+  <select name="linhas" class="w8">{% for n in [200, 500, 1000, 2000] %}<option value="{{ n }}" {{ 'selected' if n == linhas }}>últimas {{ n }}</option>{% endfor %}</select>
+  <label><input type="checkbox" id="live" role="switch"> Ao vivo</label>
+  <a role="button" class="outline small" href="/logs/baixar?pasta={{ pasta|urlencode }}&arquivo={{ arquivo|urlencode }}">Baixar</a>
+</form>
+<div id="lines">{% include "_log_lines.html" %}</div>
+{% endblock %}

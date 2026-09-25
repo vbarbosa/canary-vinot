@@ -26,6 +26,15 @@ local tablesSql = {
 		PRIMARY KEY (`id`),
 		KEY `cockpit_commands_status` (`status`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_metrics` (
+		`ts` INT UNSIGNED NOT NULL,
+		`players` INT NOT NULL DEFAULT 0,
+		`monsters` INT NOT NULL DEFAULT 0,
+		`npcs` INT NOT NULL DEFAULT 0,
+		`lua_kb` INT NOT NULL DEFAULT 0,
+		`started_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (`ts`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
 	[[CREATE TABLE IF NOT EXISTS `cockpit_online` (
 		`player_id` INT NOT NULL,
 		`name` VARCHAR(255) NOT NULL,
@@ -43,7 +52,7 @@ local tablesSql = {
 
 -- Actions that only make sense while the target is online. Anything else waits
 -- in the queue and runs the next time the player logs in.
-local onlineOnly = { kick = true, heal = true, teleport = true, temple = true, effect = true, say_over = true, summon_to = true }
+local onlineOnly = { set_group = true, kick = true, heal = true, teleport = true, temple = true, effect = true, say_over = true, summon_to = true }
 
 local function finish(id, status, result)
 	db.query(string.format("UPDATE `cockpit_commands` SET `status` = %s, `result` = %s, `done_at` = %d WHERE `id` = %d", db.escapeString(status), db.escapeString(result or ""), os.time(), id))
@@ -149,6 +158,15 @@ actions.add_mount = function(player, cmd)
 	return true, "montaria " .. cmd.arg1
 end
 
+-- arg1 = group id (1 player, 2 tutor, 3 senior tutor, 4 gamemaster, 5 community manager, 6 god)
+actions.set_group = function(player, cmd)
+	local group = Group(cmd.arg1)
+	if not group or not player:setGroup(group) then
+		return false, "grupo invalido"
+	end
+	return true, "grupo " .. group:getName()
+end
+
 actions.kick = function(player)
 	if player:getGroup():getAccess() then
 		return false, "nao kicka staff"
@@ -222,6 +240,20 @@ globalActions.broadcast = function(cmd)
 		p:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
 	end
 	return true, "enviado a " .. Game.getPlayerCount() .. " jogadores"
+end
+
+globalActions.close_server = function()
+	Game.setGameState(GAME_STATE_CLOSED)
+	return true, "servidor fechado para jogadores"
+end
+
+globalActions.open_server = function()
+	Game.setGameState(GAME_STATE_NORMAL)
+	return true, "servidor aberto"
+end
+
+globalActions.clean_map = function()
+	return true, (cleanMap() or 0) .. " itens removidos do chao"
 end
 
 globalActions.save = function()
@@ -302,6 +334,15 @@ local function writeSnapshot()
 	end
 end
 
+local startedAt = os.time()
+local METRICS_KEEP_DAYS = 7
+
+local function writeMetrics()
+	local now = os.time()
+	db.query(string.format("INSERT IGNORE INTO `cockpit_metrics` (`ts`, `players`, `monsters`, `npcs`, `lua_kb`, `started_at`) VALUES (%d, %d, %d, %d, %d, %d)", now, Game.getPlayerCount(), Game.getMonsterCount(), Game.getNpcCount(), math.floor(collectgarbage("count")), startedAt))
+	db.query("DELETE FROM `cockpit_metrics` WHERE `ts` < " .. (now - METRICS_KEEP_DAYS * 86400))
+end
+
 local startup = GlobalEvent("CockpitStartup")
 
 function startup.onStartup()
@@ -309,11 +350,23 @@ function startup.onStartup()
 		db.query(sql)
 	end
 	db.query("DELETE FROM `cockpit_online`")
+	startedAt = os.time()
+	writeMetrics()
 	logger.info("[cockpit] bridge ready")
 	return true
 end
 
 startup:register()
+
+local metricsEvent = GlobalEvent("CockpitMetrics")
+
+function metricsEvent.onThink()
+	writeMetrics()
+	return true
+end
+
+metricsEvent:interval(60 * 1000)
+metricsEvent:register()
 
 local polls = 0
 local poll = GlobalEvent("CockpitPoll")

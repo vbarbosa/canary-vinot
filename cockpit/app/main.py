@@ -9,6 +9,7 @@ import hashlib
 import html
 import hmac
 import os
+import re
 import secrets
 import time
 from collections import defaultdict
@@ -19,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db, gamedata
+from . import db, gamedata, system
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -37,7 +38,7 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
-templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(time.time()))
+templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(time.time()), hb=system.human_bytes, hd=system.human_duration)
 
 
 @app.on_event("startup")
@@ -197,7 +198,7 @@ ACTIONS = {
     "narrate_to": {"text": True},
     "kick": {},
 }
-GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}}
+GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}, "close_server": {}, "open_server": {}, "clean_map": {}}
 
 
 # ---------------------------------------------------------------- pages
@@ -425,3 +426,273 @@ async def action(request: Request):
     offline = [t for t in targets if t not in online_names()]
     note = " Quem está offline recebe ao logar." if offline and name not in ("kick", "heal", "temple", "summon_to", "effect", "say_over") else ""
     return toast(f"Enviado para {label}.{note}")
+
+
+# ---------------------------------------------------------------- accounts and characters
+
+NAME_RE = re.compile(r"^[A-Za-z][A-Za-z ']{1,27}[A-Za-z]$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+$")
+GROUPS = [(1, "Jogador"), (2, "Tutor"), (3, "Senior tutor"), (4, "Gamemaster"), (5, "Community manager"), (6, "God")]
+# Starting stats for a new level 8 character, same as the Canary sample characters.
+NEW_CHAR = {"level": 8, "experience": 4200, "health": 185, "mana": 90, "cap": 470}
+
+
+def sha1(text):
+    return hashlib.sha1(text.encode()).hexdigest()
+
+
+def towns():
+    return db.all("SELECT id, name FROM towns ORDER BY name") or [{"id": 8, "name": "Thais"}]
+
+
+def is_online(pid):
+    return bool(db.one("SELECT 1 AS x FROM cockpit_online WHERE player_id = %s", pid))
+
+
+def create_character(account_id, name, sex, vocation, town):
+    name = " ".join(name.split())
+    if not NAME_RE.match(name):
+        return "Nome inválido: use de 3 a 29 letras e espaços."
+    if db.one("SELECT 1 AS x FROM players WHERE name = %s", name):
+        return f"Já existe um personagem chamado {name}."
+    sex = 1 if int(sex) else 0
+    db.run(
+        "INSERT INTO players (name, group_id, account_id, level, vocation, health, healthmax, experience, "
+        "lookbody, lookfeet, lookhead, looklegs, looktype, mana, manamax, town_id, conditions, cap, sex) "
+        "VALUES (%s, 1, %s, %s, %s, %s, %s, %s, 106, 95, 78, 116, %s, %s, %s, %s, '', %s, %s)",
+        name, account_id, NEW_CHAR["level"], clamp(vocation, 0, 4), NEW_CHAR["health"], NEW_CHAR["health"], NEW_CHAR["experience"],
+        128 if sex else 136, NEW_CHAR["mana"], NEW_CHAR["mana"], clamp(town, 1, 1000), NEW_CHAR["cap"], sex,
+    )
+    return None
+
+
+@app.get("/contas", response_class=HTMLResponse)
+def accounts(request: Request, q: str = ""):
+    user = require(request)
+    rows = db.all(
+        "SELECT a.id, a.name, a.email, a.coins, a.coins_transferable, a.premdays, a.lastday, "
+        "(SELECT COUNT(*) FROM players p WHERE p.account_id = a.id) AS chars, "
+        "(SELECT GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', ') FROM players p WHERE p.account_id = a.id) AS names "
+        "FROM accounts a WHERE a.name LIKE %s OR a.email LIKE %s ORDER BY a.id DESC LIMIT 100",
+        f"%{q}%", f"%{q}%",
+    )
+    purchases = db.all(
+        "SELECT h.*, a.name AS account FROM store_history h JOIN accounts a ON a.id = h.account_id ORDER BY h.id DESC LIMIT 15"
+    )
+    return page(request, "accounts.html", user, rows=rows, q=q, towns=towns(), vocations_list=list(gamedata.vocations().items())[:5], purchases=purchases)
+
+
+@app.post("/contas", response_class=HTMLResponse)
+def account_create(
+    request: Request, nome: str = Form(...), email: str = Form(...), senha: str = Form(...),
+    personagem: str = Form(""), sexo: int = Form(1), vocacao: int = Form(4), cidade: int = Form(8),
+):
+    user = require(request, post=True)
+    nome, email = nome.strip(), email.strip()
+    if not re.match(r"^[A-Za-z0-9_]{3,32}$", nome):
+        return toast("Nome da conta: 3 a 32 letras, números ou _.", ok=False)
+    if not EMAIL_RE.match(email):
+        return toast("E-mail inválido.", ok=False)
+    if len(senha) < 6:
+        return toast("A senha precisa de pelo menos 6 caracteres.", ok=False)
+    if db.one("SELECT 1 AS x FROM accounts WHERE name = %s OR email = %s", nome, email):
+        return toast("Já existe conta com esse nome ou e-mail.", ok=False)
+    acc = db.run(
+        "INSERT INTO accounts (name, email, password, type, creation) VALUES (%s, %s, %s, 1, %s)", nome, email, sha1(senha), int(time.time())
+    )
+    db.audit(user["account"], "conta_criada", nome, email)
+    if personagem.strip():
+        err = create_character(acc, personagem, sexo, vocacao, cidade)
+        if err:
+            return toast(f"Conta criada, mas o personagem não: {err}", ok=False)
+        db.audit(user["account"], "personagem_criado", personagem.strip(), nome)
+    return Response(headers={"HX-Redirect": f"/conta/{acc}"})
+
+
+@app.get("/conta/{aid}", response_class=HTMLResponse)
+def account_detail(request: Request, aid: int):
+    user = require(request)
+    acc = db.one("SELECT * FROM accounts WHERE id = %s", aid)
+    if not acc:
+        raise HTTPException(404)
+    chars = db.all(
+        "SELECT p.id, p.name, p.level, p.vocation, p.group_id, p.town_id, o.player_id IS NOT NULL AS online "
+        "FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id WHERE p.account_id = %s ORDER BY p.name", aid,
+    )
+    premium = max(0, (acc["lastday"] - int(time.time()) + 86399) // 86400) if acc["lastday"] else 0
+    purchases = db.all("SELECT * FROM store_history WHERE account_id = %s ORDER BY id DESC LIMIT 20", aid)
+    coin_log = db.all("SELECT * FROM coins_transactions WHERE account_id = %s ORDER BY id DESC LIMIT 20", aid)
+    return page(
+        request, "account.html", user, acc=acc, chars=chars, premium=premium, groups=GROUPS, towns=towns(),
+        vocations_list=list(gamedata.vocations().items())[:5], purchases=purchases, coin_log=coin_log,
+    )
+
+
+@app.post("/conta/{aid}/senha", response_class=HTMLResponse)
+def account_password(request: Request, aid: int, senha: str = Form(...)):
+    user = require(request, post=True)
+    if len(senha) < 6:
+        return toast("A senha precisa de pelo menos 6 caracteres.", ok=False)
+    db.run("UPDATE accounts SET password = %s WHERE id = %s", sha1(senha), aid)
+    db.audit(user["account"], "senha_trocada", str(aid))
+    return toast("Senha trocada. Vale para o jogo e para o painel.")
+
+
+@app.post("/conta/{aid}/premium", response_class=HTMLResponse)
+def account_premium(request: Request, aid: int, dias: int = Form(...)):
+    user = require(request, post=True)
+    acc = db.one("SELECT lastday FROM accounts WHERE id = %s", aid)
+    now = int(time.time())
+    left = max(0, acc["lastday"] - now) if acc and acc["lastday"] else 0
+    total = max(0, left + clamp(dias, -3650, 3650) * 86400)
+    db.run("UPDATE accounts SET premdays = %s, lastday = %s WHERE id = %s", total // 86400, now + total if total else 0, aid)
+    db.audit(user["account"], "premium", str(aid), f"{dias} dias")
+    return toast(f"Premium agora: {total // 86400} dias. Se o jogador estiver online, vale depois de relogar.")
+
+
+@app.post("/conta/{aid}/coins", response_class=HTMLResponse)
+def account_coins(request: Request, aid: int, quantidade: int = Form(...), tipo: str = Form("coins")):
+    """Tibia coins live only in the database (the server re-reads them on every use), so this is safe online too."""
+    user = require(request, post=True)
+    col, coin_type = ("coins_transferable", 3) if tipo == "transferable" else ("coins", 1)
+    amount = clamp(quantidade, -1000000, 1000000)
+    if amount == 0:
+        return toast("Quantidade zero.", ok=False)
+    db.run(f"UPDATE accounts SET {col} = GREATEST(0, CAST({col} AS SIGNED) + %s) WHERE id = %s", amount, aid)
+    db.run(
+        "INSERT INTO coins_transactions (account_id, type, coin_type, amount, description) VALUES (%s, %s, %s, %s, %s)",
+        aid, 1 if amount > 0 else 2, coin_type, abs(amount), "Cockpit: " + user["account"],
+    )
+    db.audit(user["account"], "coins", str(aid), f"{amount} {col}")
+    acc = db.one(f"SELECT {col} AS c FROM accounts WHERE id = %s", aid)
+    return toast(f"Saldo agora: {acc['c']} {'coins transferíveis' if coin_type == 3 else 'Tibia coins'}.")
+
+
+@app.post("/conta/{aid}/apagar", response_class=HTMLResponse)
+def account_delete(request: Request, aid: int):
+    user = require(request, post=True)
+    if db.one("SELECT 1 AS x FROM players WHERE account_id = %s AND group_id >= %s", aid, GOD_GROUP):
+        return toast("Conta com personagem God não pode ser apagada pelo painel.", ok=False)
+    if db.one("SELECT 1 AS x FROM players p JOIN cockpit_online o ON o.player_id = p.id WHERE p.account_id = %s", aid):
+        return toast("Tem personagem dessa conta online. Kicke antes.", ok=False)
+    acc = db.one("SELECT name FROM accounts WHERE id = %s", aid)
+    db.run("DELETE FROM cockpit_group WHERE player_id IN (SELECT id FROM players WHERE account_id = %s)", aid)
+    db.run("DELETE FROM accounts WHERE id = %s", aid)
+    db.audit(user["account"], "conta_apagada", acc["name"] if acc else str(aid))
+    return Response(headers={"HX-Redirect": "/contas"})
+
+
+@app.post("/conta/{aid}/personagem", response_class=HTMLResponse)
+def character_create(request: Request, aid: int, nome: str = Form(...), sexo: int = Form(1), vocacao: int = Form(4), cidade: int = Form(8)):
+    user = require(request, post=True)
+    if not db.one("SELECT 1 AS x FROM accounts WHERE id = %s", aid):
+        return toast("Conta não encontrada.", ok=False)
+    err = create_character(aid, nome, sexo, vocacao, cidade)
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "personagem_criado", nome.strip(), str(aid))
+    return Response(headers={"HX-Redirect": f"/conta/{aid}"})
+
+
+@app.post("/jogador/{pid}/apagar", response_class=HTMLResponse)
+def character_delete(request: Request, pid: int):
+    user = require(request, post=True)
+    p = db.one("SELECT name, account_id, group_id FROM players WHERE id = %s", pid)
+    if not p:
+        return toast("Personagem não encontrado.", ok=False)
+    if p["group_id"] >= GOD_GROUP:
+        return toast("Personagem God não pode ser apagado pelo painel.", ok=False)
+    if is_online(pid):
+        return toast(f"{p['name']} está online. Kicke antes de apagar.", ok=False)
+    db.run("DELETE FROM cockpit_group WHERE player_id = %s", pid)
+    db.run("DELETE FROM players WHERE id = %s", pid)
+    db.audit(user["account"], "personagem_apagado", p["name"])
+    return Response(headers={"HX-Redirect": f"/conta/{p['account_id']}"})
+
+
+@app.post("/jogador/{pid}/renomear", response_class=HTMLResponse)
+def character_rename(request: Request, pid: int, nome: str = Form(...)):
+    user = require(request, post=True)
+    p = db.one("SELECT name, account_id FROM players WHERE id = %s", pid)
+    nome = " ".join(nome.split())
+    if not p:
+        return toast("Personagem não encontrado.", ok=False)
+    if is_online(pid):
+        return toast(f"{p['name']} está online. Kicke antes de renomear.", ok=False)
+    if not NAME_RE.match(nome):
+        return toast("Nome inválido: use de 3 a 29 letras e espaços.", ok=False)
+    if db.one("SELECT 1 AS x FROM players WHERE name = %s AND id <> %s", nome, pid):
+        return toast(f"Já existe um personagem chamado {nome}.", ok=False)
+    db.run("UPDATE players SET name = %s WHERE id = %s", nome, pid)
+    db.audit(user["account"], "personagem_renomeado", p["name"], nome)
+    return Response(headers={"HX-Redirect": f"/conta/{p['account_id']}"})
+
+
+@app.post("/jogador/{pid}/grupo", response_class=HTMLResponse)
+def character_group(request: Request, pid: int, grupo: int = Form(...)):
+    user = require(request, post=True)
+    p = db.one("SELECT name FROM players WHERE id = %s", pid)
+    if not p:
+        return toast("Personagem não encontrado.", ok=False)
+    grupo = clamp(grupo, 1, 6)
+    if p["name"] == user["me"] and grupo < GOD_GROUP:
+        return toast("Você não pode tirar o God do seu próprio personagem por aqui.", ok=False)
+    if is_online(pid):
+        db.enqueue(user["account"], "set_group", p["name"], grupo)
+    else:
+        db.run("UPDATE players SET group_id = %s WHERE id = %s", grupo, pid)
+        db.audit(user["account"], "grupo", p["name"], str(grupo))
+    return toast(f"{p['name']} agora é {dict(GROUPS)[grupo]}.")
+
+
+# ---------------------------------------------------------------- metrics and logs
+
+
+@app.get("/metricas", response_class=HTMLResponse)
+def metrics(request: Request):
+    user = require(request)
+    return page(request, "metrics.html", user)
+
+
+@app.get("/parts/metricas", response_class=HTMLResponse)
+def part_metrics(request: Request):
+    user = require(request)
+    since = int(time.time()) - 86400
+    rows = db.all("SELECT ts, players, monsters, npcs, lua_kb, started_at FROM cockpit_metrics WHERE ts >= %s ORDER BY ts", since)
+    last = rows[-1] if rows else None
+    counts = db.one(
+        "SELECT (SELECT COUNT(*) FROM accounts) AS accounts, (SELECT COUNT(*) FROM players) AS players, "
+        "(SELECT COALESCE(SUM(data_length + index_length), 0) FROM information_schema.tables WHERE table_schema = DATABASE()) AS db_size"
+    )
+    online = db.one("SELECT COUNT(*) AS n, MAX(updated_at) AS t FROM cockpit_online")
+    return page(
+        request, "_metrics.html", user, host=system.host(), services=system.services(), last=last, counts=counts, online=online,
+        spark=system.sparkline([r["players"] for r in rows]), peak=max((r["players"] for r in rows), default=0),
+        spark_monsters=system.sparkline([r["monsters"] for r in rows]),
+    )
+
+
+@app.get("/logs", response_class=HTMLResponse)
+def logs(request: Request):
+    user = require(request)
+    return page(request, "logs.html", user, dirs=system.log_files())
+
+
+@app.get("/logs/ver", response_class=HTMLResponse)
+def log_view(request: Request, pasta: str, arquivo: str, linhas: int = 500, filtro: str = ""):
+    user = require(request)
+    path = system.log_path(pasta, arquivo)
+    if not path:
+        raise HTTPException(404)
+    rows = [(line, system.level(line)) for line in system.tail(path, linhas, filtro)]
+    name = "_log_lines.html" if request.headers.get("HX-Request") else "log_view.html"
+    return page(request, name, user, rows=rows, pasta=pasta, arquivo=arquivo, linhas=linhas, filtro=filtro)
+
+
+@app.get("/logs/baixar")
+def log_download(request: Request, pasta: str, arquivo: str):
+    require(request)
+    path = system.log_path(pasta, arquivo)
+    if not path:
+        raise HTTPException(404)
+    return FileResponse(path, filename=arquivo, media_type="text/plain")

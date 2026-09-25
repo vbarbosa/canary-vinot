@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+{% block content %}
+<h3>Logs</h3>
+{% for d in dirs %}
+<article>
+  <header><strong>{{ d.label }}</strong></header>
+  {% if not d.exists %}<p class="muted">Pasta não encontrada.</p>
+  {% elif not d.files %}<p class="muted">Nenhum arquivo ainda.</p>
+  {% else %}
+  <table class="compact">
+    <thead><tr><th>Arquivo</th><th>Tamanho</th><th>Modificado</th><th></th></tr></thead>
+    <tbody>
+    {% for f in d.files %}
+      <tr><td><a href="/logs/ver?pasta={{ d.label|urlencode }}&arquivo={{ f.name|urlencode }}">{{ f.name }}</a></td>
+        <td>{{ hb(f.size) }}</td><td class="muted" data-ts="{{ f.mtime }}"></td>
+        <td><a href="/logs/baixar?pasta={{ d.label|urlencode }}&arquivo={{ f.name|urlencode }}" class="small">baixar</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</article>
+{% endfor %}
+{% endblock %}

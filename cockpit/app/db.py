@@ -46,6 +46,15 @@ SCHEMA = [
         `updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
         PRIMARY KEY (`player_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_metrics` (
+        `ts` INT UNSIGNED NOT NULL,
+        `players` INT NOT NULL DEFAULT 0,
+        `monsters` INT NOT NULL DEFAULT 0,
+        `npcs` INT NOT NULL DEFAULT 0,
+        `lua_kb` INT NOT NULL DEFAULT 0,
+        `started_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`ts`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_audit` (
         `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         `at` INT UNSIGNED NOT NULL,

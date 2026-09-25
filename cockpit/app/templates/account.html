@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Conta {{ acc.name }}{% endblock %}
+{% block content %}
+<hgroup>
+  <h3>Conta {{ acc.name }}</h3>
+  <p class="muted">{{ acc.email }} · {{ acc.coins }} Tibia coins · {{ acc.coins_transferable }} transferíveis · premium: {{ premium ~ ' dias' if premium else 'não' }}</p>
+</hgroup>
+<div class="grid2">
+  <section>
+    <h4>Personagens</h4>
+    <table class="compact">
+      <thead><tr><th>Nome</th><th>Level</th><th>Grupo</th><th></th></tr></thead>
+      <tbody>
+      {% for c in chars %}
+        <tr>
+          <td>{% if c.online %}<span class="on">●</span>{% endif %} <a href="/jogador/{{ c.id }}">{{ c.name }}</a><div class="muted small">{{ vocations.get(c.vocation, '') }}</div></td>
+          <td>{{ c.level }}</td>
+          <td>
+            <select name="grupo" hx-post="/jogador/{{ c.id }}/grupo" hx-target="#toast" hx-trigger="change" hx-confirm="Mudar o grupo de {{ c.name }}?">
+              {% for gid, gname in groups %}<option value="{{ gid }}" {{ 'selected' if gid == c.group_id }}>{{ gname }}</option>{% endfor %}
+            </select>
+          </td>
+          <td>
+            {% if c.group_id < 6 %}
+            <details class="dropdown small-menu">
+              <summary class="outline small">Mais</summary>
+              <ul>
+                <li><form hx-post="/jogador/{{ c.id }}/renomear" hx-target="#toast" class="row"><input name="nome" placeholder="Novo nome" required><button class="small">Renomear</button></form></li>
+                <li><button class="outline small danger" hx-post="/jogador/{{ c.id }}/apagar" hx-target="#toast" hx-confirm="Apagar {{ c.name }} para sempre? Itens, level e tudo mais somem.">Apagar personagem</button></li>
+              </ul>
+            </details>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}<tr><td colspan="4" class="muted">Sem personagens.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <article>
+      <h4>Novo personagem</h4>
+      <form hx-post="/conta/{{ acc.id }}/personagem" hx-target="#toast">
+        <input name="nome" placeholder="Nome do personagem" required>
+        {% include "_new_char_fields.html" %}
+        <button>Criar personagem</button>
+      </form>
+    </article>
+  </section>
+  <section>
+    <h4>Loja e moedas</h4>
+    <form class="row wrap" hx-post="/conta/{{ acc.id }}/coins" hx-target="#toast">
+      <input type="number" name="quantidade" value="250" class="w8" required>
+      <select name="tipo" class="w8"><option value="coins">Tibia coins</option><option value="transferable">Transferíveis</option></select>
+      <button class="secondary">Dar</button>
+    </form>
+    <p class="muted small">Número negativo tira coins. Vale na hora, mesmo com o jogador online.</p>
+    <form class="row wrap" hx-post="/conta/{{ acc.id }}/premium" hx-target="#toast">
+      <label>Premium <input type="number" name="dias" value="30" class="w6"> dias</label>
+      <button class="secondary">Adicionar</button>
+    </form>
+    <form class="row wrap" hx-post="/conta/{{ acc.id }}/senha" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <input name="senha" type="text" placeholder="Nova senha (mínimo 6)" required minlength="6">
+      <button class="secondary outline">Trocar senha</button>
+    </form>
+    <h4>Compras na loja</h4>
+    <ul class="feed">
+      {% for h in purchases %}<li><span data-ts="{{ h.time }}"></span> {{ h.description }} <span class="muted">{{ h.coin_amount }} coins</span></li>{% else %}<li class="muted">Nenhuma compra.</li>{% endfor %}
+    </ul>
+    <h4>Movimento de coins</h4>
+    <ul class="feed">
+      {% for t in coin_log %}<li class="{{ 'done' if t.type == 1 else 'error' }}"><span class="dot"></span>{{ '+' if t.type == 1 else '−' }}{{ t.amount }} <span class="muted">{{ t.description }} · {{ t.timestamp }}</span></li>{% else %}<li class="muted">Sem movimento.</li>{% endfor %}
+    </ul>
+    <hr>
+    <button class="outline danger small" hx-post="/conta/{{ acc.id }}/apagar" hx-target="#toast" hx-confirm="Apagar a conta {{ acc.name }} e todos os personagens dela? Não tem volta.">Apagar conta</button>
+  </section>
+</div>
+{% endblock %}

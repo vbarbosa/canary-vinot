@@ -14,6 +14,12 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   e montaria ficam na fila e entram quando ele logar.
 - A cada 5 segundos o mesmo script grava quem está online em `cockpit_online`.
 - Tudo que o painel faz fica em `cockpit_audit` (tela Histórico).
+- Contas e personagens são criados, editados e apagados direto no banco (personagem só offline).
+  Tibia coins também vão direto no banco, porque o servidor relê o saldo a cada uso.
+- Métricas: CPU, memória, disco e uptime vêm do `/proc` da VM; jogadores, monstros e NPCs
+  vêm da tabela `cockpit_metrics`, que a ponte Lua grava a cada minuto (guarda 7 dias).
+- Logs: o painel lê só os arquivos dentro das pastas de `COCKPIT_LOG_DIRS`
+  (padrão: `logs/` do servidor e `data/logs/` dos comandos de GM), em modo somente leitura.
 
 ## Subir na VM Oracle
 
