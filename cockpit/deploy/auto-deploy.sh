@@ -13,7 +13,7 @@ cd "$REPO"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [deploy] $*"; }
 
-git fetch -q origin "$BRANCH"
+git fetch -q origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
 old="$(git rev-parse HEAD)"
 new="$(git rev-parse "origin/$BRANCH")"
 [ "$old" = "$new" ] && exit 0
