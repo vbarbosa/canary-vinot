@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Mercado{% endblock %}
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <h3>🛒 Mercado</h3>
+  <p class="muted">As ofertas abertas no mercado do jogo e o que já foi negociado. Cancelar tira a oferta na hora; o jogo devolve os itens
+    (no inbox do depot) ou o gold (no banco) na próxima checagem, que roda a cada hora e ao ligar o servidor.</p>
+</div>
+<div class="stats">
+  <article class="stat"><small class="muted">Ofertas abertas</small><strong>{{ rows|length }}{{ '+' if rows|length >= 200 }}</strong></article>
+  <article class="stat"><small class="muted">Vendido em 7 dias</small><strong>{{ gold(stats.volume) }}</strong><small class="muted">{{ stats.n }} venda(s)</small></article>
+</div>
+<div class="with-catalog tp">
+  <section>
+    <form class="row wrap tp-search" hx-get="/mercado/ofertas" hx-target="#offers" hx-trigger="input changed delay:300ms from:input[name=q], change from:input[name=lado], submit">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar item ou jogador…">
+      <div class="chips" role="radiogroup">
+        {% for k, label in [('', 'Todas'), ('venda', '📤 Vendendo'), ('compra', '📥 Comprando')] %}
+        <label><input type="radio" name="lado" value="{{ k }}" {{ 'checked' if lado == k }}> {{ label }}</label>{% endfor %}
+      </div>
+    </form>
+    <div id="offers">{% include "_market_rows.html" %}</div>
+  </section>
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>📜 Últimos negócios</h4></header>
+      <ul class="ledger">
+        {% for h in hist %}
+        <li><span>{{ '📤' if h.sale else '📥' }} {{ h.amount }}x <strong>{{ h.item }}</strong></span>
+          <small class="muted">{{ h.player }} · {{ gold(h.total) }} gold · {{ states.get(h.state, h.state) }} · <span data-ts="{{ h.inserted }}"></span></small></li>
+        {% else %}<li class="muted small">Nada negociado ainda.</li>{% endfor %}
+      </ul>
+    </article>
+  </aside>
+</div>
+{% endblock %}

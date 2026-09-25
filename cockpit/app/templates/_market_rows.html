@@ -1,0 +1,18 @@
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+{% if rows %}
+<div class="wheel-wrap"><table class="compact market-table">
+  <thead><tr><th>Oferta</th><th>Jogador</th><th>Preço</th><th>Desde</th><th></th></tr></thead>
+  <tbody>
+  {% for o in rows %}
+  <tr id="offer-{{ o.id }}">
+    <td>{{ '📤 vende' if o.sale else '📥 compra' }} {{ o.amount }}x <strong>{{ o.item }}</strong>{% if o.tier %} <span class="tag">tier {{ o.tier }}</span>{% endif %}</td>
+    <td>{{ o.player }}{% if o.anonymous %} <span class="muted small">(anônimo)</span>{% endif %}</td>
+    <td>{{ gold(o.price) }} <span class="muted small">cada · {{ gold(o.total) }}</span></td>
+    <td class="small"><span data-ts="{{ o.created }}" data-fmt="date"></span></td>
+    <td><button class="outline small danger" hx-post="/mercado/{{ o.id }}/cancelar" hx-target="#offer-{{ o.id }}" hx-swap="outerHTML"
+         hx-confirm="Cancelar a oferta de {{ o.player }}? {{ 'Os itens voltam para o inbox.' if o.sale else 'O gold volta para o banco.' }}">Cancelar</button></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="muted">Nenhuma oferta{{ ' com esse filtro' if q }}.</p>{% endif %}

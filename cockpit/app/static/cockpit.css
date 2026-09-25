@@ -455,3 +455,10 @@ label.inline input { margin: 0; }
 .auction-box .ledger { margin: .4rem 0; }
 .house-sale { margin: .5rem 0; }
 .house-sale form { margin: .4rem 0; }
+@media (max-width: 700px) {
+  .market-table thead { display: none; }
+  .market-table, .market-table tbody, .market-table tr, .market-table td { display: block; width: 100%; }
+  .market-table tr { border-bottom: 1px solid #3a3326; padding: .4rem 0; }
+  .market-table td { border: 0; padding: .1rem 0; }
+}
+.market-table tr.off td { opacity: .6; font-size: .9em; }

@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, places, raids, ranking, realty, sheet, wheel, world
+from . import events, guilds, market, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -93,7 +93,7 @@ SECTIONS = {
     "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
     "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, roleta, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/roleta", "/agenda", "/acao")),
     "pessoas": ("👥 Pessoas", "Jogadores, contas, guilds, ban, senha", ("/jogador", "/conta", "/guild")),
-    "economia": ("💰 Itens e economia", "Kits, economia e imobiliária", ("/kits", "/economia", "/imobiliaria")),
+    "economia": ("💰 Itens e economia", "Kits, economia, mercado e imobiliária", ("/kits", "/economia", "/mercado", "/imobiliaria")),
     "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
 }
 OWNER_ONLY = ("/equipe",)
@@ -1795,6 +1795,34 @@ def realty_rules(request: Request, periodo: str = Form("off"), porcentagem: int 
     s = realty.save_settings(periodo, max(0, min(1000, porcentagem)), max(1, min(30, avisos)))
     db.audit(user["account"], "regras_aluguel", "", f"{periodo} {s['percent']}% {s['grace']} avisos")
     return Response(headers={"HX-Redirect": "/imobiliaria"})
+
+
+# ---------------------------------------------------------------- market
+
+
+@app.get("/mercado", response_class=HTMLResponse)
+def market_page(request: Request, q: str = "", lado: str = ""):
+    user = require(request)
+    return page(request, "market.html", user, rows=market.offers(q, lado), q=q, lado=lado, hist=market.history(),
+                states=market.STATES, stats=market.stats())
+
+
+@app.get("/mercado/ofertas", response_class=HTMLResponse)
+def market_rows(request: Request, q: str = "", lado: str = ""):
+    user = require(request)
+    return page(request, "_market_rows.html", user, rows=market.offers(q, lado))
+
+
+@app.post("/mercado/{oid}/cancelar", response_class=HTMLResponse)
+def market_cancel(request: Request, oid: int):
+    user = require(request, post=True)
+    o = market.cancel(oid)
+    if not o:
+        return toast("Essa oferta não está mais no mercado.", ok=False)
+    what = f"{o['amount']}x {o['item']} de {o['player']}"
+    db.audit(user["account"], "mercado_cancelar", o["player"], what)
+    back = "os itens voltam para o inbox" if o["sale"] else "o gold volta para o banco"
+    return HTMLResponse(f'<tr class="off"><td colspan="5">🚫 Cancelada: {html.escape(what)} ({back} na próxima checagem do jogo)</td></tr>')
 
 
 # ---------------------------------------------------------------- economy

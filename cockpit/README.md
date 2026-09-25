@@ -80,6 +80,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   jogadores usam `!leilao` e `!lance nº valor` (`data/scripts/globalevents/cockpit_auction.lua`, grava em `cockpit_auctions` e
   `cockpit_auction_bids`; lance mínimo +5%, o banco precisa cobrir, lance nos últimos 5 minutos estica 5 minutos). No fim, o laço de
   minuto do painel cobra o maior lance com `house_sell` e entrega a casa; sem saldo, o leilão fica como "não fechou".
+- Mercado: as ofertas abertas (`market_offers`, busca por item ou jogador) e os últimos negócios (`market_history`). Cancelar
+  marca a oferta como vencida (`created = 0`): some do mercado na hora e a checagem de ofertas vencidas do próprio jogo (a cada
+  `checkExpiredMarketOffersEachMinutes` e ao ligar) devolve os itens no inbox ou o gold no banco.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle
