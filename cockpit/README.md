@@ -32,6 +32,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
+- Loja de coins (Economia): preço de 1 Tibia coin em centavos, mínimo por compra e chave Pix, em
+  `cockpit_settings` (`shop.enabled`, `shop.coin_cents`, `shop.min_coins`, `shop.pix_key`, `shop.pix_name`,
+  `shop.pix_note`). O portal lê daí; a chave Pix é posta pelo painel, nunca no código.
 - Troféu do Vinot: taça com inscrição que só o painel dá (ficha do jogador, ação `give_trophy`) e prêmio
   opcional de qualquer evento.
 - Guilds: o portal das guilds (o servidor não tem site). Criar guild escolhendo o líder, pôr e tirar membros

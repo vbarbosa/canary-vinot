@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, manual, market, places, raids, ranking, realty, sheet, wheel, world
+from . import events, guilds, manual, market, shop, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -1917,7 +1917,20 @@ def economy(request: Request):
     )
     store = db.all("SELECT s.*, a.email, a.id AS aid FROM store_history s JOIN accounts a ON a.id = s.account_id ORDER BY s.id DESC LIMIT 10")
     return page(request, "economy.html", user, e=e, market=market, offers=offers, houses=houses, richest=richest, guilds=guilds,
-                coin_log=coin_log, store=store)
+                coin_log=coin_log, store=store, shop=shop.settings())
+
+
+@app.post("/economia/loja", response_class=HTMLResponse)
+async def economy_shop(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    err = shop.save(f)
+    if err:
+        return toast(err, ok=False)
+    s = shop.settings()
+    db.audit(user["account"], "loja_coins", "", f"R$ {s['coin_reais']:.2f} por coin, {'aberta' if s['enabled'] == '1' else 'fechada'}")
+    price = f"{s['coin_reais']:.2f}".replace(".", ",")
+    return toast(f"Loja salva: 1 coin = R$ {price}. O portal já mostra o valor novo.")
 
 
 @app.get("/economia/dados")

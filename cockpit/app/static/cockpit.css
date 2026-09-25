@@ -477,3 +477,5 @@ label.inline input { margin: 0; }
 .side-resizing .side { transition: none; }
 .side-mini .side-grip { display: none; }
 @media (max-width: 900px) { .side-grip { display: none; } }
+.portal > * { min-width: 0; }
+.chart-bar .seg { flex-wrap: wrap; }

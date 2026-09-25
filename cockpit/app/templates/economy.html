@@ -47,7 +47,7 @@
 
     <article class="panel">
       <header><h4>💰 Os mais ricos</h4></header>
-      <table class="compact">
+      <div class="wheel-wrap"><table class="compact">
         <thead><tr><th>#</th><th>Jogador</th><th class="num">Banco</th><th class="num">Mochila</th><th class="num">Depósito</th><th class="num">Total</th></tr></thead>
         <tbody>
         {% for r in richest %}
@@ -55,7 +55,7 @@
             <td class="num">{{ gold(r.bank) }}</td><td class="num">{{ gold(r.carried) }}</td><td class="num">{{ gold(r.depot) }}</td><td class="num"><strong>{{ gold(r.total) }}</strong></td></tr>
         {% else %}<tr><td colspan="6" class="muted">Ninguém tem dinheiro ainda.</td></tr>{% endfor %}
         </tbody>
-      </table>
+      </table></div>
     </article>
   </div>
 
@@ -89,6 +89,23 @@
           <a href="/conta/{{ t.aid }}">{{ t.email }}</a> <span class="muted">{{ t.description }}</span></li>
         {% else %}<li class="muted">Sem movimento.</li>{% endfor %}
       </ul>
+    </article>
+
+    <article class="panel">
+      <header><h4>🪙 Loja de coins (portal)</h4></header>
+      <form hx-post="/economia/loja" hx-target="#toast" class="rules">
+        <label class="switch-row"><input type="checkbox" role="switch" name="enabled" value="1" {{ 'checked' if shop.enabled == '1' }}>
+          <span><strong>Vender coins no portal</strong></span></label>
+        <div class="rate-grid">
+          <label>Preço de 1 coin (R$)<input name="coin_reais" type="number" min="0.01" step="0.01" value="{{ '%.2f'|format(shop.coin_reais) }}"></label>
+          <label>Pedido mínimo (coins)<input name="min_coins" type="number" min="1" value="{{ shop.min_coins }}"></label>
+        </div>
+        <label>Chave Pix<input name="pix_key" value="{{ shop.pix_key }}" maxlength="120" placeholder="e-mail, telefone ou chave aleatória"></label>
+        <label>Nome de quem recebe<input name="pix_name" value="{{ shop.pix_name }}" maxlength="80" placeholder="como aparece no app do banco"></label>
+        <label>O que escrever na descrição do Pix<input name="pix_note" value="{{ shop.pix_note }}" maxlength="200"></label>
+        <p class="small muted">Pix estático, conferido à mão: quando o pagamento cair, dê as coins na conta (tela Contas). O portal lê estes valores na hora.</p>
+        <button>Salvar loja</button>
+      </form>
     </article>
 
     <article class="panel">
