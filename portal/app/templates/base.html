@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/static/portal.css?v=4">
+<link rel="stylesheet" href="/static/portal.css?v=5">
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}inner{% endblock %}">
@@ -32,7 +32,7 @@
       <a href="/" {{ 'aria-current=page' if path == '/' }}>Início</a>
       <a href="/noticias" {{ 'aria-current=page' if path.startswith('/noticias') }}>Notícias</a>
       <a href="/#vocacoes">Vocações</a>
-      <a href="/#bestiario">Bestiário</a>
+      <a href="/wiki" {{ 'aria-current=page' if path.startswith('/wiki') }}>Wiki</a>
       <a href="/ranking" {{ 'aria-current=page' if path == '/ranking' }}>Ranking</a>
       <a href="/#jogar">Como jogar</a>
       <span class="nav-sep"></span>
@@ -51,7 +51,7 @@
 <footer class="foot">
   <div class="wrap foot-grid">
     <div class="foot-brand">
-      <a href="/" class="brand"><img src="/static/px/emblem.svg" alt="" class="px"><span>{{ site.serverName }}</span></a>
+      <a href="/" class="brand"><span>{{ site.serverName }}</span></a>
       <p>{{ site.tagline }}</p>
     </div>
     <div>

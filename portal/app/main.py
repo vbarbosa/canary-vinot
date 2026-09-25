@@ -370,6 +370,11 @@ def index(request: Request):
     )
 
 
+@app.get("/wiki", response_class=HTMLResponse)
+def wiki_home(request: Request):
+    return page(request, "wiki.html")
+
+
 @app.get("/noticias", response_class=HTMLResponse)
 def news(request: Request, categoria: str = ""):
     cat = categoria if categoria in cms.CATEGORIES else ""

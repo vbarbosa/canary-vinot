@@ -16,7 +16,7 @@
   </div>
 
   <div class="account-stats">
-    <div class="card stat"><img src="/static/px/emblem.svg" alt="" class="px s32"><div><small>Premium</small><b>{% if premium_until %}até {{ premium_until | date }}{% elif acc.premdays %}{{ acc.premdays }} dias{% else %}Conta grátis{% endif %}</b></div></div>
+    <div class="card stat"><img src="/static/px/chest.svg" alt="" class="px s32"><div><small>Premium</small><b>{% if premium_until %}até {{ premium_until | date }}{% elif acc.premdays %}{{ acc.premdays }} dias{% else %}Conta grátis{% endif %}</b></div></div>
     <div class="card stat"><img src="/static/px/coin.svg" alt="" class="px s32"><div><small>Tibia Coins</small><b>{{ acc.coins }}</b></div></div>
     <div class="card stat"><img src="/static/px/gift.svg" alt="" class="px s32"><div><small>Coins transferíveis</small><b>{{ acc.coins_transferable }}</b></div></div>
     <div class="card stat"><img src="/static/px/sword.svg" alt="" class="px s32"><div><small>Personagens</small><b>{{ chars | length }} de {{ max_chars }}</b></div></div>

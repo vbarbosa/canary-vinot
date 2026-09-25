@@ -30,8 +30,11 @@
         {% for id in [4, 3, 1, 2] %}<img src="{{ hero_art[id] }}" alt="" class="px d{{ loop.index0 }}">{% endfor %}
       </div>
       <div class="platform"></div>
+      <img src="/static/px/torch.svg" alt="" class="px torch t-left">
+      <img src="/static/px/torch.svg" alt="" class="px torch t-right">
     </div>
   </div>
+  <div class="ground" aria-hidden="true"></div>
 </section>
 
 {% if promos %}
@@ -50,7 +53,7 @@
   <div class="portal-main">
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Novidades</span><h2>Últimas notícias</h2></div>
+        <div><span class="eyebrow"><img src="/static/px/scroll.svg" alt="" class="px">Novidades</span><h2>Últimas notícias</h2></div>
         <a href="/noticias" class="more">Ver todas</a>
       </div>
       <div class="posts">
@@ -59,7 +62,7 @@
     </section>
 
     <section class="section">
-      <div class="section-head"><div><span class="eyebrow">O servidor</span><h2>O que tem no VinOT</h2></div></div>
+      <div class="section-head"><div><span class="eyebrow"><img src="/static/px/chest.svg" alt="" class="px">O servidor</span><h2>O que tem no VinOT</h2></div></div>
       <div class="features">
         {% for f in home.features %}
         <div class="card feature">
@@ -73,7 +76,7 @@
 
   <aside class="sidebar">
     <div class="box">
-      <h3 class="box-title">Status do servidor</h3>
+      <h3 class="box-title"><img src="/static/px/torch.svg" alt="" class="px">Status do servidor</h3>
       <ul class="kv">
         <li><span>Situação</span><b class="status {{ 'on' if stats and stats.up else 'off' }}">{{ 'Online' if stats and stats.up else 'Offline' }}</b></li>
         <li><span>Jogando agora</span><b>{{ stats.online if stats else '—' }}</b></li>
@@ -84,11 +87,11 @@
 
     <div class="box">
       {% if me %}
-      <h3 class="box-title">Sua conta</h3>
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Sua conta</h3>
       <p class="muted small">Você já está conectado.</p>
       <a href="/conta" class="btn block">Minha conta</a>
       {% else %}
-      <h3 class="box-title">Acesso à conta</h3>
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Acesso à conta</h3>
       <a href="/entrar" class="btn block">Entrar</a>
       {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
       <a href="/esqueci" class="box-link">Esqueci a senha</a>
@@ -96,7 +99,7 @@
     </div>
 
     <div class="box">
-      <h3 class="box-title">Top 5 level</h3>
+      <h3 class="box-title"><img src="/static/px/coin.svg" alt="" class="px">Top 5 level</h3>
       <ol class="toplist">
         {% for p in top %}
         <li><span class="rank">{{ loop.index }}</span><img src="{{ hero_img(p.vocation) }}" alt="" class="px"><span>{{ p.name }}<small>{{ vocation_names.get(p.vocation, '') }}</small></span><b>{{ p.level }}</b></li>
@@ -109,7 +112,7 @@
 
 <section class="band" id="vocacoes">
   <div class="wrap section">
-    <div class="section-head center"><div><span class="eyebrow">Escolha seu caminho</span><h2>Vocações</h2></div></div>
+    <div class="section-head center"><div><span class="eyebrow"><img src="/static/px/sword.svg" alt="" class="px">Escolha seu caminho</span><h2>Vocações</h2></div></div>
     <div class="vocations">
       {% for id, name in vocations.items() %}
       {% set v = voc_info[id] %}
@@ -132,7 +135,7 @@
 
 <section class="wrap section" id="bestiario">
   <div class="section-head">
-    <div><span class="eyebrow">Bestiário</span><h2>Criaturas que te esperam</h2><p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p></div>
+    <div><span class="eyebrow"><img src="/static/px/skull.svg" alt="" class="px">Bestiário</span><h2>Criaturas que te esperam</h2><p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p></div>
   </div>
   <div class="bestiary" tabindex="0" aria-label="Criaturas">
     {% for slug, name, tier, blurb in creatures %}
@@ -150,10 +153,10 @@
 
 <section class="band" id="jogar">
   <div class="wrap section">
-    <div class="section-head center"><div><span class="eyebrow">Comece agora</span><h2>Como jogar</h2></div></div>
+    <div class="section-head center"><div><span class="eyebrow"><img src="/static/px/map.svg" alt="" class="px">Comece agora</span><h2>Como jogar</h2></div></div>
     <ol class="steps">
       {% for step in site.howToPlay %}
-      <li><span class="num">{{ loop.index }}</span><p>{{ step }}</p></li>
+      <li><span class="num">{{ loop.index }}</span><img src="/static/px/{{ ['scroll', 'chest', 'sword'][loop.index0 % 3] }}.svg" alt="" class="px step-art"><p>{{ step }}</p></li>
       {% endfor %}
     </ol>
     <div class="downloads">
