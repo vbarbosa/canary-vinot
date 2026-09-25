@@ -22,7 +22,7 @@
       </p>
       <form hx-post="/equipe/{{ r.account_id }}/secoes" hx-target="#toast" class="sec-picks">
         {% for k, (label, help, _) in sections.items() %}
-        <label title="{{ help }}"><input type="checkbox" name="secao" value="{{ k }}" {{ 'checked' if k in r.sections }}> {{ label }}</label>
+        <label title="{{ help }}"><input type="checkbox" name="secao" value="{{ k }}" {{ 'checked' if k in r.sections }}> {{ label }}<small class="muted">{{ help }}</small></label>
         {% endfor %}
         <button class="small">Salvar acesso</button>
       </form>

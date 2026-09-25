@@ -17,14 +17,7 @@
 <body hx-headers='{"X-CSRF-Token": "{{ user.csrf if user else "" }}"}'>
   {% if user %}
   {% set path = request.url.path %}
-  {% set menu = [
-    ('painel', '🏠', 'Painel', [('/', '🌅', 'Visão geral'), ('/ranking', '🏆', 'Ranking'), ('/historico', '📜', 'Histórico'), ('/manual', '📖', 'Manual')]),
-    ('jogo', '🎮', 'Jogo ao vivo', [('/turma', '🧑‍🤝‍🧑', 'A Turma'), ('/teleporte', '🌀', 'Teleporte'), ('/raids', '👹', 'Raids'), ('/eventos', '🎪', 'Eventos'), ('/roleta', '🎡', 'Roleta'), ('/boosted', '⭐', 'Criatura do dia'), ('/agenda', '⏰', 'Agenda')]),
-    ('pessoas', '👥', 'Pessoas', [('/jogadores', '🧙', 'Jogadores'), ('/contas', '🔑', 'Contas'), ('/guilds', '🛡', 'Guilds')]),
-    ('economia', '💰', 'Itens e economia', [('/kits', '🎁', 'Kits'), ('/economia', '🏦', 'Economia'), ('/mercado', '🛒', 'Mercado'), ('/imobiliaria', '🏘', 'Imobiliária')]),
-    ('servidor', '🛠', 'Servidor', [('/mundo', '🌍', 'Mundo'), ('/metricas', '📈', 'Métricas'), ('/logs', '📄', 'Logs')]),
-  ] %}
-  {% if user.owner %}{% set menu = menu + [('dono', '👑', 'Dono', [('/equipe', '👮', 'Equipe')])] %}{% endif %}
+  {% set menu = menu_all + ([owner_menu] if user.owner else []) %}
   <header class="topbar">
     <button class="icon-btn" id="side-toggle" aria-label="Abrir ou recolher o menu" title="Menu">☰</button>
     <a href="/" class="brand"><img src="/static/logo.svg" alt="VinOT" class="nav-logo"> <span>Cockpit</span></a>

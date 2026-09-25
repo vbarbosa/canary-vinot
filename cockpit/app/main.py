@@ -87,15 +87,28 @@ def current_user(request: Request):
     return {"account": acc["name"], "account_id": acc["id"], "csrf": s["csrf"], **role}
 
 
-# Panel areas, the same groups as the side menu. The owner (a God character) sees everything plus Equipe;
-# a co-admin sees only the areas ticked for them. "/" and the small shared parts are open to both.
+# The side menu and the panel areas, in one place: a screen added here shows up in the menu, in Equipe and in the
+# access rules at once. The owner (a God character) sees everything plus Equipe; a co-admin sees only the areas
+# ticked for them. EXTRA_PREFIXES are the other URLs of an area (detail pages, actions). Anything outside every
+# area, like "/" and "/manual", is open to the whole staff.
+MENU = [
+    ("painel", "🏠", "Painel", [("/", "🌅", "Visão geral"), ("/ranking", "🏆", "Ranking"), ("/historico", "📜", "Histórico"), ("/manual", "📖", "Manual")]),
+    ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
+                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/agenda", "⏰", "Agenda")]),
+    ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Jogadores"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
+    ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
+    ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
+]
+OWNER_MENU = ("dono", "👑", "Dono", [("/equipe", "👮", "Equipe")])
+OPEN_TO_ALL = ("/", "/manual")
+EXTRA_PREFIXES = {"jogo": ("/acao",), "pessoas": ("/jogador", "/conta", "/guild")}
+EXTRA_HELP = {"jogo": "ações nos jogadores", "pessoas": "ban e senha"}
 SECTIONS = {
-    "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
-    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, roleta, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/roleta", "/boosted", "/agenda", "/acao")),
-    "pessoas": ("👥 Pessoas", "Jogadores, contas, guilds, ban, senha", ("/jogador", "/conta", "/guild")),
-    "economia": ("💰 Itens e economia", "Kits, economia, mercado e imobiliária", ("/kits", "/economia", "/mercado", "/imobiliaria")),
-    "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
+    key: (f"{icon} {title}", ", ".join([label for _, _, label in links] + ([EXTRA_HELP[key]] if key in EXTRA_HELP else [])),
+          tuple(href for href, _, _ in links if href not in OPEN_TO_ALL) + EXTRA_PREFIXES.get(key, ()))
+    for key, icon, title, links in MENU
 }
+templates.env.globals.update(menu_all=MENU, owner_menu=OWNER_MENU)
 OWNER_ONLY = ("/equipe",)
 
 
