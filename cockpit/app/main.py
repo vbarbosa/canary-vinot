@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, market, places, raids, ranking, realty, sheet, wheel, world
+from . import events, guilds, manual, market, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -1795,6 +1795,18 @@ def realty_rules(request: Request, periodo: str = Form("off"), porcentagem: int 
     s = realty.save_settings(periodo, max(0, min(1000, porcentagem)), max(1, min(30, avisos)))
     db.audit(user["account"], "regras_aluguel", "", f"{periodo} {s['percent']}% {s['grace']} avisos")
     return Response(headers={"HX-Redirect": "/imobiliaria"})
+
+
+# ---------------------------------------------------------------- manual
+
+
+@app.get("/manual", response_class=HTMLResponse)
+def manual_page(request: Request, aba: str = "jogo"):
+    user = require(request)
+    aba = aba if aba in ("jogo", "mestre", "painel") else "jogo"
+    players = manual.player_commands()
+    topics = list(dict.fromkeys(r["topic"] for r in players))
+    return page(request, "manual.html", user, aba=aba, players=players, topics=topics, staff=manual.staff_commands(), panel=manual.PANEL)
 
 
 # ---------------------------------------------------------------- boosted creature and boss

@@ -86,6 +86,8 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 - Criatura e boss do dia (Jogo ao vivo › Criatura do dia): o jogo sorteia ao ligar, pelas tabelas `boosted_creature` e
   `boosted_boss`, e mantém a linha quando a data é o dia de hoje. O painel escolhe gravando a linha com o dia de hoje (vale no
   próximo início do jogo); "fixar" faz o laço de minuto regravar todo dia. Bosses: só Archfoe, como no sorteio.
+- Manual (Painel › Manual, aberto a toda a equipe): comandos dos jogadores e do Mestre, lidos dos `TalkAction` do datapack
+  (comando sem texto em `manual.py` aparece como "sem descrição"), e um guia de cada tela do painel.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

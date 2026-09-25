@@ -18,7 +18,7 @@
   {% if user %}
   {% set path = request.url.path %}
   {% set menu = [
-    ('painel', '🏠', 'Painel', [('/', '🌅', 'Visão geral'), ('/ranking', '🏆', 'Ranking'), ('/historico', '📜', 'Histórico')]),
+    ('painel', '🏠', 'Painel', [('/', '🌅', 'Visão geral'), ('/ranking', '🏆', 'Ranking'), ('/historico', '📜', 'Histórico'), ('/manual', '📖', 'Manual')]),
     ('jogo', '🎮', 'Jogo ao vivo', [('/turma', '🧑‍🤝‍🧑', 'A Turma'), ('/teleporte', '🌀', 'Teleporte'), ('/raids', '👹', 'Raids'), ('/eventos', '🎪', 'Eventos'), ('/roleta', '🎡', 'Roleta'), ('/boosted', '⭐', 'Criatura do dia'), ('/agenda', '⏰', 'Agenda')]),
     ('pessoas', '👥', 'Pessoas', [('/jogadores', '🧙', 'Jogadores'), ('/contas', '🔑', 'Contas'), ('/guilds', '🛡', 'Guilds')]),
     ('economia', '💰', 'Itens e economia', [('/kits', '🎁', 'Kits'), ('/economia', '🏦', 'Economia'), ('/mercado', '🛒', 'Mercado'), ('/imobiliaria', '🏘', 'Imobiliária')]),
