@@ -25,6 +25,7 @@ JOB_ACTIONS = {
     "clean_map": "Limpar o chão do mapa",
     "give_kit": "Dar um kit",
     "give_item": "Dar um item",
+    "give_training": "Dar kit de treino",
     "heal": "Curar todo mundo",
     "close_server": "Fechar o servidor",
     "open_server": "Abrir o servidor",

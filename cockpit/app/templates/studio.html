@@ -73,6 +73,9 @@
         <button class="small" hx-post="/acao" hx-vals='{"action":"summon_to","alvo":"{{ p.id }}"}' hx-target="#toast">Trazer até mim</button>
         <button class="secondary small" hx-post="/acao" hx-vals='{"action":"heal","alvo":"{{ p.id }}"}' hx-target="#toast">Curar</button>
         <button class="secondary outline small" hx-post="/acao" hx-vals='{"action":"temple","alvo":"{{ p.id }}"}' hx-target="#toast">Templo</button>
+        <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_training","alvo":"{{ p.id }}"}' hx-target="#toast">🏋 Kit de treino</button>
+        <button class="outline small" hx-post="/acao" hx-vals='{"action":"place_dummy","alvo":"{{ p.id }}"}' hx-target="#toast"
+                title="Cria um exercise dummy na frente do jogador. Fora de casa, some quando o servidor reinicia.">🎯 Dummy na frente</button>
         {% if p.group_id < 6 %}
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"kick","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Kickar {{ p.name }}?">Kick</button>
         <form class="row wrap ban-form" hx-post="/jogadores/{{ p.id }}/ban" hx-target="#toast" hx-confirm="Banir a conta de {{ p.name }}?">

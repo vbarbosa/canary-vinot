@@ -57,10 +57,10 @@
         <button hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast"><span>🔓</span>Abrir</button>
         <button class="danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar."><span>🔒</span>Fechar</button>
       </div>
-      {% if kits %}
       <p class="small muted">Presente para a turma:</p>
-      <div class="row wrap">{% for k in kits %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"give_kit","alvo":"turma","arg1":"{{ k.id }}"}' hx-target="#toast">🎁 {{ k.name }}</button>{% endfor %}</div>
-      {% endif %}
+      <div class="row wrap">
+        <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_training","alvo":"turma"}' hx-target="#toast"
+                title="Armas de treino lasting (14400 cargas) certas para a vocação de cada um">🏋 Kit de treino</button>{% for k in kits %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"give_kit","alvo":"turma","arg1":"{{ k.id }}"}' hx-target="#toast">🎁 {{ k.name }}</button>{% endfor %}</div>
     </article>
 
     <article class="panel">

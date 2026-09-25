@@ -203,7 +203,17 @@ ACTIONS = {
     "say_over": {"text": True},
     "narrate_to": {"text": True},
     "kick": {},
+    "place_dummy": {},
 }
+
+# Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
+TRAINING = {
+    1: [35290], 5: [35290],                 # sorcerer: wand
+    2: [35289], 6: [35289],                 # druid: rod
+    3: [35288, 44067], 7: [35288, 44067],   # paladin: bow + shield
+    4: [35285, 35286, 35287, 44067], 8: [35285, 35286, 35287, 44067],  # knight: sword, axe, club + shield
+}
+TRAINING_DEFAULT = [35285, 44067]
 GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}, "close_server": {}, "open_server": {}, "clean_map": {}}
 
 
@@ -246,7 +256,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "place_dummy": "🎯 dummy",
 }
 
 
@@ -426,6 +436,14 @@ def dispatch(actor, name, alvo, text, form, me=""):
             return False, "Escreva a mensagem."
         db.enqueue(actor, name, text=text)
         return True, "Enviado ao servidor."
+
+    if name == "give_training":
+        targets = resolve_targets(alvo)
+        for t in targets:
+            p = db.one("SELECT vocation FROM players WHERE name = %s", t)
+            for item in TRAINING.get(p["vocation"] if p else 0, TRAINING_DEFAULT):
+                db.enqueue(actor, "give_item", t, item, 1, text="O Mestre mandou armas de treino! Use num exercise dummy.")
+        return (True, f"Kit de treino enviado para {len(targets)} jogador(es).") if targets else (False, "Ninguém para receber.")
 
     if name == "give_kit":
         kit = db.one("SELECT * FROM cockpit_kits WHERE id = %s", clamp(form.get("arg1"), 0, 10**9))

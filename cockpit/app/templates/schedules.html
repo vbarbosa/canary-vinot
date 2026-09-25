@@ -11,13 +11,13 @@
     {% for j in jobs %}
     <article class="job {{ 'off' if not j.enabled }}">
       <header class="row">
-        <span class="job-icon">{{ {'save': '💾', 'broadcast': '📣', 'clean_map': '🧹', 'give_kit': '🎁', 'give_item': '🎁', 'heal': '💚', 'close_server': '🔒', 'open_server': '🔓'}.get(j.action, '⏱') }}</span>
+        <span class="job-icon">{{ {'save': '💾', 'broadcast': '📣', 'clean_map': '🧹', 'give_kit': '🎁', 'give_item': '🎁', 'give_training': '🏋', 'heal': '💚', 'close_server': '🔒', 'open_server': '🔓'}.get(j.action, '⏱') }}</span>
         <div><strong>{{ j.name }}</strong><br><small class="muted">{{ j.when }}</small></div>
         <label class="right"><input type="checkbox" role="switch" {{ 'checked' if j.enabled }} hx-post="/agenda/{{ j.id }}/ligar" hx-trigger="change"> {{ 'ligada' if j.enabled else 'desligada' }}</label>
       </header>
       <p class="small">
         {{ job_actions[j.action] }}{% if j.action == 'give_kit' %}: {{ kit_names.get(j.arg1, 'kit apagado') }}{% elif j.action == 'give_item' %}: {{ j.arg2 }}x {{ names.get(j.arg1, j.arg1) }}{% endif %}
-        {% if j.action in ('give_kit', 'give_item') %} para {{ 'a turma' if j.alvo == 'turma' else 'quem estiver online' }}{% endif %}
+        {% if j.action in ('give_kit', 'give_item', 'give_training') %} para {{ 'a turma' if j.alvo == 'turma' else 'quem estiver online' }}{% endif %}
         {% if j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
       </p>
       <footer class="row wrap small">
@@ -66,7 +66,7 @@
           <input name="arg1" type="number" min="100" placeholder="ID do item (veja no catálogo)" disabled>
           <input name="arg2" type="number" min="1" max="1000" value="1" class="w6" disabled>
         </div>
-        <div data-show="give_kit give_item">
+        <div data-show="give_kit give_item give_training">
           <select name="alvo"><option value="turma">para a turma</option><option value="todos">para quem estiver online</option></select>
         </div>
         <label>Quando

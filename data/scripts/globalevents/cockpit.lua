@@ -52,7 +52,17 @@ local tablesSql = {
 
 -- Actions that only make sense while the target is online. Anything else waits
 -- in the queue and runs the next time the player logs in.
-local onlineOnly = { set_group = true, kick = true, heal = true, teleport = true, temple = true, effect = true, say_over = true, summon_to = true }
+local onlineOnly = {
+	set_group = true,
+	kick = true,
+	heal = true,
+	teleport = true,
+	temple = true,
+	effect = true,
+	say_over = true,
+	summon_to = true,
+	place_dummy = true,
+}
 
 local function finish(id, status, result)
 	db.query(string.format("UPDATE `cockpit_commands` SET `status` = %s, `result` = %s, `done_at` = %d WHERE `id` = %d", db.escapeString(status), db.escapeString(result or ""), os.time(), id))
@@ -100,8 +110,16 @@ actions.give_item = function(player, cmd)
 		return false, "item inexistente"
 	end
 	local count = math.max(1, math.min(cmd.arg2, 1000))
-	local item = player:addItem(itemType:getId(), count, true)
-	if not item then
+	-- for items with charges (exercise weapons, runes) the count passed to addItem is the charge count,
+	-- so give `count` full items instead
+	local charges = itemType:getCharges()
+	if charges > 0 and not itemType:isStackable() then
+		for _ = 1, math.min(count, 20) do
+			if not player:addItem(itemType:getId(), charges, true) then
+				return false, "sem espaco"
+			end
+		end
+	elseif not player:addItem(itemType:getId(), count, true) then
 		return false, "sem espaco"
 	end
 	player:getPosition():sendMagicEffect(CONST_ME_GIFT_WRAPS)
@@ -128,6 +146,21 @@ actions.take_money = function(player, cmd)
 	player:setBankBalance(player:getBankBalance() - amount)
 	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "O Mestre retirou " .. amount .. " gold do seu banco.")
 	return true, amount .. " gold retirado"
+end
+
+-- puts an exercise dummy on the tile in front of the player (kept after restart only inside a house)
+actions.place_dummy = function(player, cmd)
+	local pos = player:getPosition()
+	pos:getNextPosition(player:getDirection())
+	local tile = Tile(pos)
+	if not tile or tile:hasFlag(TILESTATE_BLOCKSOLID) or tile:getCreatureCount() > 0 then
+		return false, "sem espaco na frente"
+	end
+	if not Game.createItem(28558, 1, pos) then
+		return false, "nao deu para criar"
+	end
+	pos:sendMagicEffect(CONST_ME_MAGIC_BLUE)
+	return true, "dummy colocado"
 end
 
 -- arg1 = level
