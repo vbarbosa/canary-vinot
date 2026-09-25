@@ -276,6 +276,34 @@
     }
   });
 
+  // Drag the sidebar edge to make it wider or narrower; the width is remembered. Double click goes back to normal.
+  document.addEventListener("pointerdown", e => {
+    const grip = e.target.closest("#side-grip");
+    if (!grip || phone()) return;
+    e.preventDefault();
+    const root = document.documentElement;
+    const side = document.getElementById("side");
+    const left = side.getBoundingClientRect().left;
+    root.classList.add("side-resizing");
+    const move = ev => {
+      const w = Math.round(Math.min(480, Math.max(180, ev.clientX - left)));
+      root.style.setProperty("--side-w", w + "px");
+    };
+    const up = () => {
+      root.classList.remove("side-resizing");
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      store.set("cockpit.sideW", parseInt(getComputedStyle(root).getPropertyValue("--side-w"), 10));
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  });
+  document.addEventListener("dblclick", e => {
+    if (!e.target.closest("#side-grip")) return;
+    document.documentElement.style.removeProperty("--side-w");
+    store.set("cockpit.sideW", "");
+  });
+
   document.addEventListener("htmx:load", e => init(e.detail.elt));
   document.addEventListener("htmx:afterSwap", e => {
     if (e.detail.target.id === "toast") setTimeout(() => (e.detail.target.innerHTML = ""), 4000);

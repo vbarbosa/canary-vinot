@@ -11,7 +11,7 @@
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/Sortable.min.js" defer></script>
   <script src="/static/cockpit.js" defer></script>
-  <script>try { if (localStorage.getItem("cockpit.side") === "mini") document.documentElement.classList.add("side-mini"); } catch (e) {}</script>
+  <script>try { if (localStorage.getItem("cockpit.side") === "mini") document.documentElement.classList.add("side-mini"); const w = +localStorage.getItem("cockpit.sideW"); if (w >= 180 && w <= 480) document.documentElement.style.setProperty("--side-w", w + "px"); } catch (e) {}</script>
   {% block head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ user.csrf if user else "" }}"}'>
@@ -57,6 +57,7 @@
       </nav>
       <button type="button" class="side-collapse" id="side-collapse" title="Recolher o menu"><span class="ic">«</span><span class="lbl">Recolher</span></button>
     </aside>
+    <div class="side-grip" id="side-grip" title="Arraste para alargar o menu (duplo clique volta ao normal)" role="separator" aria-orientation="vertical"></div>
     <div class="side-shade" id="side-shade"></div>
   {% endif %}
   <main class="container-fluid">{% block content %}{% endblock %}</main>

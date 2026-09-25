@@ -866,9 +866,15 @@ function startup.onStartup()
 		db.query(sql)
 	end
 	db.query("DELETE FROM `cockpit_online`")
-	local saved = readWorld()
-	applyStages(saved) -- config.lua already read cockpit-world.lua; the stage tables live here
-	applyTexts(saved)
+	-- rewrite cockpit-world.lua with this version of the bridge: a panel deploy may have applied the world with the
+	-- old bridge just before the restart, leaving out keys this version knows
+	local ok, applied, msg = pcall(globalActions.apply_world)
+	if not (ok and applied) then
+		logger.warn("[cockpit] apply_world on startup: {}", tostring(ok and msg or applied))
+		local saved = readWorld()
+		applyStages(saved) -- config.lua already read cockpit-world.lua; the stage tables live here
+		applyTexts(saved)
+	end
 	applyRaidAuto()
 	startedAt = os.time()
 	writeMetrics()

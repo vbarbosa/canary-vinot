@@ -469,3 +469,11 @@ label.inline input { margin: 0; }
 .manual-list dd { margin: 0; }
 .manual-chips code { display: inline-block; margin: .15rem; }
 @media (max-width: 700px) { .manual-list .manual-item { grid-template-columns: 1fr; gap: .1rem; } }
+
+/* drag the sidebar edge to resize it */
+.side-grip { position: sticky; top: var(--top-h); height: calc(100vh - var(--top-h)); width: 6px; margin-left: -6px; flex: none; cursor: col-resize; z-index: 5; }
+.side-grip:hover, .side-resizing .side-grip { background: #c9a85c55; }
+.side-resizing, .side-resizing * { cursor: col-resize !important; user-select: none; }
+.side-resizing .side { transition: none; }
+.side-mini .side-grip { display: none; }
+@media (max-width: 900px) { .side-grip { display: none; } }
