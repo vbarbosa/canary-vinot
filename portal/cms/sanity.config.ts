@@ -15,7 +15,7 @@ const SINGLETONS = [
 export default defineConfig({
   name: "vinot",
   title: "VinOT — Conteúdo",
-  projectId: process.env.SANITY_STUDIO_PROJECT_ID || "TROCAR",
+  projectId: process.env.SANITY_STUDIO_PROJECT_ID || "uh4swsqs",
   dataset: "production",
 
   plugins: [
