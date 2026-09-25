@@ -91,6 +91,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 - Server save diário (Mundo): liga ou desliga o reinício diário, horário em Brasília (gravado em UTC, o relógio do contêiner
   do jogo), minutos de aviso e limpar o chão antes. Vai para o `config.lua` pela ponte (`apply_world`); o horário novo só vale
   depois do próximo reinício, porque o `global_server_save.lua` marca a hora ao carregar.
+- Uma lista só: o menu e as áreas da Equipe saem de `MENU` em `main.py`. `tools/check_contracts.py` (roda na CI) confere que
+  cada tela do menu tem explicação no Manual, que nenhuma rota fica fora de uma área (co-admin veria sem permissão) e que cada
+  ação que o painel manda existe na ponte Lua e tem nome no Histórico.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

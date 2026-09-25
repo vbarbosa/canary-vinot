@@ -5,14 +5,14 @@ on:
   pull_request:
     paths:
       - "cockpit/**"
-      - "data/scripts/globalevents/cockpit.lua"
+      - "data/scripts/globalevents/cockpit*.lua"
       - ".github/workflows/cockpit.yml"
   push:
     branches:
       - main
     paths:
       - "cockpit/**"
-      - "data/scripts/globalevents/cockpit.lua"
+      - "data/scripts/globalevents/cockpit*.lua"
       - ".github/workflows/cockpit.yml"
 
 jobs:
@@ -48,7 +48,14 @@ jobs:
           print(len(gamedata.items()), "items ok")
           PY
 
+      - name: Check that menu, manual, access rules and bridge actions agree
+        working-directory: cockpit
+        env:
+          COCKPIT_SECRET: ci
+          COCKPIT_DATA_DIR: ../data
+        run: python tools/check_contracts.py
+
       - name: Check Lua bridge syntax
         run: |
           sudo apt-get update && sudo apt-get install -y luajit
-          luajit -bl data/scripts/globalevents/cockpit.lua > /dev/null
+          for f in data/scripts/globalevents/cockpit*.lua; do luajit -bl "$f" > /dev/null; done

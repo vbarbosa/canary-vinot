@@ -346,6 +346,8 @@ ACTION_LABELS = {
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
+    "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
+    "house_rent": "💰 aluguel",
 }
 
 
@@ -1831,7 +1833,7 @@ def manual_page(request: Request, aba: str = "jogo"):
     aba = aba if aba in ("jogo", "mestre", "painel") else "jogo"
     players = manual.player_commands()
     topics = list(dict.fromkeys(r["topic"] for r in players))
-    return page(request, "manual.html", user, aba=aba, players=players, topics=topics, staff=manual.staff_commands(), panel=manual.PANEL)
+    return page(request, "manual.html", user, aba=aba, players=players, topics=topics, staff=manual.staff_commands(), panel=manual.panel_guide(MENU + [OWNER_MENU]))
 
 
 # ---------------------------------------------------------------- boosted creature and boss

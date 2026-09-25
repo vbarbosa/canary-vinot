@@ -84,43 +84,37 @@ STAFF = {
     "/spy": ("/spy nome", "Vê o inventário do jogador."),
 }
 
-# The panel, screen by screen: (path, title, how to use it)
-PANEL = [
-    ("Painel", [
-        ("/", "Visão geral", "Quem está online, saúde do servidor, próximas tarefas da Agenda e atalhos."),
-        ("/ranking", "Ranking", "Hall da fama: level, skills, magia, gold e mortes, por vocação."),
-        ("/historico", "Histórico", "Tudo que o painel fez, com quem clicou e o resultado no jogo."),
-        ("/manual", "Manual", "Esta página."),
-    ]),
-    ("Jogo ao vivo", [
-        ("/turma", "A Turma", "Os amigos fixos. Marque quem é da turma para dar presentes e levar para eventos de uma vez."),
-        ("/teleporte", "Teleporte", "Leva jogadores (ou a turma) para templos, NPCs, hunts, casas e lugares salvos. O filtro Criaturas mostra onde cada monstro nasce."),
-        ("/raids", "Raids", "Soltar agora: escolha a invasão e clique. Automáticas: ligue ou desligue cada raid, mude a chance por minuto e o mínimo de jogadores; a agenda semanal fica na Agenda."),
-        ("/eventos", "Eventos", "Mini-games (Zombie, Bolas de neve, Capture a bandeira, Battlefield, Quiz). Escolha a arena, quem joga e o prêmio. Salve como evento pronto para agendar; com inscrição, a galera entra com !evento."),
-        ("/roleta", "Roleta", "Prêmios, pesos (chance), giros grátis por dia, preço do giro e onde fica a roleta. Dá giros extras para alguém."),
-        ("/boosted", "Criatura do dia", "Escolhe a criatura e o boss em destaque no lugar do sorteio. Vale no próximo início do jogo."),
-        ("/agenda", "Agenda", "Tarefas automáticas: salvar, anunciar, limpar o chão, raids, eventos, presentes, abrir e fechar o servidor."),
-    ]),
-    ("Pessoas", [
-        ("/jogadores", "Jogadores", "A ficha de cada personagem: itens, level, skills, outfit, grupo, banir, renomear, troféu do Vinot, giros da roleta."),
-        ("/contas", "Contas", "Criar conta e personagem, trocar senha, premium e Tibia coins."),
-        ("/guilds", "Guilds", "O portal das guilds: criar, membros, cargos, líder, banco, mensagem do dia e guerras."),
-    ]),
-    ("Itens e economia", [
-        ("/kits", "Kits", "Pacotes de itens prontos para dar de uma vez (e para prêmio de eventos)."),
-        ("/economia", "Economia", "Quanto gold existe e onde: bancos, mochilas, depósitos, guildas, mercado e casas."),
-        ("/mercado", "Mercado", "Ofertas abertas no mercado do jogo e os últimos negócios. Cancelar devolve os itens ou o gold."),
-        ("/imobiliaria", "Imobiliária", "As casas do mapa: dar, vender, despejar, aluguel, preço de venda no jogo e leilões com !lance."),
-    ]),
-    ("Servidor", [
-        ("/mundo", "Mundo", "Nome, mensagem do dia, boas-vindas, estátua do Vinot, tipo de PvP, rates e estágios de XP. Aplica sem reiniciar."),
-        ("/metricas", "Métricas", "CPU, memória, disco e tempo de resposta do jogo, em gráficos de 7 dias."),
-        ("/logs", "Logs", "Os logs do servidor e dos comandos de GM, só leitura."),
-    ]),
-    ("Dono", [
-        ("/equipe", "Equipe", "Co-administradores: dê acesso a um amigo e escolha que áreas do painel ele pode usar."),
-    ]),
-]
+# How to use each screen of the panel, by its menu path. The menu itself (sections, names, order) comes from
+# main.MENU; tools/check_contracts.py fails when a menu screen has no text here.
+HOWTO = {
+    "/": "Quem está online, saúde do servidor, próximas tarefas da Agenda e atalhos.",
+    "/ranking": "Hall da fama: level, skills, magia, gold e mortes, por vocação.",
+    "/historico": "Tudo que o painel fez, com quem clicou e o resultado no jogo.",
+    "/manual": "Esta página.",
+    "/turma": "Os amigos fixos. Marque quem é da turma para dar presentes e levar para eventos de uma vez.",
+    "/teleporte": "Leva jogadores (ou a turma) para templos, NPCs, hunts, casas e lugares salvos. O filtro Criaturas mostra onde cada monstro nasce.",
+    "/raids": "Soltar agora: escolha a invasão e clique. Automáticas: ligue ou desligue cada raid, mude a chance por minuto e o mínimo de jogadores; a agenda semanal fica na Agenda.",
+    "/eventos": "Mini-games (Zombie, Bolas de neve, Capture a bandeira, Battlefield, Quiz). Escolha a arena, quem joga e o prêmio. Salve como evento pronto para agendar; com inscrição, a galera entra com !evento.",
+    "/roleta": "Prêmios, pesos (chance), giros grátis por dia, preço do giro e onde fica a roleta. Dá giros extras para alguém.",
+    "/boosted": "Escolhe a criatura e o boss em destaque no lugar do sorteio. Vale no próximo início do jogo.",
+    "/agenda": "Tarefas automáticas: salvar, anunciar, limpar o chão, raids, eventos, presentes, abrir e fechar o servidor.",
+    "/jogadores": "A ficha de cada personagem: itens, level, skills, outfit, grupo, banir, renomear, troféu do Vinot, giros da roleta.",
+    "/contas": "Criar conta e personagem, trocar senha, premium e Tibia coins.",
+    "/guilds": "O portal das guilds: criar, membros, cargos, líder, banco, mensagem do dia e guerras.",
+    "/kits": "Pacotes de itens prontos para dar de uma vez (e para prêmio de eventos).",
+    "/economia": "Quanto gold existe e onde: bancos, mochilas, depósitos, guildas, mercado e casas.",
+    "/mercado": "Ofertas abertas no mercado do jogo e os últimos negócios. Cancelar devolve os itens ou o gold.",
+    "/imobiliaria": "As casas do mapa: dar, vender, despejar, aluguel, preço de venda no jogo e leilões com !lance.",
+    "/mundo": "Nome, mensagem do dia, boas-vindas, estátua do Vinot, tipo de PvP, rates e estágios de XP. Aplica sem reiniciar.",
+    "/metricas": "CPU, memória, disco e tempo de resposta do jogo, em gráficos de 7 dias.",
+    "/logs": "Os logs do servidor e dos comandos de GM, só leitura.",
+    "/equipe": "Co-administradores: dê acesso a um amigo e escolha que áreas do painel ele pode usar.",
+}
+
+
+def panel_guide(menu):
+    """[(section title, [(path, label, text)])] in menu order."""
+    return [(title, [(href, label, HOWTO.get(href, "sem descrição")) for href, _, label in links]) for _, _, title, links in menu]
 
 
 @lru_cache(maxsize=1)
