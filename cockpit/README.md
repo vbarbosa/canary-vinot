@@ -32,6 +32,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
+- Equipe (só o God vê): co-administradores. O God adiciona uma conta (existente ou nova) e marca as áreas do
+  menu que ela pode usar; o grupo no jogo (até Community manager) vai junto. Guardado em `cockpit_admins`.
+  Co-admin não dá God nem mexe nas contas do God ou de outro co-admin; pausar ou remover vale no próximo clique.
 - Mundo: tipo de mundo (sem PvP, PvP, PvP livre), Retro PvP, nível de proteção, PZ lock, autoloot, stamina, viagens grátis, acessos de quest, loot boost na party, rates e estágios de XP,
   skill e magic. O painel guarda em `cockpit_settings` e a ponte grava `cockpit-world.lua` ao lado do
   `config.lua` (que carrega esse arquivo por último; a ponte acrescenta essa linha se faltar), recarrega o

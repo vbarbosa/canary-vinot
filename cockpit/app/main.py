@@ -77,15 +77,70 @@ def current_user(request: Request):
     if not acc or _fingerprint(acc["password"]) != s.get("fp"):
         s.clear()
         return None
-    god = db.one("SELECT name FROM players WHERE account_id = %s AND group_id >= %s ORDER BY id LIMIT 1", acc["id"], GOD_GROUP)
-    if not god:
+    role = panel_role(acc["id"])
+    if not role:
         s.clear()
         return None
-    return {"account": acc["name"], "me": god["name"], "csrf": s["csrf"]}
+    return {"account": acc["name"], "account_id": acc["id"], "csrf": s["csrf"], **role}
+
+
+# Panel areas, the same groups as the side menu. The owner (a God character) sees everything plus Equipe;
+# a co-admin sees only the areas ticked for them. "/" and the small shared parts are open to both.
+SECTIONS = {
+    "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
+    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/agenda", "/acao")),
+    "pessoas": ("👥 Pessoas", "Jogadores, contas, ban, senha", ("/jogador", "/conta")),
+    "economia": ("💰 Itens e economia", "Kits, economia e imobiliária", ("/kits", "/economia", "/imobiliaria")),
+    "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
+}
+OWNER_ONLY = ("/equipe",)
+
+
+def panel_role(account_id):
+    """Owner if the account has a God character, co-admin if the God added it in Equipe, else nothing."""
+    god = db.one("SELECT name FROM players WHERE account_id = %s AND group_id >= %s ORDER BY id LIMIT 1", account_id, GOD_GROUP)
+    if god:
+        return {"me": god["name"], "owner": True, "sections": set(SECTIONS)}
+    row = db.one("SELECT sections FROM cockpit_admins WHERE account_id = %s AND active = 1", account_id)
+    if not row:
+        return None
+    char = db.one("SELECT name FROM players WHERE account_id = %s ORDER BY level DESC, id LIMIT 1", account_id)
+    acc = db.one("SELECT name FROM accounts WHERE id = %s", account_id)
+    return {"me": char["name"] if char else acc["name"], "owner": False, "sections": set(row["sections"].split(",")) & set(SECTIONS)}
+
+
+templates.env.tests["can_open"] = lambda href, user: allowed(user, href)
+
+
+def section_of(path):
+    for key, (*_, prefixes) in SECTIONS.items():
+        if path.startswith(prefixes):
+            return key
+    return None
+
+
+def allowed(user, path):
+    if user["owner"]:
+        return True
+    if path.startswith(OWNER_ONLY):
+        return False
+    key = section_of(path)
+    return key is None or key in user["sections"]
 
 
 class NotLoggedIn(Exception):
     pass
+
+
+class NoAccess(Exception):
+    pass
+
+
+@app.exception_handler(NoAccess)
+def no_access(request: Request, exc: NoAccess):
+    if request.headers.get("HX-Request"):
+        return HTMLResponse('<div class="toast err">Sua conta não tem acesso a essa área do painel.</div>', status_code=200)
+    return templates.TemplateResponse(request, "no_access.html", {"user": current_user(request)}, status_code=403)
 
 
 @app.exception_handler(NotLoggedIn)
@@ -99,11 +154,26 @@ def require(request: Request, post=False):
     user = current_user(request)
     if not user:
         raise NotLoggedIn()
+    if not allowed(user, request.url.path):
+        raise NoAccess()
     if post:
         token = request.headers.get("X-CSRF-Token", "")
         if not hmac.compare_digest(token, user["csrf"]):
             raise HTTPException(status_code=403, detail="CSRF")
     return user
+
+
+def locked_account(user, account_id):
+    """A co-admin cannot change the God's accounts or another staff account (only the owner can)."""
+    if user["owner"] or account_id == user["account_id"]:
+        return False
+    return bool(
+        db.one("SELECT 1 AS x FROM players WHERE account_id = %s AND group_id >= %s LIMIT 1", account_id, GOD_GROUP)
+        or db.one("SELECT 1 AS x FROM cockpit_admins WHERE account_id = %s", account_id)
+    )
+
+
+LOCKED = "Só o dono do painel (God) pode mexer nessa conta."
 
 
 def page(request, name, user, **ctx):
@@ -128,8 +198,7 @@ def login(request: Request, email: str = Form(...), password: str = Form(...)):
     if len(recent) >= 5:
         return templates.TemplateResponse(request, "login.html", {"error": "Muitas tentativas. Espere 5 minutos."}, status_code=429)
     acc = db.one("SELECT id, name, password FROM accounts WHERE email = %s OR name = %s LIMIT 1", email.strip(), email.strip())
-    god = acc and db.one("SELECT 1 AS ok FROM players WHERE account_id = %s AND group_id >= %s LIMIT 1", acc["id"], GOD_GROUP)
-    if not acc or not _password_ok(acc["password"], password) or not god:
+    if not acc or not _password_ok(acc["password"], password) or not panel_role(acc["id"]):
         _failures[ip].append(time.time())
         return templates.TemplateResponse(request, "login.html", {"error": "Conta, senha ou permissão inválida."}, status_code=401)
     request.session.clear()
@@ -309,10 +378,10 @@ def toggle_group(request: Request, pid: int):
 def ban(request: Request, pid: int, dias: int = Form(7), motivo: str = Form("")):
     user = require(request, post=True)
     p = db.one("SELECT name, account_id, group_id FROM players WHERE id = %s", pid)
-    if not p or p["group_id"] >= GOD_GROUP:
+    if not p or p["group_id"] >= GOD_GROUP or locked_account(user, p["account_id"]):
         return toast("Não dá pra banir esse jogador.", ok=False)
     now = int(time.time())
-    me = db.one("SELECT id FROM players WHERE name = %s", user["me"])
+    me = db.one("SELECT id FROM players WHERE name = %s", user["me"]) or {"id": 0}
     db.run(
         "REPLACE INTO account_bans (account_id, reason, banned_at, expires_at, banned_by) VALUES (%s,%s,%s,%s,%s)",
         p["account_id"], motivo[:200] or "Cockpit", now, now + clamp(dias, 1, 3650) * 86400, me["id"],
@@ -508,6 +577,15 @@ def dispatch(actor, name, alvo, text, form, me=""):
 async def action(request: Request):
     user = require(request, post=True)
     form = await request.form()
+    if not user["owner"]:
+        name = form.get("action", "")
+        if name == "set_group" and clamp(form.get("arg1"), 0, 99) >= GOD_GROUP:
+            return toast("Só o dono do painel pode dar God.", ok=False)
+        if name not in GLOBAL_ACTIONS and str(form.get("alvo", "")).isdigit():
+            for t in resolve_targets(str(form.get("alvo", ""))):
+                acc = db.one("SELECT account_id FROM players WHERE name = %s", t)
+                if acc and locked_account(user, acc["account_id"]):
+                    return toast(f"{t} é da equipe; só o dono do painel pode mexer.", ok=False)
     ok, msg = dispatch(
         user["account"], form.get("action", ""), str(form.get("alvo", "")), str(form.get("text", "")).strip()[:500], form, me=user["me"]
     )
@@ -730,6 +808,8 @@ def account_detail(request: Request, aid: int):
 @app.post("/conta/{aid}/dados", response_class=HTMLResponse)
 def account_edit(request: Request, aid: int, nome: str = Form(""), email: str = Form(...)):
     user = require(request, post=True)
+    if locked_account(user, aid):
+        return toast(LOCKED, ok=False)
     acc = db.one("SELECT * FROM accounts WHERE id = %s", aid)
     if not acc:
         raise HTTPException(404)
@@ -790,6 +870,8 @@ async def account_take_chars(request: Request, aid: int):
 @app.post("/conta/{aid}/senha", response_class=HTMLResponse)
 def account_password(request: Request, aid: int, senha: str = Form(...)):
     user = require(request, post=True)
+    if locked_account(user, aid):
+        return toast(LOCKED, ok=False)
     if len(senha) < 6:
         return toast("A senha precisa de pelo menos 6 caracteres.", ok=False)
     db.run("UPDATE accounts SET password = %s WHERE id = %s", sha1(senha), aid)
@@ -830,6 +912,8 @@ def account_coins(request: Request, aid: int, quantidade: int = Form(...), tipo:
 @app.post("/conta/{aid}/apagar", response_class=HTMLResponse)
 def account_delete(request: Request, aid: int):
     user = require(request, post=True)
+    if locked_account(user, aid):
+        return toast(LOCKED, ok=False)
     if db.one("SELECT 1 AS x FROM players WHERE account_id = %s AND group_id >= %s", aid, GOD_GROUP):
         return toast("Conta com personagem God não pode ser apagada pelo painel.", ok=False)
     if db.one("SELECT 1 AS x FROM players p JOIN cockpit_online o ON o.player_id = p.id WHERE p.account_id = %s", aid):
@@ -876,6 +960,8 @@ def character_rename(request: Request, pid: int, nome: str = Form(...)):
     nome = " ".join(nome.split())
     if not p:
         return toast("Personagem não encontrado.", ok=False)
+    if locked_account(user, p["account_id"]):
+        return toast(LOCKED, ok=False)
     if is_online(pid):
         return toast(f"{p['name']} está online. Kicke antes de renomear.", ok=False)
     if not NAME_RE.match(nome):
@@ -893,6 +979,8 @@ def character_edit(request: Request, pid: int, sexo: int = Form(...), vocacao: i
     p = db.one("SELECT name, account_id, sex, looktype FROM players WHERE id = %s", pid)
     if not p:
         return toast("Personagem não encontrado.", ok=False)
+    if locked_account(user, p["account_id"]):
+        return toast(LOCKED, ok=False)
     if is_online(pid):
         return toast(f"{p['name']} está online. Kicke antes de editar.", ok=False)
     if vocacao not in gamedata.vocations() or cidade not in {t["id"] for t in towns()}:
@@ -909,10 +997,12 @@ def character_edit(request: Request, pid: int, sexo: int = Form(...), vocacao: i
 @app.post("/jogador/{pid}/grupo", response_class=HTMLResponse)
 def character_group(request: Request, pid: int, grupo: int = Form(...)):
     user = require(request, post=True)
-    p = db.one("SELECT name FROM players WHERE id = %s", pid)
+    p = db.one("SELECT name, account_id FROM players WHERE id = %s", pid)
     if not p:
         return toast("Personagem não encontrado.", ok=False)
     grupo = clamp(grupo, 1, 6)
+    if not user["owner"] and (grupo >= GOD_GROUP or locked_account(user, p["account_id"])):
+        return toast("Só o dono do painel pode dar God ou mexer no grupo da equipe.", ok=False)
     if p["name"] == user["me"] and grupo < GOD_GROUP:
         return toast("Você não pode tirar o God do seu próprio personagem por aqui.", ok=False)
     if is_online(pid):
@@ -921,6 +1011,116 @@ def character_group(request: Request, pid: int, grupo: int = Form(...)):
         db.run("UPDATE players SET group_id = %s WHERE id = %s", grupo, pid)
         db.audit(user["account"], "grupo", p["name"], str(grupo))
     return toast(f"{p['name']} agora é {dict(GROUPS)[grupo]}.")
+
+
+# ---------------------------------------------------------------- staff (co-admins)
+
+STAFF_GROUPS = [g for g in GROUPS if g[0] < GOD_GROUP]
+
+
+def staff_rows():
+    rows = db.all(
+        "SELECT s.account_id, s.sections, s.active, s.created_by, s.created_at, a.name, a.email, "
+        "(SELECT MAX(at) FROM cockpit_audit WHERE actor = a.name AND action = 'login') AS last_login "
+        "FROM cockpit_admins s JOIN accounts a ON a.id = s.account_id ORDER BY a.name"
+    )
+    for r in rows:
+        r["sections"] = set(r["sections"].split(",")) & set(SECTIONS)
+        r["chars"] = db.all("SELECT id, name, level, group_id FROM players WHERE account_id = %s ORDER BY name", r["account_id"])
+    return rows
+
+
+def staff_sections(form):
+    return ",".join(k for k in SECTIONS if k in form.getlist("secao"))
+
+
+def set_account_group(user, account_id, grupo):
+    grupo = clamp(grupo, 1, GOD_GROUP - 1)
+    for c in db.all("SELECT id, name FROM players WHERE account_id = %s AND group_id < %s", account_id, GOD_GROUP):
+        if is_online(c["id"]):
+            db.enqueue(user["account"], "set_group", c["name"], grupo)
+        else:
+            db.run("UPDATE players SET group_id = %s WHERE id = %s", grupo, c["id"])
+    return dict(GROUPS)[grupo]
+
+
+@app.get("/equipe", response_class=HTMLResponse)
+def staff(request: Request):
+    user = require(request)
+    return page(request, "staff.html", user, rows=staff_rows(), sections=SECTIONS, groups=STAFF_GROUPS, group_names=dict(GROUPS), towns=towns(),
+                vocations_list=list(gamedata.vocations().items())[:5])
+
+
+@app.post("/equipe", response_class=HTMLResponse)
+async def staff_add(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    sections = staff_sections(f)
+    if not sections:
+        return toast("Marque pelo menos uma área do painel.", ok=False)
+    if f.get("modo") == "nova":
+        nome, email, senha = str(f.get("nome", "")).strip(), str(f.get("email", "")).strip(), str(f.get("senha", ""))
+        if not re.match(r"^[A-Za-z0-9_]{3,32}$", nome):
+            return toast("Nome da conta: 3 a 32 letras, números ou _.", ok=False)
+        if not EMAIL_RE.match(email):
+            return toast("E-mail inválido.", ok=False)
+        if len(senha) < 6:
+            return toast("A senha precisa de pelo menos 6 caracteres.", ok=False)
+        if db.one("SELECT 1 AS x FROM accounts WHERE name = %s OR email = %s", nome, email):
+            return toast("Já existe conta com esse nome ou e-mail. Use \"Conta que já existe\".", ok=False)
+        aid = db.run("INSERT INTO accounts (name, email, password, type, creation) VALUES (%s, %s, %s, 1, %s)",
+                     nome, email, sha1(senha), int(time.time()))
+        db.audit(user["account"], "conta_criada", nome, email)
+        personagem = str(f.get("personagem", "")).strip()
+        if personagem:
+            err = create_character(aid, personagem, f.get("sexo", 1), clamp(f.get("vocacao"), 0, 4), clamp(f.get("cidade"), 1, 1000))
+            if err:
+                return toast(f"Conta criada, mas o personagem não: {err}", ok=False)
+    else:
+        q = str(f.get("conta", "")).strip()
+        acc = q and db.one("SELECT id FROM accounts WHERE email = %s OR name = %s LIMIT 1", q, q)
+        if not acc:
+            return toast("Não achei conta com esse e-mail ou nome.", ok=False)
+        aid = acc["id"]
+        if db.one("SELECT 1 AS x FROM players WHERE account_id = %s AND group_id >= %s", aid, GOD_GROUP):
+            return toast("Essa conta já tem God: ela já é dona do painel.", ok=False)
+    db.run("INSERT INTO cockpit_admins (account_id, sections, active, created_by, created_at) VALUES (%s, %s, 1, %s, %s) "
+           "ON DUPLICATE KEY UPDATE sections = VALUES(sections), active = 1", aid, sections, user["account"], int(time.time()))
+    grupo = clamp(f.get("grupo"), 1, GOD_GROUP - 1)
+    if grupo > 1:
+        set_account_group(user, aid, grupo)
+    db.audit(user["account"], "equipe_add", str(aid), f"{sections} grupo {grupo}")
+    return Response(headers={"HX-Redirect": "/equipe"})
+
+
+@app.post("/equipe/{aid}/{acao}", response_class=HTMLResponse)
+async def staff_change(request: Request, aid: int, acao: str):
+    user = require(request, post=True)
+    row = db.one("SELECT active FROM cockpit_admins WHERE account_id = %s", aid)
+    if not row:
+        return toast("Essa conta não é da equipe.", ok=False)
+    f = await request.form()
+    if acao == "secoes":
+        sections = staff_sections(f)
+        if not sections:
+            return toast("Marque pelo menos uma área. Para tirar o acesso, use Pausar ou Remover.", ok=False)
+        db.run("UPDATE cockpit_admins SET sections = %s WHERE account_id = %s", sections, aid)
+        msg = "Acesso atualizado. Vale no próximo clique dele."
+    elif acao == "grupo":
+        msg = f"Personagens agora são {set_account_group(user, aid, f.get('grupo'))} no jogo."
+    elif acao == "ligar":
+        db.run("UPDATE cockpit_admins SET active = %s WHERE account_id = %s", 0 if row["active"] else 1, aid)
+        return Response(headers={"HX-Redirect": "/equipe"})
+    elif acao == "remover":
+        db.run("DELETE FROM cockpit_admins WHERE account_id = %s", aid)
+        if f.get("rebaixar"):
+            set_account_group(user, aid, 1)
+        db.audit(user["account"], "equipe_remover", str(aid))
+        return Response(headers={"HX-Redirect": "/equipe"})
+    else:
+        raise HTTPException(404)
+    db.audit(user["account"], "equipe_" + acao, str(aid), str(dict(f)))
+    return toast(msg)
 
 
 # ---------------------------------------------------------------- metrics and logs

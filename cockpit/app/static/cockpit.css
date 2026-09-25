@@ -395,3 +395,13 @@ p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }
 .save-preset { margin-top: .8rem; }
 .save-preset .row input, .save-preset .row select { margin: 0; }
 .pvp-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+
+/* equipe */
+.staff.paused { opacity: .6; }
+.sec-picks { display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: center; margin-bottom: .6rem; }
+.sec-picks label { display: flex; gap: .35rem; align-items: baseline; margin: 0; flex-wrap: wrap; }
+.staff-add .sec-picks { flex-direction: column; align-items: stretch; }
+.staff-add .sec-picks small { flex-basis: 100%; padding-left: 1.6rem; }
+.staff-add:has(input[value=nova]:checked) .only-existente,
+.staff-add:has(input[value=existente]:checked) .only-nova { display: none; }
+.role-tag { font-size: .7rem; border: 1px solid var(--pico-muted-border-color); border-radius: 1rem; padding: 0 .5rem; }

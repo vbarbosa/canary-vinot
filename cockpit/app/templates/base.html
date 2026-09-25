@@ -24,11 +24,12 @@
     ('economia', '💰', 'Itens e economia', [('/kits', '🎁', 'Kits'), ('/economia', '🏦', 'Economia'), ('/imobiliaria', '🏘', 'Imobiliária')]),
     ('servidor', '🛠', 'Servidor', [('/mundo', '🌍', 'Mundo'), ('/metricas', '📈', 'Métricas'), ('/logs', '📄', 'Logs')]),
   ] %}
+  {% if user.owner %}{% set menu = menu + [('dono', '👑', 'Dono', [('/equipe', '👮', 'Equipe')])] %}{% endif %}
   <header class="topbar">
     <button class="icon-btn" id="side-toggle" aria-label="Abrir ou recolher o menu" title="Menu">☰</button>
     <a href="/" class="brand"><img src="/static/logo.svg" alt="VinOT" class="nav-logo"> <span>Cockpit</span></a>
     <span class="right row small">
-      <span class="muted">{{ user.me }}</span>
+      <span class="muted">{{ user.me }}</span>{% if not user.owner %} <span class="role-tag">co-admin</span>{% endif %}
       <button class="outline secondary small" hx-post="/logout">Sair</button>
     </span>
   </header>
@@ -39,7 +40,9 @@
         <button type="button" class="link-btn" data-sections="close" title="Fechar todas as seções">⊟ fechar tudo</button>
       </div>
       <nav>
-        {% for key, icon, title, links in menu %}
+        {% for key, icon, title, all_links in menu %}
+        {% set links = all_links | selectattr(0, 'can_open', user) | list %}
+        {% if links %}
         <details class="side-sec" data-sec="{{ key }}" open>
           <summary><span class="ic">{{ icon }}</span><span class="lbl">{{ title }}</span></summary>
           <ul>
@@ -49,6 +52,7 @@
             {% endfor %}
           </ul>
         </details>
+        {% endif %}
         {% endfor %}
       </nav>
       <button type="button" class="side-collapse" id="side-collapse" title="Recolher o menu"><span class="ic">«</span><span class="lbl">Recolher</span></button>

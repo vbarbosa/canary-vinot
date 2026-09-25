@@ -64,6 +64,14 @@ SCHEMA = [
         `detail` VARCHAR(1024) NOT NULL DEFAULT '',
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_admins` (
+        `account_id` INT NOT NULL,
+        `sections` VARCHAR(255) NOT NULL DEFAULT '',
+        `active` TINYINT NOT NULL DEFAULT 1,
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        `created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`account_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_group` (
         `player_id` INT NOT NULL,
         PRIMARY KEY (`player_id`)
