@@ -34,8 +34,8 @@ CATEGORIES = {
 DEFAULTS = {
     "settings": {
         "serverName": "VinOT",
-        "tagline": "O servidor de Tibia da turma do Vinicius",
-        "notice": "Por enquanto o VinOT é só pra convidados. Crie sua conta e peça o acesso ao Vinicius.",
+        "tagline": "O servidor de Tibia pra jogar com a turma",
+        "notice": "Por enquanto o VinOT é só pra convidados. Crie sua conta e peça o seu convite pra administração.",
         "clientAndroidUrl": "",
         "clientWindowsUrl": "",
         "whatsappUrl": "",

@@ -15,5 +15,5 @@ export const PIXEL_ICONS = [
   { title: "Pergaminho", value: "scroll" },
   { title: "Tocha", value: "torch" },
   { title: "Escudo VinOT", value: "emblem" },
-  { title: "Vini (mascote)", value: "mascot" },
+  { title: "Mascote VinOT", value: "mascot" },
 ];

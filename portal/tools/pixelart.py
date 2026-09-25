@@ -296,7 +296,7 @@ SPRITES = {
         "................",
         "................",
     ],
-    # Vini, the mascot: a little knight with the VinOT shield and a red cape.
+    # The VinOT mascot: a little knight with the VinOT shield and a red cape.
     "mascot": [
         "......KKKK......",
         ".....KEEEEK.....",

@@ -48,7 +48,7 @@
       <label>Nome do personagem
         <input name="personagem" value="{{ form.personagem }}" required minlength="3" maxlength="29" autocomplete="off" pattern="[A-Za-z][A-Za-z ']+[A-Za-z]" {{ 'aria-invalid=true' if errors.personagem }}>
         {% with field='personagem' %}{% include "_field_error.html" %}{% endwith %}
-        <small class="hint">Só letras, espaço e apóstrofo. Ex.: Sir Vini, Lady Aurora.</small>
+        <small class="hint">Só letras, espaço e apóstrofo. Ex.: Sir Aldric, Lady Aurora.</small>
       </label>
       <span class="label">Vocação</span>
       {% set chosen = (form.vocacao or request.query_params.get('vocacao') or '4') | string %}
@@ -83,7 +83,7 @@
       <ol>
         <li>Respeite todo mundo. Nada de ofensa, preconceito ou assédio.</li>
         <li>Sem bots, macros ou programas que joguem por você.</li>
-        <li>Achou um bug? Conte pro Vinicius em vez de abusar dele.</li>
+        <li>Achou um bug? Avise a administração em vez de abusar dele.</li>
         <li>Não compartilhe sua conta nem peça a senha de ninguém.</li>
         <li>O mestre do jogo pode mudar as coisas pra deixar o servidor mais divertido.</li>
       </ol>
