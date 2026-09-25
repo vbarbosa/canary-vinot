@@ -332,7 +332,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
 }
 
 
@@ -1671,7 +1671,7 @@ def realty_page(request: Request, q: str = "", cidade: str = "", situacao: str =
     towns_used = sorted({(h["town_id"], h["town"]) for h in all_houses}, key=lambda t: t[1])
     return page(request, "realty.html", user, s=s, stats=stats, income=got, income_n=n, q=q, cidade=cidade, situacao=situacao,
                 towns_used=towns_used, periods=realty.PERIODS, log=realty.history(limit=15), log_kinds=realty.LOG_KINDS,
-                casa=casa, **ctx)
+                casa=casa, auctions=realty.auctions(), past_auctions=realty.recent_auctions(), **ctx)
 
 
 @app.get("/imobiliaria/casas", response_class=HTMLResponse)
@@ -1690,7 +1690,9 @@ def realty_house(request: Request, hid: int):
         return HTMLResponse('<p class="muted">Casa não encontrada.</p>')
     guests = db.all("SELECT listid, list FROM house_lists WHERE house_id = %s", hid)
     players = db.all("SELECT name FROM players WHERE group_id < %s ORDER BY name", GOD_GROUP)
-    return page(request, "_house.html", user, h=h, s=s, guests=guests, players=players, log=realty.history(hid, 10), log_kinds=realty.LOG_KINDS)
+    auction = realty.auction_of(hid)
+    return page(request, "_house.html", user, h=h, s=s, guests=guests, players=players, log=realty.history(hid, 10), log_kinds=realty.LOG_KINDS,
+                auction=auction, bids=realty.bids(auction["id"]) if auction else [])
 
 
 def _house_done(msg, ok=True):
@@ -1716,6 +1718,22 @@ async def realty_action(request: Request, hid: int, acao: str):
         other = db.one("SELECT name FROM houses WHERE owner = %s AND id <> %s", p["id"], hid)
         realty.set_owner(me, h, p["id"], p["name"])
         return _house_done(f"{h['name']} vai para {p['name']} em instantes." + (f" Esse personagem também tem {other['name']}." if other else ""))
+    if acao == "vender":
+        p = db.one("SELECT id, name FROM players WHERE name = %s", str(f.get("jogador", "")).strip())
+        if not p:
+            return toast("Não achei esse personagem.", ok=False)
+        if h["owner"]:
+            return toast("Essa casa já tem dono.", ok=False)
+        v = str(f.get("preco", "")).strip()
+        price = min(int(v), 10**10) if v.isdigit() else h["price"]
+        realty.sell(me, h, p["id"], p["name"], price)
+        return _house_done(f"Vendendo {h['name']} para {p['name']} por {price} gold. Sem saldo no banco, a venda não fecha (veja o Histórico).")
+    if acao == "leiloar":
+        v, horas = str(f.get("lance", "")).strip(), clamp(f.get("horas"), 1, 168)
+        if not v.isdigit() or int(v) < 1:
+            return toast("Lance mínimo em gold.", ok=False)
+        ok, msg = realty.open_auction(me, h, min(int(v), 10**10), horas)
+        return _house_done(msg, ok) if ok else toast(msg, ok=False)
     if not h["owner"] and acao in ("despejar", "cobrar", "perdoar"):
         return toast("Essa casa não tem dono.", ok=False)
     if acao == "despejar":
@@ -1739,6 +1757,34 @@ async def realty_action(request: Request, hid: int, acao: str):
         realty.set_rent(me, h, min(int(v), 100_000_000) if v else None)
         return _house_done("Aluguel próprio salvo." if v else "Aluguel voltou ao padrão.")
     return toast("Ação desconhecida.", ok=False)
+
+
+@app.post("/imobiliaria-venda", response_class=HTMLResponse)
+async def realty_sale(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    try:
+        sqm = int(f.get("sqm") or 0) if f.get("venda") else -1
+        level = int(f.get("nivel") or 0)
+        mult = float(str(f.get("mult") or 0).replace(",", "."))
+    except ValueError:
+        return toast("Confira os números.", ok=False)
+    realty.save_sale(sqm, level, mult)
+    world.apply(user["account"])
+    db.audit(user["account"], "venda_casas", "", f"sqm {sqm} nível {level} x{mult}")
+    return Response(headers={"HX-Redirect": "/imobiliaria"})
+
+
+@app.post("/imobiliaria/leilao/{aid}/{acao}", response_class=HTMLResponse)
+def realty_auction(request: Request, aid: int, acao: str):
+    user = require(request, post=True)
+    if acao == "cancelar":
+        ok, msg = realty.cancel_auction(user["account"], aid)
+    elif acao == "encerrar":
+        ok, msg = realty.end_auction_now(user["account"], aid)
+    else:
+        return toast("Ação desconhecida.", ok=False)
+    return _house_done(msg, ok) if ok else toast(msg, ok=False)
 
 
 @app.post("/imobiliaria-regras", response_class=HTMLResponse)

@@ -376,6 +376,42 @@ globalActions.house_rent = function(cmd)
 	return true, amount .. " gold pago (offline)"
 end
 
+-- arg1 = house id, arg2 = buyer guid, arg3 = price; sells a free house for gold from the buyer's bank, online or not
+globalActions.house_sell = function(cmd)
+	local house = House(cmd.arg1)
+	if not house then
+		return false, "casa nao existe"
+	end
+	if house:getOwnerGuid() ~= 0 then
+		return false, "a casa ja tem dono"
+	end
+	local price = math.max(0, cmd.arg3)
+	local resultId = db.storeQuery("SELECT `name`, `balance` FROM `players` WHERE `id` = " .. cmd.arg2)
+	if not resultId then
+		return false, "jogador nao existe"
+	end
+	local name, balance = Result.getString(resultId, "name"), Result.getNumber(resultId, "balance")
+	Result.free(resultId)
+	local player = Player(name)
+	if player then
+		if player:getBankBalance() < price then
+			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Seu banco nao tem " .. price .. " gold para a casa " .. house:getName() .. ".")
+			return false, "sem saldo"
+		end
+		player:setBankBalance(player:getBankBalance() - price)
+	else
+		if balance < price then
+			return false, "sem saldo"
+		end
+		db.query("UPDATE `players` SET `balance` = `balance` - " .. price .. " WHERE `id` = " .. cmd.arg2 .. " AND `balance` >= " .. price)
+	end
+	house:setHouseOwner(cmd.arg2)
+	if player and cmd.text ~= "" then
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+	end
+	return true, house:getName() .. " vendida para " .. name .. " por " .. price .. " gold"
+end
+
 -- The Vinot trophy: a golden goblet with the panel's inscription, only given from the panel.
 local TROPHY_ITEM = 5805
 local function trophyText(v)
@@ -631,6 +667,17 @@ globalActions.apply_world = function()
 	local pz = tonumber(saved.pzLockedSeconds)
 	if pz then
 		lines[#lines + 1] = "pzLocked = " .. math.max(0, math.min(3600, math.floor(pz))) * 1000
+	end
+	-- houses (tela Imobiliaria): price per sqm (-1 turns !buyhouse off), rent part of the price, level to buy
+	local sqm, buyLevel, rentMult = tonumber(saved.housePriceEachSQM), tonumber(saved.houseBuyLevel), tonumber(saved.housePriceRentMultiplier)
+	if sqm then
+		lines[#lines + 1] = "housePriceEachSQM = " .. math.max(-1, math.min(100000000, math.floor(sqm)))
+	end
+	if buyLevel then
+		lines[#lines + 1] = "houseBuyLevel = " .. math.max(0, math.min(5000, math.floor(buyLevel)))
+	end
+	if rentMult then
+		lines[#lines + 1] = string.format("housePriceRentMultiplier = %.2f", math.max(0, math.min(100, rentMult)))
 	end
 	if saved.serverName and saved.serverName ~= "" then
 		lines[#lines + 1] = string.format("serverName = %q", worldText(saved.serverName, 30))

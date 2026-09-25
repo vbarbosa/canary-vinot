@@ -202,6 +202,32 @@ SCHEMA += [
         `min_players` INT NULL,
         PRIMARY KEY (`name`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_auctions` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `house_id` INT NOT NULL,
+        `house` VARCHAR(255) NOT NULL,
+        `town` VARCHAR(64) NOT NULL DEFAULT '',
+        `min_bid` BIGINT NOT NULL,
+        `ends_at` INT UNSIGNED NOT NULL,
+        `status` VARCHAR(12) NOT NULL DEFAULT 'open',
+        `top_bid` BIGINT NOT NULL DEFAULT 0,
+        `top_player_id` INT NOT NULL DEFAULT 0,
+        `top_name` VARCHAR(255) NOT NULL DEFAULT '',
+        `cmd_id` BIGINT NOT NULL DEFAULT 0,
+        `result` VARCHAR(255) NOT NULL DEFAULT '',
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        `created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`id`), KEY `status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_auction_bids` (
+        `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `auction_id` INT UNSIGNED NOT NULL,
+        `player_id` INT NOT NULL,
+        `name` VARCHAR(255) NOT NULL,
+        `amount` BIGINT NOT NULL,
+        `at` INT UNSIGNED NOT NULL,
+        PRIMARY KEY (`id`), KEY `auction` (`auction_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_quiz` (
         `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
         `question` VARCHAR(255) NOT NULL,

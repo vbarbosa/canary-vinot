@@ -5,7 +5,7 @@
 <dl class="facts">
   <dt>Cidade</dt><dd>{{ h.town }}</dd>
   <dt>Tamanho</dt><dd>{{ h.size }} sqm · {{ h.beds }} cama(s)</dd>
-  <dt>Preço</dt><dd>{{ gold(h.price) }} gold</dd>
+  <dt>Preço</dt><dd>{{ gold(h.price) }} gold{% if s.sqm < 0 %} <span class="muted small">(venda no jogo desligada)</span>{% endif %}</dd>
   <dt>Aluguel</dt><dd>{{ gold(h.rent) }} gold {% if h.rent_override is not none %}<span class="tag">próprio</span>{% else %}<span class="muted small">(mapa: {{ gold(h.base_rent) }})</span>{% endif %}</dd>
   <dt>Dono</dt><dd>{% if h.owner %}<strong>{{ h.owner_name }}</strong> <span class="muted small">nível {{ h.owner_level }}</span>{% else %}<span class="muted">ninguém, está à venda</span>{% endif %}</dd>
   {% if h.owner and s.seconds %}
@@ -18,11 +18,40 @@
   {% endif %}
 </dl>
 
+{% if auction %}
+<div class="auction-box">
+  <strong>🔨 Em leilão</strong> <span class="muted small">(!lance {{ auction.id }} valor) · termina <span data-ts="{{ auction.ends_at }}"></span></span><br>
+  {% if auction.top_player_id %}Maior lance: <strong>{{ gold(auction.top_bid) }}</strong> de {{ auction.top_name }}{% else %}Sem lances ainda · mínimo {{ gold(auction.min_bid) }}{% endif %}
+  {% if bids %}<ul class="ledger small">{% for b in bids %}<li><span>{{ b.name }}</span><small class="muted">{{ gold(b.amount) }} · <span data-ts="{{ b.at }}"></span></small></li>{% endfor %}</ul>{% endif %}
+  {% if auction.status == 'open' %}
+  <div class="row small">
+    <button class="outline small" hx-post="/imobiliaria/leilao/{{ auction.id }}/encerrar" hx-target="#toast" hx-confirm="Encerrar agora? O maior lance leva.">Encerrar agora</button>
+    <button class="outline small danger" hx-post="/imobiliaria/leilao/{{ auction.id }}/cancelar" hx-target="#toast" hx-confirm="Cancelar o leilão sem vender?">Cancelar</button>
+  </div>
+  {% else %}<p class="small muted">Cobrando o vencedor…</p>{% endif %}
+</div>
+{% endif %}
 <form hx-post="/imobiliaria/{{ h.id }}/dono" hx-target="#toast" class="row">
   <input name="jogador" list="house-players" placeholder="{{ 'Passar para…' if h.owner else 'Dar ou vender para…' }}" required>
   <datalist id="house-players">{% for p in players %}<option value="{{ p.name }}">{% endfor %}</datalist>
   <button class="small">🔑 Entregar</button>
 </form>
+{% if not h.owner and not auction %}
+<details class="house-sale">
+  <summary class="small">🏷 Vender ou leiloar</summary>
+  <form hx-post="/imobiliaria/{{ h.id }}/vender" hx-target="#toast" class="row wrap">
+    <input name="jogador" list="house-players" placeholder="Comprador" required>
+    <input name="preco" type="number" min="0" placeholder="{{ h.price }}" title="Vazio = o preço do jogo" class="w8">
+    <button class="small outline" hx-confirm="Vender {{ h.name }}? O valor sai do banco do comprador.">Vender</button>
+  </form>
+  <form hx-post="/imobiliaria/{{ h.id }}/leiloar" hx-target="#toast" class="row wrap">
+    <input name="lance" type="number" min="1" value="{{ h.price or 10000 }}" title="Lance mínimo (gold)" class="w8">
+    <label class="inline small">por <input name="horas" type="number" min="1" max="168" value="24" class="w6"> h</label>
+    <button class="small">🔨 Leiloar</button>
+  </form>
+  <p class="small muted">Venda: sai do banco do comprador na hora, online ou não. Leilão: anuncia no jogo; lance com <code>!lance nº valor</code>, o banco precisa cobrir; lance nos últimos 5 minutos estica 5 minutos.</p>
+</details>
+{% endif %}
 <div class="row wrap small house-actions">
   {% if h.owner %}
   {% if s.seconds and h.rent %}<button class="outline small" hx-post="/imobiliaria/{{ h.id }}/cobrar" hx-target="#toast">💰 Cobrar agora</button>{% endif %}

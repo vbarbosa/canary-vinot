@@ -38,6 +38,33 @@
     </article>
 
     <article class="panel">
+      <header><h4>🔨 Leilões</h4></header>
+      <ul class="ledger">
+        {% for a in auctions %}
+        <li><span><a href="/imobiliaria?casa={{ a.house_id }}"><strong>{{ a.house }}</strong></a> <span class="muted small">nº {{ a.id }}</span></span>
+          <small class="muted">{% if a.top_player_id %}{{ '{:,}'.format(a.top_bid).replace(',', '.') }} de {{ a.top_name }}{% else %}sem lances (mín. {{ '{:,}'.format(a.min_bid).replace(',', '.') }}){% endif %}
+            · {{ 'termina' if a.status == 'open' else 'fechando' }} <span data-ts="{{ a.ends_at }}"></span></small></li>
+        {% else %}<li class="muted small">Nenhum aberto. Abra na ficha de uma casa sem dono.</li>{% endfor %}
+        {% for a in past_auctions %}
+        <li class="off"><span>{{ a.house }}</span><small class="muted">{{ {'sold': '✅ vendida', 'unsold': 'sem lances', 'failed': '⚠ não fechou', 'cancelled': 'cancelado'}.get(a.status, a.status) }}{% if a.status == 'sold' %} para {{ a.top_name }} por {{ '{:,}'.format(a.top_bid).replace(',', '.') }}{% elif a.result %} · {{ a.result }}{% endif %}</small></li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="panel">
+      <header><h4>🏷 Venda no jogo</h4></header>
+      <form hx-post="/imobiliaria-venda" hx-target="#toast" class="rules">
+        <label class="switch-row"><input type="checkbox" role="switch" name="venda" value="1" {{ 'checked' if s.sqm >= 0 }}>
+          <span><strong>Pode comprar no jogo</strong><br><small class="muted">Olhando para a porta, <code>!buyhouse</code>. Exige conta premium.</small></span></label>
+        <label>Preço por sqm <input name="sqm" type="number" min="0" value="{{ s.sqm if s.sqm >= 0 else 1000 }}" class="w8"> gold</label>
+        <label>Mais <input name="mult" type="number" min="0" max="100" step="0.1" value="{{ s.rent_mult }}" class="w6">× o aluguel do mapa</label>
+        <label>Nível mínimo <input name="nivel" type="number" min="0" max="5000" value="{{ s.buy_level }}" class="w6"></label>
+        <p class="small muted">Preço = tamanho × preço do sqm + aluguel × multiplicador. Vale na hora, sem reiniciar.</p>
+        <button>Salvar venda</button>
+      </form>
+    </article>
+
+    <article class="panel">
       <header><h4>📜 Regras do aluguel</h4></header>
       <form hx-post="/imobiliaria-regras" hx-target="#toast" class="rules">
         <label>Cobrar

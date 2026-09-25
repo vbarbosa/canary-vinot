@@ -74,6 +74,12 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   mapa ou um valor próprio por casa, direto do banco do dono (`house_rent`, online ou offline). Sem saldo,
   tenta de novo no dia seguinte; depois de N falhas, despeja. Tudo fica no livro-caixa
   (`cockpit_house_log`), inclusive quem comprou casa no jogo.
+- Venda e leilão de casas (Imobiliária): preço por sqm, parte do aluguel no preço e nível mínimo vão para o `config.lua`
+  pela ponte (`apply_world`; sqm -1 desliga o `!buyhouse`). O painel vende uma casa livre pelo banco do comprador, online ou não
+  (`house_sell`). Leilões: o servidor não tem site, então o painel abre o leilão (lance mínimo e duração), o jogo anuncia, e os
+  jogadores usam `!leilao` e `!lance nº valor` (`data/scripts/globalevents/cockpit_auction.lua`, grava em `cockpit_auctions` e
+  `cockpit_auction_bids`; lance mínimo +5%, o banco precisa cobrir, lance nos últimos 5 minutos estica 5 minutos). No fim, o laço de
+  minuto do painel cobra o maior lance com `house_sell` e entrega a casa; sem saldo, o leilão fica como "não fechou".
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle
