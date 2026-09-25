@@ -6,8 +6,9 @@ which the Agenda can start on a schedule.
 """
 
 import re
+import time
 
-from . import db
+from . import db, world
 
 KINDS = {
     "zombie": ("🧟 Zombie", "Zombies caçam a turma na arena. Encostou, saiu. Quem sobrar por último ganha.", True),
@@ -114,11 +115,80 @@ def run_preset(actor, preset_id, resolve):
     p = db.one("SELECT * FROM cockpit_event_presets WHERE id = %s", preset_id)
     if not p:
         return False, "Evento pronto não encontrado."
+    if p["alvo"] == "inscricao":
+        return open_signup(actor, p)
     return start(actor, p["kind"], p["x"], p["y"], p["z"], preset_settings(p), [n for n in resolve(p["alvo"]) if is_online(n)], p["name"])
 
 
 def is_online(name):
     return bool(db.one("SELECT 1 AS x FROM cockpit_online WHERE name = %s", name))
+
+
+# ---------------------------------------------------------------- sign-up (!evento)
+# A preset saved "com inscrição" opens sign-ups instead of starting: the game announces it, players say !evento
+# (data/scripts/globalevents/cockpit_signup.lua writes cockpit_signup_players) and when time is up the panel's
+# minute loop (signup_tick) starts the preset with whoever signed up and is still online.
+
+
+def plain(text):
+    return world.plain_text(text, 64)
+
+
+def signup_open_row():
+    return db.one("SELECT * FROM cockpit_signups WHERE status = 'open' ORDER BY id DESC LIMIT 1")
+
+
+def signup_players(sid):
+    return db.all("SELECT s.name, s.at, o.player_id IS NOT NULL AS online FROM cockpit_signup_players s "
+                  "LEFT JOIN cockpit_online o ON o.player_id = s.player_id WHERE s.signup_id = %s ORDER BY s.at", sid)
+
+
+def open_signup(actor, p):
+    if signup_open_row():
+        return False, "Já tem inscrição aberta. Comece ou cancele antes de abrir outra."
+    minutes = max(1, min(60, int(p.get("signup_min") or 5)))
+    db.run("INSERT INTO cockpit_signups (preset_id, name, opened_at, closes_at, created_by) VALUES (%s,%s,UNIX_TIMESTAMP(),"
+           "UNIX_TIMESTAMP() + %s,%s)", p["id"], plain(p["name"]), minutes * 60, actor)
+    db.enqueue(actor, "broadcast", text=f"Inscricoes abertas: {plain(p['name'])} ({plain(KINDS[p['kind']][0].split(' ', 1)[-1])})! "
+               f"Diga !evento para entrar. Comeca em {minutes} min.")
+    return True, f"Inscrições abertas por {minutes} min. No jogo: !evento."
+
+
+def signup_start(actor, sid):
+    row = db.one("SELECT * FROM cockpit_signups WHERE id = %s AND status = 'open'", sid)
+    if not row:
+        return False, "Essa inscrição já fechou."
+    p = db.one("SELECT * FROM cockpit_event_presets WHERE id = %s", row["preset_id"])
+    names = [r["name"] for r in signup_players(sid) if r["online"]]
+    if not p or not names:
+        why = "evento pronto apagado" if not p else "ninguém inscrito online"
+        db.run("UPDATE cockpit_signups SET status = 'cancelled', result = %s WHERE id = %s", why, sid)
+        db.enqueue(actor, "broadcast", text=f"{plain(row['name'])}: sem inscritos, fica para a proxima!" if p else f"{plain(row['name'])} cancelado.")
+        return False, f"Não começou: {why}."
+    ok, msg = start(actor, p["kind"], p["x"], p["y"], p["z"], preset_settings(p), names, p["name"])
+    db.run("UPDATE cockpit_signups SET status = %s, result = %s WHERE id = %s", "started" if ok else "cancelled", msg[:255], sid)
+    return ok, msg
+
+
+def signup_cancel(actor, sid):
+    row = db.one("SELECT * FROM cockpit_signups WHERE id = %s AND status = 'open'", sid)
+    if row:
+        db.run("UPDATE cockpit_signups SET status = 'cancelled', result = 'cancelado no painel' WHERE id = %s", sid)
+        db.enqueue(actor, "broadcast", text=f"{plain(row['name'])} foi cancelado.")
+
+
+def signup_tick():
+    """Called once a minute by the scheduler: reminder one minute before, start when time is up."""
+    row = signup_open_row()
+    if not row:
+        return
+    left = row["closes_at"] - int(time.time())
+    if left <= 5:
+        signup_start("inscrição", row["id"])
+    elif left <= 70 and not row["reminded"]:
+        db.run("UPDATE cockpit_signups SET reminded = 1 WHERE id = %s", row["id"])
+        n = len(signup_players(row["id"]))
+        db.enqueue("inscrição", "broadcast", text=f"Falta 1 minuto para {plain(row['name'])}! {n} inscrito(s). Diga !evento para entrar.")
 
 
 # ---------------------------------------------------------------- quiz question bank

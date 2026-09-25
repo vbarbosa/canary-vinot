@@ -1464,12 +1464,14 @@ def events_page(request: Request, preset: int = 0, tipo: str = "zombie"):
         tipo = edit["kind"]
         edit["x_extra"] = events.preset_settings(edit)["extra"]
     tipo = tipo if tipo in events.KINDS else "zombie"
+    signup = events.signup_open_row()
     return page(request, "events.html", user, kinds=events.KINDS, who=who, arenas=arenas, online=who, edit=edit, d=events.DEFAULTS,
                 tipo=tipo, fields=events.FIELDS[tipo], needs_arena=tipo not in events.NO_ARENA,
                 quiz=events.quiz_all() if tipo == "quiz" else [],
                 kits=db.all("SELECT id, name FROM cockpit_kits ORDER BY name"),
                 presets=db.all("SELECT * FROM cockpit_event_presets ORDER BY name"),
                 running=db.all("SELECT * FROM cockpit_events WHERE status IN ('queued', 'running') ORDER BY id DESC"),
+                signup=signup, signed=events.signup_players(signup["id"]) if signup else [],
                 history=db.all("SELECT * FROM cockpit_events ORDER BY id DESC LIMIT 12"))
 
 
@@ -1514,17 +1516,30 @@ async def event_preset_save(request: Request):
     if not arena or not nome:
         return toast("Dê um nome e escolha a arena.", ok=False)
     s = events.settings_from(f, kind)
-    alvo = "todos" if f.get("alvo") == "todos" else "turma"
-    vals = (nome, kind, *arena, s["radius"], alvo, s["minutes"], s["kit_id"], s["gold"], events.extra_text(s["extra"]))
+    alvo = str(f.get("alvo")) if f.get("alvo") in ("todos", "inscricao") else "turma"
+    vals = (nome, kind, *arena, s["radius"], alvo, s["minutes"], s["kit_id"], s["gold"], events.extra_text(s["extra"]),
+            clamp(f.get("inscricao_min") or 5, 1, 60))
     pid = str(f.get("preset_id", ""))
     if pid.isdigit():
         db.run("UPDATE cockpit_event_presets SET name=%s, kind=%s, x=%s, y=%s, z=%s, radius=%s, alvo=%s, minutes=%s, "
-               "kit_id=%s, gold=%s, extra=%s WHERE id=%s", *vals, int(pid))
+               "kit_id=%s, gold=%s, extra=%s, signup_min=%s WHERE id=%s", *vals, int(pid))
     else:
-        db.run("INSERT INTO cockpit_event_presets (name, kind, x, y, z, radius, alvo, minutes, kit_id, gold, extra) "
-               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", *vals)
+        db.run("INSERT INTO cockpit_event_presets (name, kind, x, y, z, radius, alvo, minutes, kit_id, gold, extra, signup_min) "
+               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", *vals)
     db.audit(user["account"], "evento_salvo", nome)
     return Response(headers={"HX-Redirect": f"/eventos?tipo={kind}"})
+
+
+@app.post("/eventos/inscricao/{sid}/{acao}", response_class=HTMLResponse)
+def event_signup(request: Request, sid: int, acao: str):
+    user = require(request, post=True)
+    if acao == "comecar":
+        ok, msg = events.signup_start(user["account"], sid)
+        return toast(msg, ok=ok) if not ok else Response(headers={"HX-Redirect": "/eventos"})
+    if acao == "cancelar":
+        events.signup_cancel(user["account"], sid)
+        return Response(headers={"HX-Redirect": "/eventos"})
+    return toast("Ação desconhecida.", ok=False)
 
 
 @app.post("/eventos/quiz", response_class=HTMLResponse)

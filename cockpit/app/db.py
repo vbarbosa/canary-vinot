@@ -176,6 +176,25 @@ SCHEMA += [
         `gold` BIGINT NOT NULL DEFAULT 0,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_signups` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `preset_id` INT UNSIGNED NOT NULL,
+        `name` VARCHAR(64) NOT NULL,
+        `opened_at` INT UNSIGNED NOT NULL,
+        `closes_at` INT UNSIGNED NOT NULL,
+        `status` VARCHAR(12) NOT NULL DEFAULT 'open',
+        `reminded` TINYINT NOT NULL DEFAULT 0,
+        `result` VARCHAR(255) NOT NULL DEFAULT '',
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`), KEY `status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_signup_players` (
+        `signup_id` INT UNSIGNED NOT NULL,
+        `player_id` INT NOT NULL,
+        `name` VARCHAR(255) NOT NULL,
+        `at` INT UNSIGNED NOT NULL,
+        PRIMARY KEY (`signup_id`, `player_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_quiz` (
         `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
         `question` VARCHAR(255) NOT NULL,
@@ -244,6 +263,7 @@ def run(sql, *args):
 # Columns added after a table first shipped; each runs once and is skipped when the column is already there.
 MIGRATIONS = [
     ("cockpit_event_presets", "extra", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `extra` VARCHAR(1000) NOT NULL DEFAULT ''"),
+    ("cockpit_event_presets", "signup_min", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `signup_min` INT NOT NULL DEFAULT 5"),
 ]
 
 

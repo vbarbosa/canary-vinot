@@ -17,6 +17,20 @@
 </article>
 {% endfor %}
 
+{% if signup %}
+<article class="panel live-event signup">
+  <div class="row wrap">
+    <strong>📣 Inscrições abertas: {{ signup.name }}</strong>
+    <span class="muted small">começa <span data-ts="{{ signup.closes_at }}" data-fmt="time"></span> · {{ signed|length }} inscrito(s)</span>
+    <span class="row small right">
+      <button class="small" hx-post="/eventos/inscricao/{{ signup.id }}/comecar" hx-target="#toast">▶ Começar agora</button>
+      <button class="outline small danger" hx-post="/eventos/inscricao/{{ signup.id }}/cancelar" hx-confirm="Cancelar as inscrições?">Cancelar</button>
+    </span>
+  </div>
+  <p class="small">{% for s in signed %}<span class="tag {{ '' if s.online else 'off' }}" title="{{ 'online' if s.online else 'offline, fica de fora' }}">{{ s.name }}</span> {% else %}<span class="muted">Ninguém ainda. No jogo: <code>!evento</code> para entrar, <code>!evento sair</code> para sair.</span>{% endfor %}</p>
+</article>
+{% endif %}
+
 <div class="kinds">
   {% for k, (label, help, ready) in kinds.items() %}
   <a href="/eventos?tipo={{ k }}" class="kind {{ 'ready' if ready else 'soon' }} {{ 'on' if k == tipo }}"{% if k == tipo %} aria-current="page"{% endif %}>
@@ -80,10 +94,15 @@
           <div class="row wrap">
             <input name="nome" placeholder="Nome (ex.: Zombie de sexta)" maxlength="64" value="{{ edit.name if edit else '' }}">
             <select name="alvo" class="w12"><option value="turma" {{ 'selected' if edit and edit.alvo == 'turma' }}>com a turma online</option>
-              <option value="todos" {{ 'selected' if edit and edit.alvo == 'todos' }}>com todo mundo online</option></select>
+              <option value="todos" {{ 'selected' if edit and edit.alvo == 'todos' }}>com todo mundo online</option>
+              <option value="inscricao" {{ 'selected' if edit and edit.alvo == 'inscricao' }}>com inscrição (!evento)</option></select>
+            <label class="inline small" title="Só vale com inscrição">inscrição aberta por
+              <input name="inscricao_min" type="number" min="1" max="60" value="{{ edit.signup_min if edit else 5 }}" class="w8"> min</label>
             <button type="button" class="outline" hx-post="/eventos/salvar" hx-include="#event-form" hx-target="#toast">{{ 'Salvar alterações' if edit else 'Salvar' }}</button>
             {% if edit %}<a href="/eventos?tipo={{ tipo }}" class="small">cancelar edição</a>{% endif %}
           </div>
+          <p class="small muted">Com inscrição, "Começar" (ou a Agenda) abre as inscrições e avisa no jogo; quem disser <code>!evento</code> entra
+            e o evento começa sozinho quando o tempo acaba, com os inscritos que estiverem online.</p>
         </details>
       </form>
     </article>
@@ -124,9 +143,9 @@
       <ul class="ledger">
         {% for p in presets %}
         <li><span><strong>{{ p.name }}</strong></span>
-          <small class="muted">{{ kinds[p.kind][0] if p.kind in kinds else p.kind }} · {{ p.minutes }} min{% if p.kind != 'quiz' %} · raio {{ p.radius }}{% endif %} · {{ 'turma' if p.alvo == 'turma' else 'todos' }}{% if p.gold %} · {{ p.gold }} gold{% endif %}</small>
+          <small class="muted">{{ kinds[p.kind][0] if p.kind in kinds else p.kind }} · {{ p.minutes }} min{% if p.kind != 'quiz' %} · raio {{ p.radius }}{% endif %} · {{ {'turma': 'turma', 'todos': 'todos', 'inscricao': 'inscrição ' ~ p.signup_min ~ ' min'}.get(p.alvo, p.alvo) }}{% if p.gold %} · {{ p.gold }} gold{% endif %}</small>
           <span class="row small">
-            <button class="small" hx-post="/eventos/{{ p.id }}/rodar" hx-target="#toast">▶ Começar</button>
+            <button class="small" hx-post="/eventos/{{ p.id }}/rodar" hx-target="#toast">{{ '📣 Abrir inscrição' if p.alvo == 'inscricao' else '▶ Começar' }}</button>
             <a href="/eventos?preset={{ p.id }}" class="outline small" role="button">Editar</a>
             <button class="outline small danger" hx-post="/eventos/{{ p.id }}/apagar" hx-confirm="Apagar {{ p.name }}?">Apagar</button>
           </span></li>

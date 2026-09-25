@@ -58,6 +58,11 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   giro extra dado pelo painel (`give_spins`) e, por fim, gold do banco. Prêmios (item, gold, experiência, giros
   ou nada) com peso; a chance é peso ÷ soma. O jogo lê `cockpit_wheel_prizes` e `cockpit_settings` (wheel.*) a
   cada giro e grava em `cockpit_wheel_log` (`data/scripts/globalevents/cockpit_wheel.lua`).
+- Inscrição em evento: um evento pronto salvo "com inscrição" não começa na hora; o botão (ou a Agenda) abre as
+  inscrições por N minutos e anuncia no jogo. Quem diz `!evento` entra (`!evento sair` desiste), em
+  `cockpit_signup_players` (`data/scripts/globalevents/cockpit_signup.lua`). O laço de minuto do painel avisa
+  quando falta 1 minuto e, no fim do prazo, começa o evento com os inscritos online (ou cancela sem ninguém).
+  Dá para começar antes ou cancelar pela faixa no topo da tela Eventos.
 - Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
   passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
   (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do
