@@ -50,5 +50,5 @@ fi
 other="$(grep -v -e '^cockpit/' -e '^data/scripts/globalevents/cockpit.lua$' <<<"$changed" || true)"
 if [ -n "$other" ]; then
 	log "outras mudanças, não aplicadas automaticamente:"
-	sed 's/^/    /' <<<"$other"
+	while IFS= read -r f; do echo "    $f"; done <<<"$other"
 fi
