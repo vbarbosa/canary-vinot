@@ -32,7 +32,7 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   com a cidade mais perto, e dá para levar a turma direto.
 - Economia: gold em bancos, mochilas, depósitos e guildas, Tibia coins, mercado e casas; um
   retrato por hora em `cockpit_economy` (90 dias).
-- Mundo: autoloot, stamina, viagens grátis, acessos de quest, loot boost na party, rates e estágios de XP,
+- Mundo: tipo de mundo (sem PvP, PvP, PvP livre), Retro PvP, nível de proteção, PZ lock, autoloot, stamina, viagens grátis, acessos de quest, loot boost na party, rates e estágios de XP,
   skill e magic. O painel guarda em `cockpit_settings` e a ponte grava `cockpit-world.lua` ao lado do
   `config.lua` (que carrega esse arquivo por último; a ponte acrescenta essa linha se faltar), recarrega o
   config e troca as tabelas de estágios, sem reiniciar. Na primeira vez o painel aplica o pacote aprovado.

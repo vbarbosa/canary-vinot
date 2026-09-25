@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h3>🌍 Mundo</h3>
-  <p class="muted">As regras do servidor: autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
+  <p class="muted">As regras do servidor: PvP, autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
 </div>
 {% if last %}
 <p class="small {{ 'muted' if last.status == 'done' else 'warn' }}">
@@ -13,6 +13,19 @@
 </p>
 {% endif %}
 <form hx-post="/mundo" hx-target="#toast" class="world">
+  <article class="panel">
+    <header><h4>⚔ PvP</h4></header>
+    <div class="rate-grid pvp-grid">
+      <label>Tipo de mundo
+        <select name="worldType">{% for k, v in world_types.items() %}<option value="{{ k }}" {{ 'selected' if s.worldType == k }}>{{ v }}</option>{% endfor %}</select>
+      </label>
+      {% for k, (label, help, lo, hi, _) in numbers.items() %}
+      <label>{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ s[k] }}"><small class="muted">{{ help }}</small></label>
+      {% endfor %}
+    </div>
+    <p class="small muted">Retro PvP fica em "Liga e desliga". Tudo aqui vale na hora, sem reiniciar.</p>
+  </article>
+
   <div class="grid2">
     <article class="panel">
       <header><h4>Liga e desliga</h4></header>

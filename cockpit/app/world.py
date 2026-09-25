@@ -18,6 +18,13 @@ SWITCHES = {
     "toggleFreeQuest": ("bool", "Acessos de quest liberados", "Libera os acessos e portas das quests principais sem precisar fazer tudo antes.", True),
     "partyShareLootBoosts": ("bool", "Loot boost dividido na party", "Boosts de loot (prey, charms) valem para a party toda.", True),
     "rateUseStages": ("bool", "Rates por nível", "Usa as tabelas de estágios abaixo. Desligado, vale a rate fixa.", True),
+    "toggleServerIsRetroPVP": ("bool", "Retro PvP", "PvP das antigas: sem proteção de party e sem modo seguro avançado.", False),
+}
+WORLD_TYPES = {"no-pvp": "Sem PvP (ninguém ataca ninguém)", "pvp": "PvP normal (com skull e punição)",
+               "pvp-enforced": "PvP livre (sem skull, vale tudo)"}
+NUMBERS = {
+    "protectionLevel": ("Proteção até o nível", "Abaixo desse nível ninguém pode ser atacado por jogador.", 1, 1000, 7),
+    "pzLockedSeconds": ("Tempo de PZ lock (s)", "Quanto tempo fica sem entrar em área protegida depois de atacar alguém.", 0, 3600, 60),
 }
 RATES = {
     "rateExp": ("XP fixa", 1),
@@ -59,6 +66,9 @@ def load():
         s[k] = saved[k] == "1" if k in saved else default
     for k, (_, default) in RATES.items():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    s["worldType"] = saved.get("worldType") if saved.get("worldType") in WORLD_TYPES else "pvp"
+    for k, (*_, default) in NUMBERS.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     for k, (_, default) in STAGES.items():
         s[k] = parse_stages(saved.get(k, default)) or parse_stages(default)
     return s
@@ -73,6 +83,14 @@ def save(values):
         v = str(values.get(k, "")).strip()
         if not v.isdigit() or not 1 <= int(v) <= 100:
             return f"{RATES[k][0]}: use um número de 1 a 100."
+        rows[k] = v
+    if values.get("worldType") not in WORLD_TYPES:
+        return "Escolha o tipo de mundo."
+    rows["worldType"] = values["worldType"]
+    for k, (label, _, lo, hi, _) in NUMBERS.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
         rows[k] = v
     for k, (label, _) in STAGES.items():
         parsed = parse_stages(values.get(k, ""))
@@ -94,7 +112,8 @@ def seed(actor="cockpit"):
     if db.one("SELECT 1 AS x FROM cockpit_settings WHERE k LIKE 'world.%%' LIMIT 1"):
         return
     s = load()
-    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: format_stages(s[k]) for k in STAGES}})
+    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, "worldType": s["worldType"],
+          **{k: format_stages(s[k]) for k in STAGES}})
     apply(actor)
 
 

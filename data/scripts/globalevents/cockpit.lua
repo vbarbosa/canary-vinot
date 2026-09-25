@@ -411,7 +411,8 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP" }
+local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
 
@@ -484,6 +485,17 @@ globalActions.apply_world = function()
 			lines[#lines + 1] = key .. " = " .. math.max(1, math.min(100, math.floor(v)))
 		end
 	end
+	if WORLD_TYPES[saved.worldType or ""] then
+		lines[#lines + 1] = 'worldType = "' .. saved.worldType .. '"'
+	end
+	local level = tonumber(saved.protectionLevel)
+	if level then
+		lines[#lines + 1] = "protectionLevel = " .. math.max(1, math.min(1000, math.floor(level)))
+	end
+	local pz = tonumber(saved.pzLockedSeconds)
+	if pz then
+		lines[#lines + 1] = "pzLocked = " .. math.max(0, math.min(3600, math.floor(pz))) * 1000
+	end
 	local f = io.open(WORLD_FILE, "w")
 	if not f then
 		return false, "nao consegui gravar " .. WORLD_FILE
@@ -496,6 +508,10 @@ globalActions.apply_world = function()
 	applyStages(saved)
 	if not Game.reload(RELOAD_TYPE_CONFIG) then
 		return false, "config.lua nao recarregou"
+	end
+	-- the world type is read only at startup; set it live too
+	if WORLD_TYPES[saved.worldType or ""] then
+		Game.setWorldType(WORLD_TYPES[saved.worldType])
 	end
 	return true, "ajustes aplicados"
 end

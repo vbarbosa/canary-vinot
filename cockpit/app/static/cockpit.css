@@ -394,3 +394,4 @@ p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }
 .live-event { border-color: #199e70; }
 .save-preset { margin-top: .8rem; }
 .save-preset .row input, .save-preset .row select { margin: 0; }
+.pvp-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
