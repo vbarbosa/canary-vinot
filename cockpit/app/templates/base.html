@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cockpit{% endblock %} · VinOT</title>
+  <link rel="stylesheet" href="/static/pico.min.css">
+  <link rel="stylesheet" href="/static/cockpit.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/Sortable.min.js" defer></script>
+  <script src="/static/cockpit.js" defer></script>
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{ user.csrf if user else "" }}"}'>
+  {% if user %}
+  <nav class="top container-fluid">
+    <ul><li><a href="/" class="brand">⚔ Cockpit VinOT</a></li></ul>
+    <ul>
+      <li><a href="/">Visão geral</a></li>
+      <li><a href="/turma">A Turma</a></li>
+      <li><a href="/jogadores">Jogadores</a></li>
+      <li><a href="/kits">Kits</a></li>
+      <li><a href="/historico">Histórico</a></li>
+      <li><button class="outline secondary small" hx-post="/logout">Sair ({{ user.me }})</button></li>
+    </ul>
+  </nav>
+  {% endif %}
+  <main class="container-fluid">{% block content %}{% endblock %}</main>
+  <div id="toast" aria-live="polite"></div>
+</body>
+</html>

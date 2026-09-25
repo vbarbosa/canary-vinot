@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Kits{% endblock %}
+{% block content %}
+<div class="with-catalog">
+  <section>
+    <h3>Kits</h3>
+    <p class="muted">Um kit é um pacote de itens que você entrega de uma vez, arrastando para um jogador ou para a turma.</p>
+    <article>
+      <h4>Novo kit</h4>
+      <form hx-post="/kits" hx-target="#toast">
+        <input name="nome" placeholder="Nome do kit (ex.: Kit knight nível 100)" required>
+        <input type="hidden" name="itens" id="kit-items">
+        <div class="drop kit-drop" data-kit-builder>Arraste itens do catálogo para cá (a quantidade vem do campo Qtd)</div>
+        <ul id="kit-list" class="kit-list"></ul>
+        <button>Salvar kit</button>
+      </form>
+    </article>
+    {% for k in kits %}
+    <article class="kit-card">
+      <header class="row"><strong>{{ k.name }}</strong>
+        <button class="outline small danger right" hx-post="/kits/{{ k.id }}/apagar" hx-confirm="Apagar o kit {{ k.name }}?">Apagar</button></header>
+      <div class="grid-items">{% for i, c, n in k.list %}<div class="item"><img src="/icone/{{ i }}.png" alt=""><span>{{ c }}x {{ n }}</span></div>{% endfor %}</div>
+    </article>
+    {% endfor %}
+  </section>
+  {% include "_catalog_panel.html" %}
+</div>
+{% endblock %}

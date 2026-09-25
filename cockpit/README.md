@@ -1,0 +1,40 @@
+# Cockpit VinOT
+
+Painel web do mestre do jogo. Python + FastAPI + htmx, sem build.
+A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)".
+
+## Como funciona
+
+- O login é a própria conta do jogo (tabela `accounts`, senha SHA1 igual ao servidor).
+  Só entra conta que tem personagem God (`group_id` 6). A senha é conferida de novo a
+  cada página: se mudar no jogo, o painel desloga.
+- Ações em jogador viram linhas em `cockpit_commands`. O script
+  `data/scripts/globalevents/cockpit.lua` lê essa fila a cada segundo e executa só as
+  ações da lista fechada dele. Se o jogador estiver offline, itens, level, skills, outfit
+  e montaria ficam na fila e entram quando ele logar.
+- A cada 5 segundos o mesmo script grava quem está online em `cockpit_online`.
+- Tudo que o painel faz fica em `cockpit_audit` (tela Histórico).
+
+## Subir na VM Oracle
+
+1. No `docker/.env`, preencha `COCKPIT_BIND` com o IP da Tailscale da VM e
+   `COCKPIT_SECRET` com `openssl rand -hex 32`.
+2. Reinicie o servidor do jogo uma vez, para ele carregar `cockpit.lua`.
+3. `cd docker && docker compose up -d --build cockpit`
+4. Abra `http://100.70.92.116:8090` pela Tailscale.
+
+Para atualizar depois: `git pull` e `docker compose up -d --build cockpit`. O jogo não cai.
+
+## Ícones dos itens
+
+Os ícones saem dos sprites do cliente 13.40. Rode uma vez na VM (baixa os assets do
+GitHub, é grande):
+
+    docker compose run --rm cockpit python tools/extract_icons.py --download
+
+Sem ícones, o painel mostra um "?" no lugar e continua funcionando.
+
+## Rodar local
+
+    pip install -r requirements.txt
+    MYSQL_HOST=127.0.0.1 MYSQL_DATABASE=otservbr-global COCKPIT_DATA_DIR=../data uvicorn app.main:app --port 8090

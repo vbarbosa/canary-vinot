@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid2">
+  <section>
+    <h3>Quem está online</h3>
+    <div hx-get="/parts/online" hx-trigger="load, every 3s">…</div>
+  </section>
+  <section>
+    <h3>Voz do Mestre</h3>
+    <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <input type="hidden" name="action" value="broadcast">
+      <textarea name="text" rows="2" placeholder="Ex.: Uma sombra cobre Thais... algo se aproxima!" required></textarea>
+      <button type="submit">Anunciar na tela de todos</button>
+    </form>
+    <h3>Servidor</h3>
+    <div class="row">
+      <button class="secondary" hx-post="/acao" hx-vals='{"action":"save"}' hx-target="#toast">Salvar o jogo agora</button>
+      <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"effect","alvo":"todos","arg1":"30"}' hx-target="#toast">Fogos em todo mundo</button>
+    </div>
+    <h3>Últimas ações</h3>
+    <div hx-get="/parts/feed" hx-trigger="load, every 2s">…</div>
+  </section>
+</div>
+{% endblock %}

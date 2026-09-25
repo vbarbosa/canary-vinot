@@ -1,0 +1,13 @@
+<p class="muted">Ponte com o jogo: <strong class="{{ 'ok-text' if bridge == 'ok' else 'err-text' if bridge == 'parada' else '' }}">{{ bridge }}</strong> · {{ rows|length }} online</p>
+{% if rows %}
+<table class="compact">
+  <thead><tr><th>Nome</th><th>Level</th><th>Vocação</th><th>Vida</th><th>Posição</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td><a href="/jogador/{{ r.id }}">{{ r.name }}</a></td><td>{{ r.level }}</td><td>{{ r.vocation }}</td>
+      <td><progress value="{{ r.health }}" max="{{ r.healthmax or 1 }}"></progress></td>
+      <td class="muted">{{ r.posx }}, {{ r.posy }}, {{ r.posz }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p class="muted">Ninguém no jogo agora.</p>{% endif %}

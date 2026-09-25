@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Histórico{% endblock %}
+{% block content %}
+<h3>Histórico</h3>
+<table class="compact">
+  <thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Alvo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td class="muted" data-ts="{{ r.at }}"></td><td>{{ r.actor }}</td><td>{{ r.action }}</td><td>{{ r.target }}</td><td class="muted">{{ r.detail }}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Nada registrado ainda.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

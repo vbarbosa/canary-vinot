@@ -1,0 +1,355 @@
+-- Cockpit bridge: the web admin panel (cockpit/) writes rows into `cockpit_commands`
+-- and this script runs them against the live game. Only the actions listed in
+-- `actions` below can run; the panel never sends Lua or SQL to execute.
+-- It also writes a snapshot of who is online to `cockpit_online` for the panel.
+
+local POLL_INTERVAL = 1000
+local SNAPSHOT_EVERY = 5 -- polls
+local BATCH_SIZE = 100
+local MAGIC_SKILL = 99
+
+local tablesSql = {
+	[[CREATE TABLE IF NOT EXISTS `cockpit_commands` (
+		`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		`action` VARCHAR(32) NOT NULL,
+		`target` VARCHAR(255) NOT NULL DEFAULT '',
+		`arg1` BIGINT NOT NULL DEFAULT 0,
+		`arg2` BIGINT NOT NULL DEFAULT 0,
+		`arg3` BIGINT NOT NULL DEFAULT 0,
+		`arg4` BIGINT NOT NULL DEFAULT 0,
+		`text` VARCHAR(1024) NOT NULL DEFAULT '',
+		`status` VARCHAR(16) NOT NULL DEFAULT 'pending',
+		`result` VARCHAR(255) NOT NULL DEFAULT '',
+		`created_by` VARCHAR(255) NOT NULL DEFAULT '',
+		`created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		`done_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (`id`),
+		KEY `cockpit_commands_status` (`status`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_online` (
+		`player_id` INT NOT NULL,
+		`name` VARCHAR(255) NOT NULL,
+		`level` INT NOT NULL DEFAULT 0,
+		`vocation` VARCHAR(64) NOT NULL DEFAULT '',
+		`health` INT NOT NULL DEFAULT 0,
+		`healthmax` INT NOT NULL DEFAULT 0,
+		`posx` INT NOT NULL DEFAULT 0,
+		`posy` INT NOT NULL DEFAULT 0,
+		`posz` INT NOT NULL DEFAULT 0,
+		`updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (`player_id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+}
+
+-- Actions that only make sense while the target is online. Anything else waits
+-- in the queue and runs the next time the player logs in.
+local onlineOnly = { kick = true, heal = true, teleport = true, temple = true, effect = true, say_over = true, summon_to = true }
+
+local function finish(id, status, result)
+	db.query(string.format("UPDATE `cockpit_commands` SET `status` = %s, `result` = %s, `done_at` = %d WHERE `id` = %d", db.escapeString(status), db.escapeString(result or ""), os.time(), id))
+end
+
+local function setSkill(player, skill, level)
+	level = math.max(skill == MAGIC_SKILL and 0 or 10, math.min(level, 200))
+	if skill == MAGIC_SKILL then
+		player:setMagicLevel(level)
+	elseif skill >= SKILL_FIST and skill <= SKILL_FISHING then
+		player:setSkillLevel(skill, level)
+	else
+		return false, "skill invalida"
+	end
+	return true, "skill " .. skill .. " = " .. level
+end
+
+local function setLevel(player, level)
+	level = math.max(1, math.min(level, 2000))
+	local diff = Game.getExperienceForLevel(level) - player:getExperience()
+	if diff > 0 then
+		player:addExperience(diff, false)
+	elseif diff < 0 then
+		player:removeExperience(-diff, false)
+	end
+	player:addHealth(player:getMaxHealth())
+	player:addMana(player:getMaxMana())
+	return true, "level " .. player:getLevel()
+end
+
+local function parseColors(text)
+	local c = {}
+	for n in (text or ""):gmatch("%d+") do
+		c[#c + 1] = math.min(tonumber(n), 132)
+	end
+	return c
+end
+
+local actions = {}
+
+-- arg1 = item id, arg2 = count
+actions.give_item = function(player, cmd)
+	local itemType = ItemType(cmd.arg1)
+	if cmd.arg1 < 100 or itemType:getId() == 0 then
+		return false, "item inexistente"
+	end
+	local count = math.max(1, math.min(cmd.arg2, 1000))
+	local item = player:addItem(itemType:getId(), count, true)
+	if not item then
+		return false, "sem espaco"
+	end
+	player:getPosition():sendMagicEffect(CONST_ME_GIFT_WRAPS)
+	if cmd.text ~= "" then
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+	end
+	return true, count .. "x " .. itemType:getName()
+end
+
+-- arg1 = gold coins
+actions.give_money = function(player, cmd)
+	local amount = math.max(1, math.min(cmd.arg1, 1000000000))
+	player:setBankBalance(player:getBankBalance() + amount)
+	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "O Mestre depositou " .. amount .. " gold no seu banco.")
+	return true, amount .. " gold no banco"
+end
+
+-- arg1 = level
+actions.set_level = function(player, cmd)
+	return setLevel(player, cmd.arg1)
+end
+
+-- arg1 = skill id (99 = magic level), arg2 = level
+actions.set_skill = function(player, cmd)
+	return setSkill(player, cmd.arg1, cmd.arg2)
+end
+
+-- arg1 = looktype, arg2 = addons (0-3), arg3 = mount id (0 = none), text = "head,body,legs,feet"
+actions.set_outfit = function(player, cmd)
+	local outfit = player:getOutfit()
+	local lookType = cmd.arg1
+	if lookType > 0 then
+		player:addOutfitAddon(lookType, math.max(0, math.min(cmd.arg2, 3)))
+		outfit.lookType = lookType
+		outfit.lookAddons = math.max(0, math.min(cmd.arg2, 3))
+	end
+	local c = parseColors(cmd.text)
+	if #c == 4 then
+		outfit.lookHead, outfit.lookBody, outfit.lookLegs, outfit.lookFeet = c[1], c[2], c[3], c[4]
+	end
+	if cmd.arg3 > 0 then
+		player:addMount(cmd.arg3)
+	end
+	player:setOutfit(outfit)
+	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_BLUE)
+	return true, "outfit " .. outfit.lookType
+end
+
+-- arg1 = mount id
+actions.add_mount = function(player, cmd)
+	if not player:addMount(cmd.arg1) then
+		return false, "montaria invalida ou ja possui"
+	end
+	return true, "montaria " .. cmd.arg1
+end
+
+actions.kick = function(player)
+	if player:getGroup():getAccess() then
+		return false, "nao kicka staff"
+	end
+	player:remove()
+	return true, "kickado"
+end
+
+actions.heal = function(player)
+	player:addHealth(player:getMaxHealth())
+	player:addMana(player:getMaxMana())
+	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_GREEN)
+	return true, "curado"
+end
+
+-- arg1, arg2, arg3 = x, y, z
+actions.teleport = function(player, cmd)
+	local pos = Position(cmd.arg1, cmd.arg2, cmd.arg3)
+	if not Tile(pos) then
+		return false, "posicao invalida"
+	end
+	player:getPosition():sendMagicEffect(CONST_ME_POFF)
+	player:teleportTo(pos)
+	pos:sendMagicEffect(CONST_ME_TELEPORT)
+	return true, pos.x .. "," .. pos.y .. "," .. pos.z
+end
+
+actions.temple = function(player)
+	local pos = player:getTown():getTemplePosition()
+	player:teleportTo(pos)
+	pos:sendMagicEffect(CONST_ME_TELEPORT)
+	return true, "templo"
+end
+
+-- target = player to move, text = name of the player to move next to
+actions.summon_to = function(player, cmd)
+	local dest = Player(cmd.text)
+	if not dest then
+		return false, cmd.text .. " offline"
+	end
+	local pos = dest:getPosition()
+	player:teleportTo(pos)
+	pos:sendMagicEffect(CONST_ME_TELEPORT)
+	return true, "junto de " .. dest:getName()
+end
+
+-- arg1 = magic effect id
+actions.effect = function(player, cmd)
+	local effect = cmd.arg1 > 0 and cmd.arg1 or CONST_ME_FIREWORK_RED
+	player:getPosition():sendMagicEffect(effect)
+	return true, "efeito " .. effect
+end
+
+-- text shown over the player's head in orange, as if the player said it
+actions.say_over = function(player, cmd)
+	player:say(cmd.text, TALKTYPE_MONSTER_SAY)
+	return true, "falou"
+end
+
+-- Narration to one player (big centered text)
+actions.narrate_to = function(player, cmd)
+	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+	return true, "narrado"
+end
+
+-- Actions without a player target
+local globalActions = {}
+
+globalActions.broadcast = function(cmd)
+	for _, p in ipairs(Game.getPlayers()) do
+		p:sendTextMessage(MESSAGE_EVENT_ADVANCE, cmd.text)
+	end
+	return true, "enviado a " .. Game.getPlayerCount() .. " jogadores"
+end
+
+globalActions.save = function()
+	saveServer()
+	return true, "servidor salvo"
+end
+
+local function run(cmd, player)
+	local handler = actions[cmd.action]
+	if not handler then
+		return false, "acao desconhecida"
+	end
+	local ok, status, result = pcall(handler, player, cmd)
+	if not ok then
+		logger.error("[cockpit] {} failed: {}", cmd.action, tostring(status))
+		return false, "erro no servidor"
+	end
+	return status, result
+end
+
+local function readCommands(where)
+	local list = {}
+	local resultId = db.storeQuery("SELECT `id`, `action`, `target`, `arg1`, `arg2`, `arg3`, `arg4`, `text` FROM `cockpit_commands` WHERE " .. where .. " ORDER BY `id` LIMIT " .. BATCH_SIZE)
+	if not resultId then
+		return list
+	end
+	repeat
+		list[#list + 1] = {
+			id = Result.getNumber(resultId, "id"),
+			action = Result.getString(resultId, "action"),
+			target = Result.getString(resultId, "target"),
+			arg1 = Result.getNumber(resultId, "arg1"),
+			arg2 = Result.getNumber(resultId, "arg2"),
+			arg3 = Result.getNumber(resultId, "arg3"),
+			arg4 = Result.getNumber(resultId, "arg4"),
+			text = Result.getString(resultId, "text"),
+		}
+	until not Result.next(resultId)
+	Result.free(resultId)
+	return list
+end
+
+local function processCommand(cmd)
+	local global = globalActions[cmd.action]
+	if global then
+		local ok, status, result = pcall(global, cmd)
+		if not ok then
+			logger.error("[cockpit] {} failed: {}", cmd.action, tostring(status))
+			finish(cmd.id, "error", "erro no servidor")
+		else
+			finish(cmd.id, status and "done" or "error", result)
+		end
+		return
+	end
+
+	local player = Player(cmd.target)
+	if not player then
+		if onlineOnly[cmd.action] or not actions[cmd.action] then
+			finish(cmd.id, "error", actions[cmd.action] and "jogador offline" or "acao desconhecida")
+		end
+		-- other actions stay pending until the player logs in
+		return
+	end
+	local ok, result = run(cmd, player)
+	finish(cmd.id, ok and "done" or "error", result)
+end
+
+local function writeSnapshot()
+	db.query("DELETE FROM `cockpit_online`")
+	local rows = {}
+	local now = os.time()
+	for _, p in ipairs(Game.getPlayers()) do
+		local pos = p:getPosition()
+		rows[#rows + 1] = string.format("(%d, %s, %d, %s, %d, %d, %d, %d, %d, %d)", p:getGuid(), db.escapeString(p:getName()), p:getLevel(), db.escapeString(p:getVocation():getName()), p:getHealth(), p:getMaxHealth(), pos.x, pos.y, pos.z, now)
+	end
+	if #rows > 0 then
+		db.query("INSERT INTO `cockpit_online` (`player_id`, `name`, `level`, `vocation`, `health`, `healthmax`, `posx`, `posy`, `posz`, `updated_at`) VALUES " .. table.concat(rows, ","))
+	end
+end
+
+local startup = GlobalEvent("CockpitStartup")
+
+function startup.onStartup()
+	for _, sql in ipairs(tablesSql) do
+		db.query(sql)
+	end
+	db.query("DELETE FROM `cockpit_online`")
+	logger.info("[cockpit] bridge ready")
+	return true
+end
+
+startup:register()
+
+local polls = 0
+local poll = GlobalEvent("CockpitPoll")
+
+function poll.onThink(interval)
+	for _, cmd in ipairs(readCommands("`status` = 'pending'")) do
+		processCommand(cmd)
+	end
+	polls = polls + 1
+	if polls >= SNAPSHOT_EVERY then
+		polls = 0
+		writeSnapshot()
+	end
+	return true
+end
+
+poll:interval(POLL_INTERVAL)
+poll:register()
+
+-- Commands queued while the player was offline run right after login.
+local login = CreatureEvent("CockpitLogin")
+
+function login.onLogin(player)
+	local cid = player:getId()
+	local where = "`status` = 'pending' AND `target` = " .. db.escapeString(player:getName())
+	addEvent(function()
+		local p = Player(cid)
+		if not p then
+			return
+		end
+		for _, cmd in ipairs(readCommands(where)) do
+			local ok, result = run(cmd, p)
+			finish(cmd.id, ok and "done" or "error", result)
+		end
+	end, 1000)
+	return true
+end
+
+login:register()

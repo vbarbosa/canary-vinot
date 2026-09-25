@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<div class="with-catalog">
+  <section>
+    <hgroup>
+      <h3>{% if p.online %}<span class="on">●</span>{% endif %} {{ p.name }}</h3>
+      <p class="muted">Level {{ p.level }} · {{ vocations.get(p.vocation, '') }} · {{ 'online' if p.online else 'offline: as mudanças entram quando ele logar' }}</p>
+    </hgroup>
+
+    <div class="drop big" data-alvo="{{ p.id }}">Solte itens ou kits aqui para dar a {{ p.name }}</div>
+
+    <details open>
+      <summary>Level e skills</summary>
+      <form class="row wrap" hx-post="/acao" hx-target="#toast">
+        <input type="hidden" name="action" value="set_level"><input type="hidden" name="alvo" value="{{ p.id }}">
+        <label class="slider">Level <output>{{ p.level }}</output>
+          <input type="range" name="arg1" min="1" max="1000" value="{{ p.level }}" oninput="this.previousElementSibling.value=this.value">
+        </label>
+        <button class="secondary">Aplicar level</button>
+      </form>
+      {% for sid, sname, col in skills %}
+      <form class="row wrap" hx-post="/acao" hx-target="#toast">
+        <input type="hidden" name="action" value="set_skill"><input type="hidden" name="alvo" value="{{ p.id }}"><input type="hidden" name="arg1" value="{{ sid }}">
+        <label class="slider">{{ sname }} <output>{{ p[col] }}</output>
+          <input type="range" name="arg2" min="{{ 0 if sid == 99 else 10 }}" max="150" value="{{ p[col] }}" oninput="this.previousElementSibling.value=this.value">
+        </label>
+        <button class="secondary outline small">Aplicar</button>
+      </form>
+      {% endfor %}
+    </details>
+
+    <details open>
+      <summary>Provador de outfit</summary>
+      <form hx-post="/acao" hx-target="#toast" class="outfit">
+        <input type="hidden" name="action" value="set_outfit"><input type="hidden" name="alvo" value="{{ p.id }}">
+        <div class="row wrap">
+          <label>Outfit <select name="arg1">{% for o in outfits %}<option value="{{ o.looktype }}" {{ 'selected' if o.looktype == p.looktype }}>{{ o.name }}</option>{% endfor %}</select></label>
+          <label>Addons <select name="arg2">{% for v, n in [(0,'Nenhum'),(1,'Addon 1'),(2,'Addon 2'),(3,'Ambos')] %}<option value="{{ v }}" {{ 'selected' if v == p.lookaddons }}>{{ n }}</option>{% endfor %}</select></label>
+          <label>Montaria <select name="arg3"><option value="0">(manter)</option>{% for m in mounts %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></label>
+        </div>
+        <div class="parts row">
+          {% for part, label in [('head','Cabeça'),('body','Corpo'),('legs','Pernas'),('feet','Pés')] %}
+          {% set v = p['look' ~ part] %}
+          <button type="button" class="part outline small {{ 'active' if loop.first }}" data-part="{{ part }}"><i style="background:{{ palette[v] if v < 133 else '#000' }}"></i>{{ label }}</button>
+          <input type="hidden" name="{{ part }}" value="{{ v }}">
+          {% endfor %}
+        </div>
+        <div class="palette">{% for c in palette %}<b data-color="{{ loop.index0 }}" style="background:{{ c }}"></b>{% endfor %}</div>
+        <button>Vestir</button>
+      </form>
+    </details>
+
+    <details open>
+      <summary>Presentes e brincadeiras</summary>
+      <form class="row wrap" hx-post="/acao" hx-target="#toast">
+        <input type="hidden" name="action" value="give_money"><input type="hidden" name="alvo" value="{{ p.id }}">
+        <label>Gold no banco <input type="number" name="arg1" value="10000" min="1" class="w8"></label>
+        <button class="secondary">Depositar</button>
+      </form>
+      <div class="row wrap">
+        {% for id, name in effects %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"effect","alvo":"{{ p.id }}","arg1":"{{ id }}"}' hx-target="#toast">{{ name }}</button>{% endfor %}
+      </div>
+      <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+        <input type="hidden" name="alvo" value="{{ p.id }}">
+        <input name="text" placeholder="Voz do Mestre: escreva algo…" required>
+        <div class="row">
+          <button name="action" value="narrate_to" class="small">Na tela dele</button>
+          <button name="action" value="say_over" class="secondary small">Balão sobre a cabeça dele</button>
+        </div>
+      </form>
+      <div class="row wrap">
+        <button class="small" hx-post="/acao" hx-vals='{"action":"summon_to","alvo":"{{ p.id }}"}' hx-target="#toast">Trazer até mim</button>
+        <button class="secondary small" hx-post="/acao" hx-vals='{"action":"heal","alvo":"{{ p.id }}"}' hx-target="#toast">Curar</button>
+        <button class="secondary outline small" hx-post="/acao" hx-vals='{"action":"temple","alvo":"{{ p.id }}"}' hx-target="#toast">Templo</button>
+        {% if p.group_id < 6 %}
+        <button class="outline small" hx-post="/acao" hx-vals='{"action":"kick","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Kickar {{ p.name }}?">Kick</button>
+        <button class="outline small danger" hx-post="/jogadores/{{ p.id }}/ban" hx-vals='{"dias":"7"}' hx-target="#toast" hx-confirm="Banir a conta de {{ p.name }} por 7 dias?">Banir 7 dias</button>
+        {% endif %}
+      </div>
+    </details>
+
+    <h4>Últimas ações com {{ p.name }}</h4>
+    <div hx-get="/parts/feed?alvo={{ p.id }}" hx-trigger="load, every 2s">…</div>
+  </section>
+  {% include "_catalog_panel.html" %}
+</div>
+{% endblock %}
