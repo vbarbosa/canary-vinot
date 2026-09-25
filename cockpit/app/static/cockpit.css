@@ -285,3 +285,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   nav.top > ul:last-child { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
   nav.top > ul:last-child li { white-space: nowrap; }
 }
+.pick-list .dot, .who-found .dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: #6b6253; margin: 0 .2rem; }
+.pick-list .dot.on, .who-found .dot.on { background: #7fc16a; }
+.who-search { margin: .5rem 0 .3rem; }
+.who-found { list-style: none; padding: 0; margin: 0 0 .4rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+.who-found li { list-style: none; display: inline-block; margin: 0; padding: 0; }
+.who-found button { margin: 0; padding: .15rem .5rem; }

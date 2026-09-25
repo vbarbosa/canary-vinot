@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h3>🌀 Teleporte</h3>
-  <p class="muted">Escolha um lugar, marque quem vai junto e leve a turma. Só quem está online pode ser teleportado.</p>
+  <p class="muted">Escolha um lugar, marque quem vai junto e leve a turma. Quem está offline aparece no lugar quando entrar no jogo.</p>
 </div>
 <div class="with-catalog tp">
   <section>
@@ -24,21 +24,18 @@
       <form hx-post="/teleporte" hx-target="#toast" id="tp-form">
         <input type="hidden" name="x"><input type="hidden" name="y"><input type="hidden" name="z"><input type="hidden" name="lugar">
         <p class="small muted" style="margin:.6rem 0 .3rem">Quem vai:</p>
-        {% if online %}
         <div class="row wrap small">
-          <button type="button" class="outline small" data-pick="all">Todos</button>
-          <button type="button" class="outline small" data-pick="group">Só a turma</button>
+          <button type="button" class="outline small" data-pick="all">Online</button>
+          <button type="button" class="outline small" data-pick="group">A turma</button>
           <button type="button" class="outline small" data-pick="none">Ninguém</button>
         </div>
-        <ul class="pick-list">
-          {% for o in online %}
-          <li><label><input type="checkbox" name="pid" value="{{ o.id }}" data-group="{{ 1 if o.in_group else 0 }}" {{ 'checked' if o.name == user.me }}>
-            <strong>{{ o.name }}</strong>{% if o.name == user.me %} <span class="tag">você</span>{% endif %}
-            <span class="muted small">nível {{ o.level }}</span></label></li>
-          {% endfor %}
+        <input type="search" name="busca" placeholder="Buscar qualquer personagem…" autocomplete="off" class="who-search"
+               hx-get="/teleporte/quem" hx-trigger="input changed delay:250ms" hx-target="#who-found">
+        <div id="who-found"></div>
+        <ul class="pick-list" id="pick-list">
+          {% for o in who %}{% include "_who_item.html" %}{% endfor %}
         </ul>
-        {% else %}<p class="muted small">Ninguém online agora.</p>{% endif %}
-        <button id="tp-go" disabled>🌀 Teleportar</button>
+            <button id="tp-go" disabled>🌀 Teleportar</button>
       </form>
     </article>
 

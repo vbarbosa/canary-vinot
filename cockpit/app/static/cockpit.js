@@ -163,8 +163,25 @@
     const pick = e.target.closest("[data-pick]");
     if (pick) {
       document.querySelectorAll("#tp-form input[name=pid]").forEach(c => {
-        c.checked = pick.dataset.pick === "all" || (pick.dataset.pick === "group" && c.dataset.group === "1");
+        c.checked = (pick.dataset.pick === "all" && c.dataset.online === "1") || (pick.dataset.pick === "group" && c.dataset.group === "1");
       });
+      return;
+    }
+    const add = e.target.closest("[data-add-who]");
+    if (add) {
+      const o = JSON.parse(add.dataset.addWho), list = document.getElementById("pick-list");
+      let box = list.querySelector(`input[name=pid][value="${o.id}"]`);
+      if (!box) {
+        const li = document.createElement("li");
+        li.innerHTML = `<label><input type="checkbox" name="pid" value="${o.id}" data-group="0" data-online="${o.online ? 1 : 0}">
+          <span class="dot ${o.online ? "on" : ""}"></span> <strong></strong> <span class="muted small"></span></label>`;
+        li.querySelector("strong").textContent = o.name;
+        li.querySelector(".muted").textContent = `nível ${o.level}${o.online ? "" : " · offline"}`;
+        list.prepend(li);
+        box = li.querySelector("input");
+      }
+      box.checked = true;
+      add.closest("li").remove();
       return;
     }
     const ed = e.target.closest("[data-edit-place]");
@@ -182,6 +199,9 @@
       document.getElementById("place-save").textContent = "Salvar lugar";
       e.target.hidden = true;
     }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.classList.contains("who-search")) e.preventDefault();
   });
   document.addEventListener("change", e => {
     if (e.target.id !== "place-from" || !e.target.value) return;

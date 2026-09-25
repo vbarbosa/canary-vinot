@@ -969,9 +969,24 @@ def _log_selection(pasta, arquivo, linhas=500, filtro=""):
 @app.get("/teleporte", response_class=HTMLResponse)
 def teleport_page(request: Request, q: str = "", tipo: str = ""):
     user = require(request)
-    online = db.all("SELECT o.player_id AS id, o.name, o.level, o.vocation, o.posx, o.posy, o.posz, g.player_id IS NOT NULL AS in_group "
-                    "FROM cockpit_online o LEFT JOIN cockpit_group g ON g.player_id = o.player_id ORDER BY o.name")
-    return page(request, "teleport.html", user, q=q, tipo=tipo, kinds=places.KINDS, online=online, **_place_list(q, tipo))
+    online = db.all("SELECT o.player_id AS id, o.name, o.level, o.vocation, o.posx, o.posy, o.posz "
+                    "FROM cockpit_online o ORDER BY o.name")
+    # who can go: everyone online, the group (online or not) and you; anyone else comes from the search box
+    who = db.all("SELECT p.id, p.name, p.level, o.player_id IS NOT NULL AS online, g.player_id IS NOT NULL AS in_group FROM players p "
+                 "LEFT JOIN cockpit_online o ON o.player_id = p.id LEFT JOIN cockpit_group g ON g.player_id = p.id "
+                 "WHERE o.player_id IS NOT NULL OR g.player_id IS NOT NULL OR p.name = %s ORDER BY online DESC, p.name", user["me"])
+    return page(request, "teleport.html", user, q=q, tipo=tipo, kinds=places.KINDS, online=online, who=who, **_place_list(q, tipo))
+
+
+@app.get("/teleporte/quem", response_class=HTMLResponse)
+def teleport_who(request: Request, busca: str = ""):
+    """Characters matching the search, to add to the ones who go."""
+    user = require(request)
+    busca = busca.strip()
+    rows = db.all("SELECT p.id, p.name, p.level, o.player_id IS NOT NULL AS online FROM players p "
+                  "LEFT JOIN cockpit_online o ON o.player_id = p.id WHERE p.name LIKE %s ORDER BY online DESC, p.name LIMIT 12",
+                  "%" + busca.replace("%", "").replace("_", "\\_") + "%") if len(busca) >= 2 else []
+    return page(request, "_who.html", user, rows=rows, busca=busca)
 
 
 def _place_list(q, tipo):
@@ -1016,14 +1031,20 @@ async def teleport_go(request: Request):
     user = require(request, post=True)
     f = await request.form()
     x, y, z = clamp(f.get("x"), 0, 65535), clamp(f.get("y"), 0, 65535), clamp(f.get("z"), 0, 15)
-    ids = [int(i) for i in f.getlist("pid") if str(i).isdigit()][:100]
-    names = [r["name"] for r in db.all(f"SELECT name FROM cockpit_online WHERE player_id IN ({','.join(['%s'] * len(ids))})", *ids)] if ids else []
-    if not names:
-        return toast("Marque quem vai (só quem está online).", ok=False)
-    for n in names:
-        db.enqueue(user["account"], "teleport", n, x, y, z, text=str(f.get("lugar", ""))[:100])
+    ids = list(dict.fromkeys(int(i) for i in f.getlist("pid") if str(i).isdigit()))[:100]
+    rows = db.all(f"SELECT p.id, p.name, o.player_id IS NOT NULL AS online FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id "
+                  f"WHERE p.id IN ({','.join(['%s'] * len(ids))})", *ids) if ids else []
+    if not rows:
+        return toast("Marque quem vai.", ok=False)
     where = f.get("lugar") or f"{x},{y},{z}"
-    return toast(f"Levando {len(names)} para {where}.")
+    for r in rows:
+        if r["online"]:
+            db.enqueue(user["account"], "teleport", r["name"], x, y, z, text=str(f.get("lugar", ""))[:100])
+        else:  # offline: the game only reads the position at login, so the database is enough
+            db.run("UPDATE players SET posx = %s, posy = %s, posz = %s WHERE id = %s", x, y, z, r["id"])
+            db.audit(user["account"], "teleport_offline", r["name"], f"{x} {y} {z} {where}")
+    off = sum(not r["online"] for r in rows)
+    return toast(f"Levando {len(rows)} para {where}." + (f" {off} offline vai aparecer lá ao entrar." if off else ""))
 
 
 @app.post("/teleporte/salvar", response_class=HTMLResponse)
