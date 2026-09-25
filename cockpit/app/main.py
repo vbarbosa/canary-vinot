@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, places, raids, ranking, realty, sheet, world
+from . import events, guilds, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -50,6 +50,7 @@ def startup():
     db.init_schema()
     world.seed()
     events.seed_quiz()
+    wheel.seed()
     if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
         scheduler.start(dispatch)
 
@@ -89,7 +90,7 @@ def current_user(request: Request):
 # a co-admin sees only the areas ticked for them. "/" and the small shared parts are open to both.
 SECTIONS = {
     "painel": ("🏠 Painel", "Ranking e histórico", ("/ranking", "/historico")),
-    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/agenda", "/acao")),
+    "jogo": ("🎮 Jogo ao vivo", "Turma, teleporte, raids, eventos, roleta, agenda e ações nos jogadores", ("/turma", "/teleporte", "/raids", "/eventos", "/roleta", "/agenda", "/acao")),
     "pessoas": ("👥 Pessoas", "Jogadores, contas, guilds, ban, senha", ("/jogador", "/conta", "/guild")),
     "economia": ("💰 Itens e economia", "Kits, economia e imobiliária", ("/kits", "/economia", "/imobiliaria")),
     "servidor": ("🛠 Servidor", "Mundo (PvP, rates), métricas e logs", ("/mundo", "/metricas", "/logs")),
@@ -277,6 +278,7 @@ ACTIONS = {
     "kick": {},
     "place_dummy": {},
     "give_trophy": {"text": True},
+    "give_spins": {"arg1": (1, 100)},
 }
 
 # Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
@@ -328,7 +330,7 @@ def part_online(request: Request):
 ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
-    "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "broadcast": "📣 anúncio",
+    "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
 }
 
@@ -1015,6 +1017,42 @@ def character_group(request: Request, pid: int, grupo: int = Form(...)):
         db.run("UPDATE players SET group_id = %s WHERE id = %s", grupo, pid)
         db.audit(user["account"], "grupo", p["name"], str(grupo))
     return toast(f"{p['name']} agora é {dict(GROUPS)[grupo]}.")
+
+
+# ---------------------------------------------------------------- lucky wheel
+
+
+@app.get("/roleta", response_class=HTMLResponse)
+def wheel_page(request: Request):
+    user = require(request)
+    return page(request, "wheel.html", user, s=wheel.settings(), prizes=wheel.prizes(), kinds=wheel.KINDS, log=wheel.log(),
+                stats=wheel.stats(), online=db.all("SELECT player_id AS id, name FROM cockpit_online ORDER BY name"))
+
+
+@app.post("/roleta/{acao}", response_class=HTMLResponse)
+async def wheel_change(request: Request, acao: str):
+    user = require(request, post=True)
+    f = await request.form()
+    pid = clamp(f.get("pid"), 0, 10**9)
+    if acao == "regras":
+        err = wheel.save_settings(f)
+    elif acao == "premio":
+        err = wheel.save_prize(pid, f)
+    elif acao == "ligar":
+        db.run("UPDATE cockpit_wheel_prizes SET active = 1 - active WHERE id = %s", pid)
+        err = ""
+    elif acao == "apagar":
+        db.run("DELETE FROM cockpit_wheel_prizes WHERE id = %s", pid)
+        err = ""
+    elif acao == "giros":
+        ok, msg = dispatch(user["account"], "give_spins", str(f.get("alvo", "")), "", f, me=user["me"])
+        return toast(msg, ok=ok)
+    else:
+        raise HTTPException(404)
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "roleta_" + acao, str(pid))
+    return Response(headers={"HX-Redirect": "/roleta"})
 
 
 # ---------------------------------------------------------------- guilds

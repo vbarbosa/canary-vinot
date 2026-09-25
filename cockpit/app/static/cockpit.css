@@ -425,3 +425,12 @@ a.kind.on { border-color: #e0b65a; background: #2a2418; box-shadow: inset 0 0 0 
 @media (max-width: 800px) { .quiz-row { grid-template-columns: 1fr; } }
 .text-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .6rem 1rem; }
 .text-grid textarea { margin-bottom: .2rem; }
+
+/* roleta */
+.prize-row { display: grid; grid-template-columns: 1.6fr 1.2fr 1.2fr .8fr .7fr auto; gap: .35rem; align-items: center; margin: 0; }
+.prize-row > * { margin: 0 !important; }
+.new-prize { margin-top: .8rem; }
+.wheel-table tr.off { opacity: .5; }
+@media (max-width: 900px) { .prize-row { grid-template-columns: 1fr 1fr; } }
+.wheel-wrap { overflow-x: auto; }
+@media (max-width: 700px) { .wheel-table .prize-row { grid-template-columns: 1fr; } .wheel-table th:nth-child(n+2) { display: none; } }

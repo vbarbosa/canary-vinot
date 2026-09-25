@@ -137,6 +137,16 @@ actions.give_trophy = function(player, cmd)
 	return true, "trofeu entregue"
 end
 
+-- arg1 = extra spins on the lucky wheel (cockpit_wheel.lua)
+actions.give_spins = function(player, cmd)
+	local amount = math.max(1, math.min(cmd.arg1, 100))
+	if not CockpitGiveSpins then
+		return false, "roleta nao carregada"
+	end
+	CockpitGiveSpins(player, amount)
+	return true, amount .. " giro(s)"
+end
+
 -- arg1 = gold coins
 actions.give_money = function(player, cmd)
 	local amount = math.max(1, math.min(cmd.arg1, 1000000000))

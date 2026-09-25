@@ -184,6 +184,26 @@ SCHEMA += [
         `active` TINYINT NOT NULL DEFAULT 1,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_wheel_prizes` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `label` VARCHAR(64) NOT NULL,
+        `kind` VARCHAR(8) NOT NULL,
+        `item_id` INT NOT NULL DEFAULT 0,
+        `amount` BIGINT NOT NULL DEFAULT 0,
+        `weight` INT NOT NULL DEFAULT 1,
+        `active` TINYINT NOT NULL DEFAULT 1,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_wheel_log` (
+        `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `at` INT UNSIGNED NOT NULL,
+        `player` VARCHAR(255) NOT NULL,
+        `prize_id` INT NOT NULL DEFAULT 0,
+        `label` VARCHAR(64) NOT NULL DEFAULT '',
+        `paid` VARCHAR(32) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`),
+        KEY `at` (`at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_house_log` (
         `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         `ts` INT UNSIGNED NOT NULL,

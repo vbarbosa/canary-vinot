@@ -54,6 +54,10 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   o jogador olha), Capture a bandeira (base vermelha a oeste, azul a leste), Battlefield (luta de verdade,
   cada queda gasta uma vida, mundo sem PvP vira PvP enquanto roda) e Quiz (`!r resposta`, perguntas do
   banco `cockpit_quiz` editável na própria tela). As opções de cada jogo ficam em `events.FIELDS`.
+- Roleta da sorte: o jogador diz `!roleta` (perto do lugar marcado, se houver). Giros grátis por dia, depois
+  giro extra dado pelo painel (`give_spins`) e, por fim, gold do banco. Prêmios (item, gold, experiência, giros
+  ou nada) com peso; a chance é peso ÷ soma. O jogo lê `cockpit_wheel_prizes` e `cockpit_settings` (wheel.*) a
+  cada giro e grava em `cockpit_wheel_log` (`data/scripts/globalevents/cockpit_wheel.lua`).
 - Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
   passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
   (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do
