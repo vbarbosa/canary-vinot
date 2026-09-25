@@ -53,6 +53,16 @@ The portal reads published content from Sanity's CDN (no token, cached 60 s). Wi
 
 ## Security
 
+Sign-ups start **closed** (`PORTAL_SIGNUPS=closed`). Open or close them instantly, no restart:
+
+```sql
+INSERT INTO server_config (config, value) VALUES ('portal_signups', 'open')   -- or 'closed'
+  ON DUPLICATE KEY UPDATE value = VALUES(value);
+```
+
+Log in, account pages and news keep working while sign-ups are closed. Turn on Turnstile before
+opening them on the public address (the portal logs a warning otherwise).
+
 - Signed session cookie (`Secure` when `PORTAL_BASE_URL` is https), `SameSite=Lax`, CSRF token on
   every form, sessions end when the password changes.
 - Rate limits: log in 5 failures per e-mail and 10 per IP in 10 min; 5 sign-ups per IP per hour

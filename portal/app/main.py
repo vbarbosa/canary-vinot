@@ -43,6 +43,9 @@ SIGNUP_HOURS = 24
 RESET_MINUTES = 60
 TURNSTILE_SITE = os.environ.get("TURNSTILE_SITE_KEY", "")
 TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET_KEY", "")
+# Emergency switch. Default from PORTAL_SIGNUPS (open/closed); the row 'portal_signups' in
+# server_config overrides it without a restart (the Cockpit or one SQL line can flip it).
+SIGNUPS_DEFAULT = os.environ.get("PORTAL_SIGNUPS", "closed").strip().lower()
 
 VOCATIONS = {1: "Sorcerer", 2: "Druid", 3: "Paladin", 4: "Knight"}
 VOCATION_NAMES = {0: "Sem vocação", 1: "Sorcerer", 2: "Druid", 3: "Paladin", 4: "Knight",
@@ -99,6 +102,21 @@ mail_ip = sec.Limiter(5, 3600)
 create_lock = threading.Lock()
 
 
+_signups = {"at": 0.0, "open": SIGNUPS_DEFAULT == "open"}
+
+
+def signups_open():
+    now = time.time()
+    if now - _signups["at"] > 10:
+        try:
+            row = db.one("SELECT value FROM server_config WHERE config = 'portal_signups'")
+            _signups["open"] = (row["value"] if row else SIGNUPS_DEFAULT).strip().lower() == "open"
+        except Exception:
+            pass  # keep the last known state
+        _signups["at"] = now
+    return _signups["open"]
+
+
 def fmt_date(value, with_time=False):
     if not value:
         return ""
@@ -117,7 +135,7 @@ def fmt_date(value, with_time=False):
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
     categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART,
-    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year,
+    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open,
 )
 
 
@@ -127,6 +145,8 @@ def startup():
         db.init_schema()
     except Exception as exc:
         log.error("could not prepare the database: %s", exc)
+    if HTTPS and not TURNSTILE_SECRET:
+        log.warning("public site without Turnstile: set TURNSTILE_SITE_KEY/TURNSTILE_SECRET_KEY before opening sign-ups")
 
 
 @app.middleware("http")
@@ -395,6 +415,8 @@ def signup(
     form = {"email": email, "email2": email2, "personagem": name, "sexo": sexo, "vocacao": vocacao, "novidades": novidades}
     if bad_csrf(request, csrf):
         return signup_page(request, {"geral": "A página expirou. Tente de novo."}, form, 400)
+    if not signups_open():
+        return signup_page(request, {}, form, 403)
     if site:  # honeypot field, invisible to people
         return page(request, "check_email.html", email=email, dev_link=None)
     if signup_ip.blocked(ip) or signup_all.blocked("all"):

@@ -10,7 +10,8 @@
     <p class="lead">{{ home.heroText }}</p>
     <div class="row center wrap-row">
       {% if me %}<a href="/conta" class="btn big">Ir pra minha conta</a>
-      {% else %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>{% endif %}
+      {% elif signups_open() %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>
+      {% else %}<a href="/entrar" class="btn big">Entrar</a>{% endif %}
       <a href="#jogar" class="btn ghost big">Como jogar</a>
     </div>
     {% if stats %}

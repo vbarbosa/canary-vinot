@@ -34,7 +34,7 @@
       <a href="/conta" class="btn small" {{ 'aria-current=page' if path.startswith('/conta') }}><img src="/static/px/mascot.svg" alt="" class="px s16"> Minha conta</a>
       {% else %}
       <a href="/entrar" {{ 'aria-current=page' if path == '/entrar' }}>Entrar</a>
-      <a href="/criar-conta" class="btn small">Criar conta</a>
+      {% if signups_open() %}<a href="/criar-conta" class="btn small">Criar conta</a>{% endif %}
       {% endif %}
     </nav>
   </div>

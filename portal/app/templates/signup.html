@@ -15,6 +15,14 @@
     <p class="muted small">Já tem conta? <a href="/entrar">Entrar</a></p>
   </div>
 
+  {% if not signups_open() %}
+  <div class="card pad center-text">
+    <img src="/static/px/key.svg" alt="" class="px s64">
+    <h2>Cadastros fechados no momento</h2>
+    <p>O VinOT está recebendo só convidados por enquanto. Volte em breve!</p>
+    <p class="muted small">Já tem conta? <a href="/entrar">Entrar</a></p>
+  </div>
+  {% else %}
   <form method="post" action="/criar-conta" class="card pad form" novalidate>
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>
@@ -89,5 +97,6 @@
       </ol>
     </details>
   </form>
+  {% endif %}
 </section>
 {% endblock %}
