@@ -1,0 +1,54 @@
+---
+name: Cockpit
+
+on:
+  pull_request:
+    paths:
+      - "cockpit/**"
+      - "data/scripts/globalevents/cockpit.lua"
+      - ".github/workflows/cockpit.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "cockpit/**"
+      - "data/scripts/globalevents/cockpit.lua"
+      - ".github/workflows/cockpit.yml"
+
+jobs:
+  check:
+    name: Check panel and Lua bridge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code.
+        uses: actions/checkout@main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r cockpit/requirements.txt
+
+      - name: Compile and import the app, parse every template
+        working-directory: cockpit
+        env:
+          COCKPIT_SECRET: ci
+          COCKPIT_DATA_DIR: ../data
+        run: |
+          python -m compileall -q app tools
+          python - <<'PY'
+          from app import main, gamedata
+          env = main.templates.env
+          for name in env.list_templates():
+              env.get_template(name)
+          print(len(env.list_templates()), "templates ok")
+          print(len(gamedata.items()), "items ok")
+          PY
+
+      - name: Check Lua bridge syntax
+        run: |
+          sudo apt-get update && sudo apt-get install -y luajit
+          luajit -bl data/scripts/globalevents/cockpit.lua > /dev/null

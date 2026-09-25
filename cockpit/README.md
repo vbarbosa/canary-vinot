@@ -29,7 +29,24 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 3. `cd docker && docker compose up -d --build cockpit`
 4. Abra `http://100.70.92.116:8090` pela Tailscale.
 
-Para atualizar depois: `git pull` e `docker compose up -d --build cockpit`. O jogo não cai.
+Para atualizar na mão: `git pull` e `docker compose up -d --build cockpit`. O jogo não cai.
+
+## Esteira (CI/CD)
+
+- **Testes:** `.github/workflows/cockpit.yml` roda em todo PR e push na `main` que mexa no
+  painel: compila o Python, carrega todos os templates e o `items.xml`, e confere a sintaxe
+  do `cockpit.lua`.
+- **Deploy:** a VM puxa sozinha. `deploy/auto-deploy.sh` roda no cron a cada minuto, busca
+  o branch `DEPLOY_BRANCH` (padrão `main`) e, se tiver commit novo:
+  - mudou `cockpit/` → reconstrói e sobe só o painel (o jogo não cai);
+  - mudou `cockpit.lua` → reinicia o servidor do jogo (desligue com `RESTART_GAME=no`
+    quando tiver gente jogando);
+  - outras mudanças → só registra no log.
+
+  Não precisa abrir porta nem guardar senha no GitHub. O log fica em `logs/deploy.log`,
+  visível na tela Logs do painel. Instalação na VM (`crontab -e`):
+
+      * * * * * DEPLOY_BRANCH=main flock -n /tmp/cockpit-deploy.lock ~/GitHub/canary-vinot/cockpit/deploy/auto-deploy.sh >> ~/GitHub/canary-vinot/logs/deploy.log 2>&1
 
 ## Ícones dos itens
 
