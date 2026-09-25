@@ -13,7 +13,7 @@
         {% if me %}<a href="/conta" class="btn big">Ir pra minha conta</a>
         {% elif signups_open() %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>
         {% else %}<a href="/entrar" class="btn big">Entrar</a>{% endif %}
-        <a href="#jogar" class="btn ghost big">Baixar o cliente</a>
+        <a href="/baixar" class="btn ghost big">Baixar o cliente</a>
       </div>
       {% if stats %}
       <ul class="hero-stats" aria-label="Situação do servidor">
@@ -160,9 +160,7 @@
       {% endfor %}
     </ol>
     <div class="downloads">
-      {% if site.clientAndroidUrl %}<a class="btn" href="{{ site.clientAndroidUrl }}" rel="noopener">Baixar pro Android</a>{% endif %}
-      {% if site.clientWindowsUrl %}<a class="btn" href="{{ site.clientWindowsUrl }}" rel="noopener">Baixar pro Windows</a>{% endif %}
-      {% if not site.clientAndroidUrl and not site.clientWindowsUrl %}<p class="muted">Os links do cliente aparecem aqui assim que forem publicados.</p>{% endif %}
+      <a class="btn big" href="/baixar">Ir pro Download</a>
     </div>
   </div>
 </section>

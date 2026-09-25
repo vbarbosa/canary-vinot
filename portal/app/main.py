@@ -19,12 +19,12 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cms, db, mailer
+from . import cms, db, downloads, mailer, shop
 from . import security as sec
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -111,6 +111,7 @@ login_email = sec.Limiter(5, 600)
 signup_ip = sec.Limiter(5, 3600)
 signup_all = sec.Limiter(int(os.environ.get("PORTAL_SIGNUPS_PER_HOUR", "60")), 3600)
 mail_ip = sec.Limiter(5, 3600)
+order_acc = sec.Limiter(10, 3600)
 create_lock = threading.Lock()
 
 
@@ -155,6 +156,7 @@ templates.env.globals.update(
 def startup():
     try:
         db.init_schema()
+        shop.init_schema()
     except Exception as exc:
         log.error("could not prepare the database: %s", exc)
     if HTTPS and not TURNSTILE_SECRET:
@@ -370,6 +372,29 @@ def index(request: Request):
     )
 
 
+@app.get("/baixar", response_class=HTMLResponse)
+def download_page(request: Request):
+    site = cms.settings()
+    rels = downloads.releases()
+    links = {k: site.get(v) for k, v in (("windows", "clientWindowsUrl"), ("android", "clientAndroidUrl")) if site.get(v)}
+    return page(request, "download.html", site=site, releases=rels, current=rels[0] if rels else None, links=links,
+                size=downloads.human_size, sha=downloads.sha256)
+
+
+@app.get("/baixar/{platform}")
+def download_latest(platform: str):
+    f = downloads.latest_file(platform) if platform in downloads.PLATFORMS else None
+    return redirect(f["url"]) if f else redirect("/baixar")
+
+
+@app.get("/baixar/{version}/{fname}")
+def download_file(version: str, fname: str):
+    path = downloads.find(version, fname)
+    if not path:
+        return redirect("/baixar")
+    return FileResponse(path, filename=fname)
+
+
 @app.get("/wiki", response_class=HTMLResponse)
 def wiki_home(request: Request):
     return page(request, "wiki.html")
@@ -390,8 +415,24 @@ def news_post(request: Request, slug: str):
 
 
 @app.get("/ranking", response_class=HTMLResponse)
-def ranking(request: Request):
-    return page(request, "ranking.html", top=top_players(50))
+def ranking(request: Request, vocacao: str = "", q: str = ""):
+    base = {"1": (1, 5), "2": (2, 6), "3": (3, 7), "4": (4, 8)}.get(vocacao)
+    q = q.strip()[:29]
+    where, args = ["group_id = 1", "deletion = 0", "name NOT LIKE %s"], ["% Sample"]
+    if base:
+        where.append("vocation IN (%s, %s)")
+        args += list(base)
+    if q:
+        where.append("name LIKE %s")
+        args.append("%" + q.replace("%", "").replace("_", "") + "%")
+    try:
+        rows = db.all(
+            f"SELECT name, level, vocation, experience, lastlogin FROM players WHERE {' AND '.join(where)} "
+            "ORDER BY level DESC, experience DESC LIMIT 100", *args,
+        )
+    except Exception:
+        rows = []
+    return page(request, "ranking.html", top=rows, voc=vocacao if base else "", q=q, vocations=VOCATIONS, filtered=bool(base or q))
 
 
 @app.get("/healthz", response_class=PlainTextResponse)
@@ -671,6 +712,78 @@ def account_new_char(request: Request, personagem: str = Form(""), sexo: str = F
     else:
         flash(request, f"{name} foi criado e já pode entrar no jogo!")
     return redirect("/conta")
+
+
+# ---------------------------------------------------------------- coin shop
+
+
+@app.get("/loja", response_class=HTMLResponse)
+def store(request: Request):
+    me = current_account(request)
+    cfg = shop.config()
+    chars = db.all("SELECT name FROM players WHERE account_id = %s AND deletion = 0 ORDER BY level DESC", me["id"]) if me else []
+    packs = [{"coins": c, "total": shop.brl(shop.total_cents(c, cfg["price"]))} for c in shop.PACKS]
+    return page(
+        request, "shop.html", me=me, cfg=cfg, packs=packs, chars=chars, price=shop.brl(int(cfg["price"] * 100)),
+        orders=shop.orders(me["id"], 5) if me else [], status=shop.STATUS, brl=shop.brl, flash=pop_flash(request),
+        min_coins=shop.MIN_COINS, max_coins=shop.MAX_COINS,
+    )
+
+
+@app.post("/loja", response_class=HTMLResponse)
+def store_order(request: Request, coins: str = Form(""), outro: str = Form(""), personagem: str = Form(""), csrf: str = Form("")):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    if bad_csrf(request, csrf):
+        flash(request, "A página expirou. Tente de novo.", "err")
+        return redirect("/loja")
+    if not shop.config()["open"]:
+        flash(request, "A loja está fechada no momento.", "err")
+        return redirect("/loja")
+    raw = (outro or coins).strip()
+    amount = int(raw) if raw.isdigit() else 0
+    if not shop.MIN_COINS <= amount <= shop.MAX_COINS:
+        flash(request, f"Escolha de {shop.MIN_COINS} a {shop.MAX_COINS} coins.", "err")
+        return redirect("/loja")
+    names = {r["name"] for r in db.all("SELECT name FROM players WHERE account_id = %s AND deletion = 0", me["id"])}
+    player = personagem if personagem in names else ""
+    if shop.pending_count(me["id"]) >= 3:
+        flash(request, "Você já tem 3 pedidos esperando o Pix. Pague ou cancele um deles antes.", "err")
+        return redirect("/loja")
+    if order_acc.blocked(str(me["id"])):
+        flash(request, "Muitos pedidos seguidos. Espere um pouco.", "err")
+        return redirect("/loja")
+    order_acc.hit(str(me["id"]))
+    code = shop.create(me, player, amount, sec.client_ip(request))
+    return redirect(f"/loja/pedido/{code}")
+
+
+@app.get("/loja/pedido/{code}", response_class=HTMLResponse)
+def store_order_page(request: Request, code: str):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    o = shop.order(code, me["id"])
+    if not o:
+        return page(request, "404.html", status_code=404)
+    cfg = shop.config()
+    pix = qr = ""
+    if o["status"] == "pending" and cfg["pix_key"]:
+        pix = shop.brcode(cfg["pix_key"], o["amount_cents"], o["code"], cfg["pix_name"], cfg["pix_city"])
+        qr = shop.qr_svg(pix)
+    return page(request, "order.html", me=me, o=o, cfg=cfg, pix=pix, qr=qr, brl=shop.brl, status=shop.STATUS, flash=pop_flash(request))
+
+
+@app.post("/loja/pedido/{code}/cancelar", response_class=HTMLResponse)
+def store_order_cancel(request: Request, code: str, csrf: str = Form("")):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    if not bad_csrf(request, csrf):
+        shop.cancel(code, me["id"])
+        flash(request, "Pedido cancelado.")
+    return redirect("/loja")
 
 
 @app.post("/conta/senha", response_class=HTMLResponse)

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Loja · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  {% include "_flash.html" %}
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/coin.svg" alt="" class="px">Loja</span>
+    <h1>Tibia Coins</h1>
+    <p class="muted">Use as coins na loja do jogo pra premium, outfits, montarias e mais. Agora cada coin sai por <b class="gold">{{ price }}</b>.</p>
+  </div></div>
+
+  <div class="shop-grid">
+    <div>
+      {% if not cfg.open %}
+      <div class="card pad center-text"><img src="/static/px/chest.svg" alt="" class="px s64"><h2>Loja fechada no momento</h2><p class="muted">Volte em breve.</p></div>
+      {% elif not me %}
+      <div class="packs">{% for p in packs %}<div class="card pack"><img src="/static/px/coin.svg" alt="" class="px"><b>{{ p.coins }}</b><small>coins</small><span class="price">{{ p.total }}</span></div>{% endfor %}</div>
+      <div class="card pad shop-login"><p>Entre na sua conta pra comprar. As coins vão direto pra conta que fizer o pedido.</p><a class="btn" href="/entrar">Entrar</a></div>
+      {% else %}
+      <form method="post" action="/loja" class="card pad form shop-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <span class="label">Escolha o pacote</span>
+        <div class="packs pick" role="radiogroup" aria-label="Pacote">
+          {% for p in packs %}
+          <label class="pack-opt"><input type="radio" name="coins" value="{{ p.coins }}" {{ 'checked' if loop.index == 3 }}>
+            <span class="card pack"><img src="/static/px/coin.svg" alt="" class="px"><b>{{ p.coins }}</b><small>coins</small><span class="price">{{ p.total }}</span></span></label>
+          {% endfor %}
+        </div>
+        <label>Ou outra quantidade
+          <input type="number" name="outro" min="{{ min_coins }}" max="{{ max_coins }}" step="1" inputmode="numeric" placeholder="De {{ min_coins }} a {{ max_coins }} coins">
+        </label>
+        {% if chars %}
+        <label>Personagem (pra gente achar o seu Pix)
+          <select name="personagem">{% for c in chars %}<option>{{ c.name }}</option>{% endfor %}</select>
+        </label>
+        {% endif %}
+        <button class="btn big block" type="submit">Gerar o Pix</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <aside class="shop-side">
+      <div class="box">
+        <h3 class="box-title"><img src="/static/px/scroll.svg" alt="" class="px">Como funciona</h3>
+        <ol class="mini-steps">
+          <li>Escolha quantas coins quer e gere o Pix.</li>
+          <li>Pague com o QR Code ou o Pix copia e cola. Se digitar a chave na mão, coloque o <b>código do pedido</b> e o nome do personagem na descrição.</li>
+          <li>A equipe confere o pagamento e as coins caem na sua conta.</li>
+        </ol>
+        <p class="note">Por enquanto não temos pagamento automático. A conferência é feita à mão, então pode levar algumas horas.</p>
+      </div>
+      {% if orders %}
+      <div class="box">
+        <h3 class="box-title"><img src="/static/px/chest.svg" alt="" class="px">Seus pedidos</h3>
+        <ul class="orders">
+          {% for o in orders %}<li><a href="/loja/pedido/{{ o.code }}"><span><b>{{ o.coins }} coins</b><small>{{ o.code }} · {{ o.created_at | date }}</small></span><span class="st st-{{ o.status }}">{{ status[o.status] }}</span></a></li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}

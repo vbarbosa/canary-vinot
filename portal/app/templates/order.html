@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Pedido {{ o.code }} · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap narrow section">
+  {% include "_flash.html" %}
+  <a href="/loja" class="more back">Voltar pra loja</a>
+  <div class="card pad order">
+    <div class="order-head">
+      <div><span class="eyebrow">Pedido {{ o.code }}</span><h1>{{ o.coins }} Tibia Coins</h1></div>
+      <span class="st st-{{ o.status }}">{{ status[o.status] }}</span>
+    </div>
+    <dl class="order-facts">
+      <div><dt>Valor</dt><dd class="gold">{{ brl(o.amount_cents) }}</dd></div>
+      <div><dt>Personagem</dt><dd>{{ o.player_name or '—' }}</dd></div>
+      <div><dt>Feito em</dt><dd>{{ o.created_at | date(true) }}</dd></div>
+    </dl>
+
+    {% if o.status == 'pending' and pix %}
+    <div class="pix">
+      <div class="qr" aria-label="QR Code do Pix">{{ qr | safe }}</div>
+      <div class="pix-info">
+        <h2 class="small-title">Pague com Pix</h2>
+        <p class="muted small">Abra o app do seu banco, escolha Pix e leia o QR Code, ou use o copia e cola. O valor e o código do pedido já vão juntos.</p>
+        <label>Pix copia e cola
+          <span class="copy-row"><input readonly value="{{ pix }}" id="pix-code"><button type="button" class="btn small" data-copy="pix-code">Copiar</button></span>
+        </label>
+        <label>Ou a chave Pix
+          <span class="copy-row"><input readonly value="{{ cfg.pix_key }}" id="pix-key"><button type="button" class="btn ghost small" data-copy="pix-key">Copiar</button></span>
+        </label>
+        <div class="flash warn">Se usar a chave, coloque na descrição do Pix: <b>{{ o.code }}{% if o.player_name %} {{ o.player_name }}{% endif %}</b>. É assim que a gente sabe de quem é o pagamento.</div>
+      </div>
+    </div>
+    <p class="note">Ainda não temos pagamento automático: a equipe confere o Pix à mão e credita as coins. Quando cair, este pedido muda pra "Coins entregues".</p>
+    <form method="post" action="/loja/pedido/{{ o.code }}/cancelar" class="row">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="link-btn danger" type="submit">Cancelar este pedido</button>
+    </form>
+    {% elif o.status == 'paid' %}
+    <p>As coins já estão na sua conta. Bom jogo!</p>
+    {% elif o.status == 'cancelled' %}
+    <p class="muted">Este pedido foi cancelado{% if o.note %} ({{ o.note }}){% endif %}.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

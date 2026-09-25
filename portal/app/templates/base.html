@@ -8,76 +8,119 @@
 <meta property="og:title" content="{{ self.title() }}">
 <meta property="og:description" content="{{ self.description() }}">
 <meta property="og:image" content="/static/og.png">
-<meta name="theme-color" content="#0e0c0a">
+<meta name="theme-color" content="#0b0d12">
 <link rel="icon" href="/static/favicon.png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/static/portal.css?v=5">
+<link rel="stylesheet" href="/static/portal.css?v=7">
+<script src="/static/portal.js?v=7"></script>
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}inner{% endblock %}">
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-{% if site.notice %}<div class="notice"><span class="notice-dot"></span>{{ site.notice }}</div>{% endif %}
-<header class="top">
-  <div class="wrap nav">
-    <a href="/" class="brand" aria-label="{{ site.serverName }}, início">
-      <img src="/static/px/emblem.svg" alt="" class="px">
-      <span>{{ site.serverName }}</span>
-    </a>
-    <input type="checkbox" id="menu" class="menu-toggle" aria-label="Abrir menu">
-    <label for="menu" class="menu-button" aria-hidden="true"><span></span><span></span><span></span></label>
-    <nav class="links">
-      <a href="/" {{ 'aria-current=page' if path == '/' }}>Início</a>
-      <a href="/noticias" {{ 'aria-current=page' if path.startswith('/noticias') }}>Notícias</a>
-      <a href="/#vocacoes">Vocações</a>
-      <a href="/wiki" {{ 'aria-current=page' if path.startswith('/wiki') }}>Wiki</a>
-      <a href="/ranking" {{ 'aria-current=page' if path == '/ranking' }}>Ranking</a>
-      <a href="/#jogar">Como jogar</a>
-      <span class="nav-sep"></span>
-      {% if me %}
-      <a href="/conta" class="btn small" {{ 'aria-current=page' if path.startswith('/conta') }}>Minha conta</a>
-      {% else %}
-      <a href="/entrar" class="nav-login" {{ 'aria-current=page' if path == '/entrar' }}>Entrar</a>
-      {% if signups_open() %}<a href="/criar-conta" class="btn small">Criar conta</a>{% endif %}
-      {% endif %}
-    </nav>
+{% set menu = [
+  ('inicio', 'torch', 'Início', [
+    ('/', 'mascot', 'Página inicial'),
+    ('/noticias', 'scroll', 'Notícias'),
+    ('/noticias?categoria=evento', 'skull', 'Eventos'),
+    ('/noticias?categoria=promocao', 'gift', 'Promoções'),
+  ]),
+  ('jogar', 'sword', 'Jogar', [
+    ('/baixar', 'chest', 'Download'),
+    ('/#jogar', 'map', 'Como jogar'),
+    ('/#vocacoes', 'staff', 'Vocações'),
+    ('/loja', 'coin', 'Loja de coins'),
+  ] + ([('/conta', 'key', 'Minha conta')] if me else [('/entrar', 'key', 'Entrar'), ('/criar-conta', 'potion', 'Criar conta')])),
+  ('wiki', 'scroll', 'Wiki', [
+    ('/wiki', 'map', 'Início da wiki'),
+    ('/wiki/criaturas', 'skull', 'Criaturas'),
+    ('/wiki/itens', 'chest', 'Itens'),
+    ('/wiki/servidor', 'coin', 'Rates do servidor'),
+  ]),
+  ('comunidade', 'heart', 'Comunidade', [
+    ('/ranking', 'coin', 'Ranking'),
+  ] + ([(site.whatsappUrl, 'heart', 'WhatsApp')] if site.whatsappUrl else []) + ([(site.instagramUrl, 'gift', 'Instagram')] if site.instagramUrl else [])),
+] %}
+<header class="topbar">
+  <button type="button" class="icon-btn" id="side-toggle" aria-label="Abrir ou recolher o menu" aria-controls="side">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="/" class="brand" aria-label="{{ site.serverName }}, início">
+    <img src="/static/px/emblem.svg" alt="" class="px">
+    <span>{{ site.serverName }}</span>
+  </a>
+  <div class="top-actions">
+    {% if me %}
+    <a href="/conta" class="btn small">Minha conta</a>
+    {% else %}
+    <a href="/entrar" class="btn ghost small">Entrar</a>
+    {% if signups_open() %}<a href="/criar-conta" class="btn small hide-xs">Criar conta</a>{% endif %}
+    {% endif %}
   </div>
 </header>
-<main id="conteudo">
-{% block main %}{% endblock %}
-</main>
-<footer class="foot">
-  <div class="wrap foot-grid">
-    <div class="foot-brand">
-      <a href="/" class="brand"><span>{{ site.serverName }}</span></a>
-      <p>{{ site.tagline }}</p>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Menu">
+    <div class="side-tools">
+      <button type="button" class="link-btn" data-sections="open">Abrir tudo</button>
+      <button type="button" class="link-btn" data-sections="close">Fechar tudo</button>
     </div>
-    <div>
-      <h4>Jogo</h4>
-      <a href="/criar-conta">Criar conta</a>
-      <a href="/#jogar">Baixar o cliente</a>
-      <a href="/ranking">Ranking</a>
-    </div>
-    <div>
-      <h4>Novidades</h4>
-      <a href="/noticias">Notícias</a>
-      <a href="/noticias?categoria=promocao">Promoções</a>
-      <a href="/noticias?categoria=evento">Eventos</a>
-    </div>
-    <div>
-      <h4>Comunidade</h4>
-      {% if site.whatsappUrl %}<a href="{{ site.whatsappUrl }}" rel="noopener" target="_blank">WhatsApp</a>{% endif %}
-      {% if site.instagramUrl %}<a href="{{ site.instagramUrl }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
-      <a href="/entrar">Minha conta</a>
-    </div>
+    <nav>
+      {% for key, icon, title, links in menu %}
+      <details class="side-sec" data-sec="{{ key }}" open>
+        <summary title="{{ title }}"><img src="/static/px/{{ icon }}.svg" alt="" class="px ic"><span class="lbl">{{ title }}</span></summary>
+        <ul>
+          {% for href, lic, label in links %}
+          {% set base = href.split('?')[0].split('#')[0] %}
+          {% set active = (href == '/' and path == '/') or (base not in ('', '/') and '?' not in href and '#' not in href and (path == base or (path.startswith(base ~ '/') and base != '/wiki'))) %}
+          <li><a href="{{ href }}" class="{{ 'active' if active }}" title="{{ label }}"{% if active %} aria-current="page"{% endif %}{% if href.startswith('http') %} rel="noopener" target="_blank"{% endif %}><img src="/static/px/{{ lic }}.svg" alt="" class="px ic"><span class="lbl">{{ label }}</span></a></li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endfor %}
+    </nav>
+    <button type="button" class="side-collapse" id="side-collapse" title="Recolher o menu"><span class="chev">«</span><span class="lbl">Recolher</span></button>
+    <div class="side-resize" id="side-resize" title="Arraste para mudar a largura"></div>
+  </aside>
+  <div class="side-shade" id="side-shade"></div>
+  <div class="page">
+    {% if site.notice %}<div class="notice"><span class="notice-dot"></span>{{ site.notice }}</div>{% endif %}
+    <main id="conteudo">
+    {% block main %}{% endblock %}
+    </main>
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <div class="foot-brand">
+          <a href="/" class="brand"><span>{{ site.serverName }}</span></a>
+          <p>{{ site.tagline }}</p>
+        </div>
+        <div>
+          <h4>Jogo</h4>
+          <a href="/baixar">Download</a>
+          <a href="/criar-conta">Criar conta</a>
+          <a href="/ranking">Ranking</a>
+        </div>
+        <div>
+          <h4>Wiki</h4>
+          <a href="/wiki/criaturas">Criaturas</a>
+          <a href="/wiki/itens">Itens</a>
+          <a href="/wiki/servidor">Rates do servidor</a>
+        </div>
+        <div>
+          <h4>Novidades</h4>
+          <a href="/noticias">Notícias</a>
+          <a href="/noticias?categoria=promocao">Promoções</a>
+          <a href="/noticias?categoria=evento">Eventos</a>
+        </div>
+      </div>
+      <div class="wrap signature">
+        <span>© {{ year() }} equipe VinOT</span>
+        <span>Tibia é marca registrada da CipSoft GmbH. O VinOT é um projeto de fã, sem fins lucrativos.</span>
+      </div>
+    </footer>
   </div>
-  <div class="wrap signature">
-    <span>© {{ year() }} equipe VinOT</span>
-    <span>Tibia é marca registrada da CipSoft GmbH. O VinOT é um projeto de fã, sem fins lucrativos.</span>
-  </div>
-</footer>
+</div>
 {% block scripts %}{% endblock %}
 </body>
 </html>
