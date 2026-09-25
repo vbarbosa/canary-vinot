@@ -176,6 +176,14 @@ SCHEMA += [
         `gold` BIGINT NOT NULL DEFAULT 0,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_quiz` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `question` VARCHAR(255) NOT NULL,
+        `answers` VARCHAR(255) NOT NULL,
+        `topic` VARCHAR(32) NOT NULL DEFAULT '',
+        `active` TINYINT NOT NULL DEFAULT 1,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_house_log` (
         `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         `ts` INT UNSIGNED NOT NULL,
@@ -213,9 +221,19 @@ def run(sql, *args):
         return cur.lastrowid
 
 
+# Columns added after a table first shipped; each runs once and is skipped when the column is already there.
+MIGRATIONS = [
+    ("cockpit_event_presets", "extra", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `extra` VARCHAR(1000) NOT NULL DEFAULT ''"),
+]
+
+
 def init_schema():
     for sql in SCHEMA:
         run(sql)
+    for table, column, sql in MIGRATIONS:
+        if not one("SELECT 1 AS x FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s",
+                   table, column):
+            run(sql)
 
 
 def enqueue(actor, action, target="", arg1=0, arg2=0, arg3=0, arg4=0, text=""):

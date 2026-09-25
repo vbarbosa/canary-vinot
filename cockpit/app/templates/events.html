@@ -19,20 +19,20 @@
 
 <div class="kinds">
   {% for k, (label, help, ready) in kinds.items() %}
-  <article class="kind {{ 'ready' if ready else 'soon' }}">
+  <a href="/eventos?tipo={{ k }}" class="kind {{ 'ready' if ready else 'soon' }} {{ 'on' if k == tipo }}"{% if k == tipo %} aria-current="page"{% endif %}>
     <strong>{{ label }}</strong><small class="muted">{{ help }}</small>
-    <small class="{{ 'ok-text' if ready else 'muted' }}">{{ 'Disponível' if ready else 'Em breve' }}</small>
-  </article>
+  </a>
   {% endfor %}
 </div>
 
 <div class="with-catalog tp">
   <section>
     <article class="panel">
-      <header><h4>{{ '✏ Editando: ' ~ edit.name if edit else '🧟 Zombie' }}</h4></header>
+      <header><h4>{{ '✏ Editando: ' ~ edit.name if edit else kinds[tipo][0] }}</h4></header>
       <form hx-post="/eventos/comecar" hx-target="#toast" id="event-form" class="event-form">
-        <input type="hidden" name="tipo" value="zombie">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
         <input type="hidden" name="preset_id" value="{{ edit.id if edit else '' }}">
+        {% if needs_arena %}
         <label>Arena (centro)
           <select name="arena" required>
             <option value="">Escolha…</option>
@@ -44,13 +44,15 @@
           {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
         </select>
         {% endif %}
-        <p class="small muted">Dica: salve a arena no Teleporte (⭐ Salvos) para ela aparecer aqui. Quem sai do raio é eliminado.</p>
+        <p class="small muted">Dica: salve a arena no Teleporte (⭐ Salvos) para ela aparecer aqui.
+          {% if tipo in ('ctf', 'battlefield') %}O time vermelho começa no lado oeste e o azul no leste do raio.{% endif %}</p>
+        {% endif %}
         <div class="rate-grid">
-          <label>Raio (sqm)<input name="raio" type="number" min="4" max="30" value="{{ edit.radius if edit else d.radius }}"></label>
-          <label>Duração (min)<input name="minutos" type="number" min="1" max="30" value="{{ edit.minutes if edit else d.minutes }}"></label>
-          <label>Zombies no início<input name="iniciais" type="number" min="1" max="20" value="{{ edit.first if edit else d.first }}"></label>
-          <label>+1 zombie a cada (s)<input name="a_cada" type="number" min="5" max="300" value="{{ edit.every if edit else d.every }}"></label>
-          <label>Velocidade extra<input name="velocidade" type="number" min="0" max="400" value="{{ edit.speed if edit else d.speed }}"></label>
+          {% if needs_arena %}<label>Raio (sqm)<input name="raio" type="number" min="4" max="30" value="{{ edit.radius if edit else d.radius }}"></label>{% endif %}
+          <label>Duração máx. (min)<input name="minutos" type="number" min="1" max="60" value="{{ edit.minutes if edit else d.minutes }}"></label>
+          {% for k, (label, lo, hi, default, help) in fields.items() %}
+          <label title="{{ help }}">{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ edit.x_extra[k] if edit else default }}">{% if help %}<small class="muted">{{ help }}</small>{% endif %}</label>
+          {% endfor %}
           <label>Prêmio: kit
             <select name="kit"><option value="0">nenhum</option>{% for k in kits %}<option value="{{ k.id }}" {{ 'selected' if edit and edit.kit_id == k.id }}>{{ k.name }}</option>{% endfor %}</select>
           </label>
@@ -69,7 +71,7 @@
             <strong>{{ o.name }}</strong>{% if o.in_group %} <span class="tag">turma</span>{% endif %} <span class="muted small">nível {{ o.level }}</span></label></li>{% endfor %}
         </ul>
         {% else %}<p class="muted small">Ninguém online agora. Dá para salvar como evento pronto e agendar.</p>{% endif %}
-        <button {{ 'disabled' if not online }}>🧟 Começar agora</button>
+        <button {{ 'disabled' if not online }}>▶ Começar agora</button>
 
         <details class="save-preset">
           <summary>💾 Salvar como evento pronto (para agendar)</summary>
@@ -78,11 +80,40 @@
             <select name="alvo" class="w12"><option value="turma" {{ 'selected' if edit and edit.alvo == 'turma' }}>com a turma online</option>
               <option value="todos" {{ 'selected' if edit and edit.alvo == 'todos' }}>com todo mundo online</option></select>
             <button type="button" class="outline" hx-post="/eventos/salvar" hx-include="#event-form" hx-target="#toast">{{ 'Salvar alterações' if edit else 'Salvar' }}</button>
-            {% if edit %}<a href="/eventos" class="small">cancelar edição</a>{% endif %}
+            {% if edit %}<a href="/eventos?tipo={{ tipo }}" class="small">cancelar edição</a>{% endif %}
           </div>
         </details>
       </form>
     </article>
+    {% if tipo == 'quiz' %}
+    <article class="panel" id="quiz">
+      <header class="row"><h4>📚 Banco de perguntas</h4><span class="muted small right">{{ quiz|selectattr('active')|list|length }} ativas de {{ quiz|length }}</span></header>
+      <p class="small muted">Várias respostas certas separadas por | (ex.: Druid|Druida). Acento e maiúscula não importam na hora de responder.</p>
+      <form hx-post="/eventos/quiz" hx-target="#toast" class="quiz-row">
+        <input name="pergunta" placeholder="Nova pergunta" maxlength="255">
+        <input name="respostas" placeholder="Respostas certas (a|b)" maxlength="255">
+        <input name="tema" placeholder="Tema" maxlength="32" class="w12">
+        <button class="small">Adicionar</button>
+      </form>
+      <ul class="ledger quiz-list">
+        {% for q in quiz %}
+        <li class="{{ '' if q.active else 'off' }}">
+          <form hx-post="/eventos/quiz" hx-target="#toast" class="quiz-row">
+            <input type="hidden" name="qid" value="{{ q.id }}">
+            <input name="pergunta" value="{{ q.question }}" maxlength="255">
+            <input name="respostas" value="{{ q.answers }}" maxlength="255">
+            <input name="tema" value="{{ q.topic }}" maxlength="32" class="w12">
+            <span class="row small">
+              <button class="outline small">Salvar</button>
+              <button class="outline small" name="ligar" value="1">{{ 'Pausar' if q.active else 'Ativar' }}</button>
+              <button class="outline small danger" name="apagar" value="1" hx-confirm="Apagar essa pergunta?">Apagar</button>
+            </span>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
   </section>
 
   <aside class="tp-side">
@@ -91,7 +122,7 @@
       <ul class="ledger">
         {% for p in presets %}
         <li><span><strong>{{ p.name }}</strong></span>
-          <small class="muted">{{ kinds[p.kind][0] if p.kind in kinds else p.kind }} · {{ p.minutes }} min · raio {{ p.radius }} · {{ 'turma' if p.alvo == 'turma' else 'todos' }}{% if p.gold %} · {{ p.gold }} gold{% endif %}</small>
+          <small class="muted">{{ kinds[p.kind][0] if p.kind in kinds else p.kind }} · {{ p.minutes }} min{% if p.kind != 'quiz' %} · raio {{ p.radius }}{% endif %} · {{ 'turma' if p.alvo == 'turma' else 'todos' }}{% if p.gold %} · {{ p.gold }} gold{% endif %}</small>
           <span class="row small">
             <button class="small" hx-post="/eventos/{{ p.id }}/rodar" hx-target="#toast">▶ Começar</button>
             <a href="/eventos?preset={{ p.id }}" class="outline small" role="button">Editar</a>

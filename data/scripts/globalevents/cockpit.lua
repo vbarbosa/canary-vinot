@@ -420,6 +420,7 @@ globalActions.event_start = function(cmd)
 		speed = tonumber(cfg.speed) or 100,
 		prize = cfg.prize or "",
 		gold = tonumber(cfg.gold) or 0,
+		raw = cfg,
 	})
 	db.query(string.format("UPDATE `cockpit_events` SET `status` = %s, `details` = %s WHERE `id` = %d", db.escapeString(ok and "running" or "error"), db.escapeString(msg), id))
 	return ok, msg

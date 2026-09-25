@@ -49,6 +49,7 @@ templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(tim
 def startup():
     db.init_schema()
     world.seed()
+    events.seed_quiz()
     if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
         scheduler.start(dispatch)
 
@@ -1410,7 +1411,7 @@ def ranking_page(request: Request, tipo: str = "level", voc: str = ""):
 
 
 @app.get("/eventos", response_class=HTMLResponse)
-def events_page(request: Request, preset: int = 0):
+def events_page(request: Request, preset: int = 0, tipo: str = "zombie"):
     user = require(request)
     who = db.all("SELECT p.id, p.name, p.level, o.posx, o.posy, o.posz, g.player_id IS NOT NULL AS in_group FROM cockpit_online o "
                  "JOIN players p ON p.id = o.player_id LEFT JOIN cockpit_group g ON g.player_id = p.id ORDER BY p.name")
@@ -1418,7 +1419,13 @@ def events_page(request: Request, preset: int = 0):
     arenas += [{"name": t["name"], "x": t["posx"], "y": t["posy"], "z": t["posz"], "label": f"🏛 Templo de {t['name']}"}
                for t in db.all("SELECT name, posx, posy, posz FROM towns ORDER BY name")]
     edit = db.one("SELECT * FROM cockpit_event_presets WHERE id = %s", preset) if preset else None
+    if edit:
+        tipo = edit["kind"]
+        edit["x_extra"] = events.preset_settings(edit)["extra"]
+    tipo = tipo if tipo in events.KINDS else "zombie"
     return page(request, "events.html", user, kinds=events.KINDS, who=who, arenas=arenas, online=who, edit=edit, d=events.DEFAULTS,
+                tipo=tipo, fields=events.FIELDS[tipo], needs_arena=tipo not in events.NO_ARENA,
+                quiz=events.quiz_all() if tipo == "quiz" else [],
                 kits=db.all("SELECT id, name FROM cockpit_kits ORDER BY name"),
                 presets=db.all("SELECT * FROM cockpit_event_presets ORDER BY name"),
                 running=db.all("SELECT * FROM cockpit_events WHERE status IN ('queued', 'running') ORDER BY id DESC"),
@@ -1438,12 +1445,13 @@ def _arena(f):
 async def event_start(request: Request):
     user = require(request, post=True)
     f = await request.form()
-    arena = _arena(f)
+    kind = str(f.get("tipo", "zombie"))
+    arena = _arena(f) or ((0, 0, 7) if kind in events.NO_ARENA else None)
     if not arena:
         return toast("Escolha a arena.", ok=False)
     ids = [int(i) for i in f.getlist("pid") if str(i).isdigit()]
     names = [r["name"] for r in db.all(f"SELECT name FROM cockpit_online WHERE player_id IN ({','.join(['%s'] * len(ids))})", *ids)] if ids else []
-    ok, msg = events.start(user["account"], str(f.get("tipo", "zombie")), *arena, events.settings_from(f), names)
+    ok, msg = events.start(user["account"], kind, *arena, events.settings_from(f, kind), names)
     return toast(msg, ok=ok)
 
 
@@ -1458,21 +1466,41 @@ def event_stop(request: Request, tipo: str = Form("zombie")):
 async def event_preset_save(request: Request):
     user = require(request, post=True)
     f = await request.form()
-    arena, nome = _arena(f), str(f.get("nome", "")).strip()[:64]
+    kind = str(f.get("tipo", "zombie"))
+    if kind not in events.KINDS:
+        return toast("Evento desconhecido.", ok=False)
+    arena, nome = _arena(f) or ((0, 0, 7) if kind in events.NO_ARENA else None), str(f.get("nome", "")).strip()[:64]
     if not arena or not nome:
         return toast("Dê um nome e escolha a arena.", ok=False)
-    s = events.settings_from(f)
+    s = events.settings_from(f, kind)
     alvo = "todos" if f.get("alvo") == "todos" else "turma"
-    vals = (nome, str(f.get("tipo", "zombie")), *arena, s["radius"], alvo, s["minutes"], s["first"], s["every"], s["speed"], s["kit_id"], s["gold"])
+    vals = (nome, kind, *arena, s["radius"], alvo, s["minutes"], s["kit_id"], s["gold"], events.extra_text(s["extra"]))
     pid = str(f.get("preset_id", ""))
     if pid.isdigit():
-        db.run("UPDATE cockpit_event_presets SET name=%s, kind=%s, x=%s, y=%s, z=%s, radius=%s, alvo=%s, minutes=%s, first=%s, every=%s, "
-               "speed=%s, kit_id=%s, gold=%s WHERE id=%s", *vals, int(pid))
+        db.run("UPDATE cockpit_event_presets SET name=%s, kind=%s, x=%s, y=%s, z=%s, radius=%s, alvo=%s, minutes=%s, "
+               "kit_id=%s, gold=%s, extra=%s WHERE id=%s", *vals, int(pid))
     else:
-        db.run("INSERT INTO cockpit_event_presets (name, kind, x, y, z, radius, alvo, minutes, first, every, speed, kit_id, gold) "
-               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", *vals)
+        db.run("INSERT INTO cockpit_event_presets (name, kind, x, y, z, radius, alvo, minutes, kit_id, gold, extra) "
+               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", *vals)
     db.audit(user["account"], "evento_salvo", nome)
-    return Response(headers={"HX-Redirect": "/eventos"})
+    return Response(headers={"HX-Redirect": f"/eventos?tipo={kind}"})
+
+
+@app.post("/eventos/quiz", response_class=HTMLResponse)
+async def quiz_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    qid = clamp(f.get("qid"), 0, 10**9)
+    if f.get("apagar"):
+        db.run("DELETE FROM cockpit_quiz WHERE id = %s", qid)
+    elif f.get("ligar"):
+        db.run("UPDATE cockpit_quiz SET active = 1 - active WHERE id = %s", qid)
+    else:
+        err = events.quiz_save(qid, f.get("pergunta", ""), f.get("respostas", ""), f.get("tema", ""))
+        if err:
+            return toast(err, ok=False)
+    db.audit(user["account"], "quiz", str(qid))
+    return Response(headers={"HX-Redirect": "/eventos?tipo=quiz#quiz"})
 
 
 @app.post("/eventos/{pid}/{acao}", response_class=HTMLResponse)

@@ -46,7 +46,11 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 - Eventos: mini-games rodados pela ponte (`data/scripts/globalevents/cockpit_<tipo>.lua`). O Zombie leva a
   turma para uma arena (um lugar salvo ou a posição de alguém), solta zombies que ficam mais numerosos, e
   quem é tocado ou sai do raio está fora; o último de pé leva o prêmio (kit e/ou gold). Eventos prontos
-  podem ser agendados na Agenda. Resultados em `cockpit_events`.
+  podem ser agendados na Agenda. Resultados em `cockpit_events`. Os outros usam `cockpit_arena.lua`
+  (times vermelho e azul por nível, volta ao templo, prêmio): Bolas de neve (`!bola` joga na direção em que
+  o jogador olha), Capture a bandeira (base vermelha a oeste, azul a leste), Battlefield (luta de verdade,
+  cada queda gasta uma vida, mundo sem PvP vira PvP enquanto roda) e Quiz (`!r resposta`, perguntas do
+  banco `cockpit_quiz` editável na própria tela). As opções de cada jogo ficam em `events.FIELDS`.
 - Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
   passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
   (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do

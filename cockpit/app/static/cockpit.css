@@ -413,3 +413,13 @@ p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }
 .guild-members form.row > * { margin: 0; }
 .add-member { margin-top: .8rem; }
 .ledger li button.fit { width: auto !important; justify-self: start; align-self: start; }
+
+/* event kinds as tabs, quiz bank */
+a.kind { text-decoration: none; color: inherit; border-radius: var(--pico-border-radius); }
+a.kind:hover { border-color: #c9a55a; }
+a.kind.on { border-color: #e0b65a; background: #2a2418; box-shadow: inset 0 0 0 1px #e0b65a; }
+.quiz-row { display: grid; grid-template-columns: 2fr 1.3fr .7fr auto; gap: .4rem; align-items: center; margin: 0; }
+.quiz-row > * { margin: 0 !important; }
+.quiz-list li { padding: .3rem 0; }
+.quiz-list li.off { opacity: .55; }
+@media (max-width: 800px) { .quiz-row { grid-template-columns: 1fr; } }
