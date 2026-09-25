@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places, raids, ranking, realty, sheet, world
+from . import events, places, raids, ranking, realty, sheet, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -258,7 +258,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
 }
 
 
@@ -449,6 +449,9 @@ def dispatch(actor, name, alvo, text, form, me=""):
         db.enqueue(actor, name, text=text)
         return True, "Enviado ao servidor."
 
+    if name == "event":
+        return events.run_preset(actor, clamp(form.get("arg1"), 0, 10**9), resolve_targets)
+
     if name == "start_raid":
         r = raids.get(text)
         if not r:
@@ -523,6 +526,7 @@ def schedules_page(request, user, msg=None):
     kits = db.all("SELECT id, name FROM cockpit_kits ORDER BY name")
     return page(request, "schedules.html", user, jobs=jobs, kits=kits, job_actions=scheduler.JOB_ACTIONS,
                 raids=raids.all_raids(), raid_labels={r["name"]: r["label"] for r in raids.all_raids()},
+                presets=db.all("SELECT id, name FROM cockpit_event_presets ORDER BY name"),
                 weekdays=scheduler.WEEKDAYS, msg=msg, kit_names={k["id"]: k["name"] for k in kits}, names=gamedata.item_names())
 
 
@@ -549,6 +553,8 @@ async def schedule_create(request: Request):
         return toast("Escolha um kit.", ok=False)
     if action == "give_item" and arg1 not in gamedata.item_names():
         return toast("Item desconhecido.", ok=False)
+    if action == "event" and not db.one("SELECT id FROM cockpit_event_presets WHERE id = %s", arg1):
+        return toast("Escolha um evento pronto (crie na tela Eventos).", ok=False)
     job = {"kind": kind, "every_min": clamp(f.get("minutos"), 5, 10080), "at_time": str(f.get("hora", "")),
            "weekdays": "".join(sorted({d for d in f.getlist("dias") if d in "0123456" and len(d) == 1})), "last_run": 0}
     if kind != "interval" and not TIME_RE.match(job["at_time"]):
@@ -1105,6 +1111,87 @@ def ranking_page(request: Request, tipo: str = "level", voc: str = ""):
     vocs = VOC_GROUPS.get(voc, ("", None))[1]
     return page(request, "ranking.html", user, tipo=tipo, voc=voc, boards=ranking.BOARDS, voc_groups=VOC_GROUPS,
                 rows=ranking.board(tipo, vocs), leaders=ranking.leaders())
+
+
+# ---------------------------------------------------------------- mini-games
+
+
+@app.get("/eventos", response_class=HTMLResponse)
+def events_page(request: Request, preset: int = 0):
+    user = require(request)
+    who = db.all("SELECT p.id, p.name, p.level, o.posx, o.posy, o.posz, g.player_id IS NOT NULL AS in_group FROM cockpit_online o "
+                 "JOIN players p ON p.id = o.player_id LEFT JOIN cockpit_group g ON g.player_id = p.id ORDER BY p.name")
+    arenas = [dict(p, label=f"⭐ {p['name']}") for p in db.all("SELECT name, x, y, z FROM cockpit_places ORDER BY name")]
+    arenas += [{"name": t["name"], "x": t["posx"], "y": t["posy"], "z": t["posz"], "label": f"🏛 Templo de {t['name']}"}
+               for t in db.all("SELECT name, posx, posy, posz FROM towns ORDER BY name")]
+    edit = db.one("SELECT * FROM cockpit_event_presets WHERE id = %s", preset) if preset else None
+    return page(request, "events.html", user, kinds=events.KINDS, who=who, arenas=arenas, online=who, edit=edit, d=events.DEFAULTS,
+                kits=db.all("SELECT id, name FROM cockpit_kits ORDER BY name"),
+                presets=db.all("SELECT * FROM cockpit_event_presets ORDER BY name"),
+                running=db.all("SELECT * FROM cockpit_events WHERE status IN ('queued', 'running') ORDER BY id DESC"),
+                history=db.all("SELECT * FROM cockpit_events ORDER BY id DESC LIMIT 12"))
+
+
+def _arena(f):
+    raw = str(f.get("arena", ""))
+    parts = raw.split(",")
+    if len(parts) != 3 or not all(p.strip().lstrip("-").isdigit() for p in parts):
+        return None
+    x, y, z = (int(p) for p in parts)
+    return (x, y, z) if 0 <= z <= 15 else None
+
+
+@app.post("/eventos/comecar", response_class=HTMLResponse)
+async def event_start(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    arena = _arena(f)
+    if not arena:
+        return toast("Escolha a arena.", ok=False)
+    ids = [int(i) for i in f.getlist("pid") if str(i).isdigit()]
+    names = [r["name"] for r in db.all(f"SELECT name FROM cockpit_online WHERE player_id IN ({','.join(['%s'] * len(ids))})", *ids)] if ids else []
+    ok, msg = events.start(user["account"], str(f.get("tipo", "zombie")), *arena, events.settings_from(f), names)
+    return toast(msg, ok=ok)
+
+
+@app.post("/eventos/parar", response_class=HTMLResponse)
+def event_stop(request: Request, tipo: str = Form("zombie")):
+    user = require(request, post=True)
+    events.stop(user["account"], tipo)
+    return toast("Pedi para encerrar o evento; quem sobrou ganha o prêmio.")
+
+
+@app.post("/eventos/salvar", response_class=HTMLResponse)
+async def event_preset_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    arena, nome = _arena(f), str(f.get("nome", "")).strip()[:64]
+    if not arena or not nome:
+        return toast("Dê um nome e escolha a arena.", ok=False)
+    s = events.settings_from(f)
+    alvo = "todos" if f.get("alvo") == "todos" else "turma"
+    vals = (nome, str(f.get("tipo", "zombie")), *arena, s["radius"], alvo, s["minutes"], s["first"], s["every"], s["speed"], s["kit_id"], s["gold"])
+    pid = str(f.get("preset_id", ""))
+    if pid.isdigit():
+        db.run("UPDATE cockpit_event_presets SET name=%s, kind=%s, x=%s, y=%s, z=%s, radius=%s, alvo=%s, minutes=%s, first=%s, every=%s, "
+               "speed=%s, kit_id=%s, gold=%s WHERE id=%s", *vals, int(pid))
+    else:
+        db.run("INSERT INTO cockpit_event_presets (name, kind, x, y, z, radius, alvo, minutes, first, every, speed, kit_id, gold) "
+               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", *vals)
+    db.audit(user["account"], "evento_salvo", nome)
+    return Response(headers={"HX-Redirect": "/eventos"})
+
+
+@app.post("/eventos/{pid}/{acao}", response_class=HTMLResponse)
+def event_preset_action(request: Request, pid: int, acao: str):
+    user = require(request, post=True)
+    if acao == "apagar":
+        db.run("DELETE FROM cockpit_event_presets WHERE id = %s", pid)
+        return Response(headers={"HX-Redirect": "/eventos"})
+    if acao == "rodar":
+        ok, msg = events.run_preset(user["account"], pid, resolve_targets)
+        return toast(msg, ok=ok)
+    return toast("Ação desconhecida.", ok=False)
 
 
 # ---------------------------------------------------------------- raids

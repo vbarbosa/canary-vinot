@@ -229,6 +229,11 @@
     if (e.key === "Enter" && e.target.classList.contains("who-search")) e.preventDefault();
   });
   document.addEventListener("change", e => {
+    if (e.target.id !== "arena-from" || !e.target.value) return;
+    const sel = document.querySelector("#event-form select[name=arena]"), opt = new Option(`📍 ${e.target.selectedOptions[0].text}`, e.target.value, true, true);
+    sel.add(opt);
+  });
+  document.addEventListener("change", e => {
     if (e.target.id !== "place-from" || !e.target.value) return;
     const [x, y, z] = e.target.value.split(","), pf = document.getElementById("place-form");
     Object.assign(pf.elements.x, { value: x }); pf.elements.y.value = y; pf.elements.z.value = z;

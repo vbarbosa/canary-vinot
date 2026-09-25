@@ -36,6 +36,10 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   skill e magic. O painel guarda em `cockpit_settings` e a ponte grava `cockpit-world.lua` ao lado do
   `config.lua` (que carrega esse arquivo por último; a ponte acrescenta essa linha se faltar), recarrega o
   config e troca as tabelas de estágios, sem reiniciar. Na primeira vez o painel aplica o pacote aprovado.
+- Eventos: mini-games rodados pela ponte (`data/scripts/globalevents/cockpit_<tipo>.lua`). O Zombie leva a
+  turma para uma arena (um lugar salvo ou a posição de alguém), solta zombies que ficam mais numerosos, e
+  quem é tocado ou sai do raio está fora; o último de pé leva o prêmio (kit e/ou gold). Eventos prontos
+  podem ser agendados na Agenda. Resultados em `cockpit_events`.
 - Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
   passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
   (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do

@@ -140,6 +140,34 @@ SCHEMA += [
         `cmd_id` BIGINT UNSIGNED NOT NULL DEFAULT 0,
         PRIMARY KEY (`house_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_events` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `kind` VARCHAR(16) NOT NULL,
+        `name` VARCHAR(64) NOT NULL DEFAULT '',
+        `started_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        `ended_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        `status` VARCHAR(16) NOT NULL DEFAULT 'queued',
+        `players` VARCHAR(2000) NOT NULL DEFAULT '',
+        `winners` VARCHAR(1000) NOT NULL DEFAULT '',
+        `details` VARCHAR(2000) NOT NULL DEFAULT '',
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_event_presets` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(64) NOT NULL,
+        `kind` VARCHAR(16) NOT NULL,
+        `x` INT NOT NULL, `y` INT NOT NULL, `z` INT NOT NULL,
+        `radius` INT NOT NULL DEFAULT 8,
+        `alvo` VARCHAR(16) NOT NULL DEFAULT 'turma',
+        `minutes` INT NOT NULL DEFAULT 5,
+        `first` INT NOT NULL DEFAULT 2,
+        `every` INT NOT NULL DEFAULT 30,
+        `speed` INT NOT NULL DEFAULT 100,
+        `kit_id` INT NOT NULL DEFAULT 0,
+        `gold` BIGINT NOT NULL DEFAULT 0,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_house_log` (
         `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         `ts` INT UNSIGNED NOT NULL,

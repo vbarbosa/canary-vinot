@@ -386,3 +386,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .hero-nums a { text-decoration: none; color: inherit; border-radius: .4rem; }
 .hero-nums a:hover strong { color: var(--pico-primary); }
 p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }
+/* Eventos */
+.kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+.kind { margin: 0; padding: .7rem .9rem; display: flex; flex-direction: column; gap: .2rem; border: 1px solid #3a3326; }
+.kind.ready { border-color: #8a7440; }
+.kind.soon { opacity: .6; }
+.live-event { border-color: #199e70; }
+.save-preset { margin-top: .8rem; }
+.save-preset .row input, .save-preset .row select { margin: 0; }

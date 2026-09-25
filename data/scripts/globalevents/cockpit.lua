@@ -373,6 +373,41 @@ globalActions.start_raid = function(cmd)
 	return true, "raid solta"
 end
 
+-- Mini-games (scripts in cockpit_<kind>.lua). arg1-3 = arena centre, arg4 = radius,
+-- text = "id=..;kind=..;players=A|B;seconds=..;first=..;every=..;speed=..;prize=id:count,..;gold=.."
+globalActions.event_start = function(cmd)
+	local cfg = {}
+	for k, v in cmd.text:gmatch("(%w+)=([^;]*)") do
+		cfg[k] = v
+	end
+	local game = CockpitEvents and CockpitEvents[cfg.kind or ""]
+	if not game then
+		return false, "evento desconhecido"
+	end
+	local names = {}
+	for name in (cfg.players or ""):gmatch("[^|]+") do
+		names[#names + 1] = name
+	end
+	local id = tonumber(cfg.id) or 0
+	local ok, msg = game.start({
+		center = Position(cmd.arg1, cmd.arg2, cmd.arg3), radius = cmd.arg4, names = names, eventId = id,
+		seconds = tonumber(cfg.seconds) or 300, first = tonumber(cfg.first) or 2, every = tonumber(cfg.every) or 30,
+		speed = tonumber(cfg.speed) or 100, prize = cfg.prize or "", gold = tonumber(cfg.gold) or 0,
+	})
+	db.query(string.format("UPDATE `cockpit_events` SET `status` = %s, `details` = %s WHERE `id` = %d",
+		db.escapeString(ok and "running" or "error"), db.escapeString(msg), id))
+	return ok, msg
+end
+
+-- text = kind
+globalActions.event_stop = function(cmd)
+	local game = CockpitEvents and CockpitEvents[cmd.text]
+	if not game then
+		return false, "evento desconhecido"
+	end
+	return game.stop()
+end
+
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
