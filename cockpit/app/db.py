@@ -74,6 +74,36 @@ SCHEMA = [
         `items` VARCHAR(2048) NOT NULL DEFAULT '',
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    # One row per minute, written by the panel itself (scheduler.py); kept 7 days.
+    """CREATE TABLE IF NOT EXISTS `cockpit_host_metrics` (
+        `ts` INT UNSIGNED NOT NULL,
+        `cpu` FLOAT NULL,
+        `mem` FLOAT NULL,
+        `load1` FLOAT NULL,
+        `disk` FLOAT NULL,
+        `game_ms` INT NULL,
+        `login_ms` INT NULL,
+        PRIMARY KEY (`ts`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_schedules` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(64) NOT NULL,
+        `action` VARCHAR(32) NOT NULL,
+        `alvo` VARCHAR(16) NOT NULL DEFAULT '',
+        `arg1` BIGINT NOT NULL DEFAULT 0,
+        `arg2` BIGINT NOT NULL DEFAULT 0,
+        `text` VARCHAR(500) NOT NULL DEFAULT '',
+        `kind` VARCHAR(16) NOT NULL,
+        `every_min` INT NOT NULL DEFAULT 0,
+        `at_time` VARCHAR(5) NOT NULL DEFAULT '',
+        `weekdays` VARCHAR(7) NOT NULL DEFAULT '',
+        `enabled` TINYINT NOT NULL DEFAULT 1,
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        `last_run` INT UNSIGNED NOT NULL DEFAULT 0,
+        `next_run` INT UNSIGNED NOT NULL DEFAULT 0,
+        `last_result` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 

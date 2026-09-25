@@ -20,6 +20,12 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   vêm da tabela `cockpit_metrics`, que a ponte Lua grava a cada minuto (guarda 7 dias).
 - Logs: o painel lê só os arquivos dentro das pastas de `COCKPIT_LOG_DIRS`
   (padrão: `logs/` do servidor e `data/logs/` dos comandos de GM), em modo somente leitura.
+- Agenda: tarefas que o painel roda sozinho (salvar, anúncio, limpar o chão, presentes, abrir e
+  fechar o servidor). Quem executa é o próprio painel, uma vez por minuto, em horário de Brasília
+  (`COCKPIT_TZ`). Com o painel desligado, as tarefas esperam ele voltar.
+- Gráficos: o painel grava CPU, memória, carga, disco e o tempo de resposta do jogo a cada minuto
+  em `cockpit_host_metrics` (7 dias). Os gráficos usam uPlot, copiado em `app/static`.
+- Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle
 

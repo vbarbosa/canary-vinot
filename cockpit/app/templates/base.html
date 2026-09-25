@@ -4,22 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Cockpit{% endblock %} · VinOT</title>
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
   <link rel="stylesheet" href="/static/pico.min.css">
   <link rel="stylesheet" href="/static/cockpit.css">
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/Sortable.min.js" defer></script>
   <script src="/static/cockpit.js" defer></script>
+  {% block head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRF-Token": "{{ user.csrf if user else "" }}"}'>
   {% if user %}
   <nav class="top container-fluid">
-    <ul><li><a href="/" class="brand">⚔ Cockpit VinOT</a></li></ul>
+    <ul><li><a href="/" class="brand"><img src="/static/logo.svg" alt="VinOT" class="nav-logo"> <span>Cockpit</span></a></li></ul>
     <ul>
       <li><a href="/">Visão geral</a></li>
       <li><a href="/turma">A Turma</a></li>
       <li><a href="/jogadores">Jogadores</a></li>
       <li><a href="/contas">Contas</a></li>
       <li><a href="/kits">Kits</a></li>
+      <li><a href="/agenda">Agenda</a></li>
       <li><a href="/metricas">Métricas</a></li>
       <li><a href="/logs">Logs</a></li>
       <li><a href="/historico">Histórico</a></li>

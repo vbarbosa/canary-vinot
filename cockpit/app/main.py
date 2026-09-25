@@ -5,6 +5,7 @@ SortableJS does drag and drop. Anything that touches a live player is queued in
 `cockpit_commands` and executed by data/scripts/globalevents/cockpit.lua.
 """
 
+import datetime as dt
 import hashlib
 import html
 import hmac
@@ -13,6 +14,7 @@ import re
 import secrets
 import time
 from collections import defaultdict
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -20,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db, gamedata, system
+from . import db, gamedata, scheduler, system
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -44,6 +46,8 @@ templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(tim
 @app.on_event("startup")
 def startup():
     db.init_schema()
+    if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
+        scheduler.start(dispatch)
 
 
 # ---------------------------------------------------------------- auth
@@ -207,7 +211,26 @@ GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}, "close_server": {}, "
 @app.get("/", response_class=HTMLResponse)
 def overview(request: Request):
     user = require(request)
-    return page(request, "overview.html", user, bridge=bridge_status(), effects=gamedata.EFFECTS)
+    top = db.all("SELECT id, name, level, vocation FROM players WHERE group_id < 4 ORDER BY level DESC, experience DESC LIMIT 5")
+    jobs = db.all("SELECT * FROM cockpit_schedules WHERE enabled = 1 AND next_run > 0 ORDER BY next_run LIMIT 4")
+    for j in jobs:
+        j["when"] = scheduler.describe(j)
+    kits = db.all("SELECT id, name FROM cockpit_kits ORDER BY name LIMIT 6")
+    return page(request, "overview.html", user, top=top, jobs=jobs, kits=kits, hour=dt.datetime.now(scheduler.TZ).hour)
+
+
+@app.get("/parts/hero", response_class=HTMLResponse)
+def part_hero(request: Request):
+    user = require(request)
+    services = {s["name"]: s for s in system.services()}
+    last = db.one("SELECT players, started_at, ts FROM cockpit_metrics ORDER BY ts DESC LIMIT 1")
+    peak = db.one("SELECT COALESCE(MAX(players), 0) AS n FROM cockpit_metrics WHERE ts >= %s", int(time.time()) - 86400)
+    counts = db.one("SELECT (SELECT COUNT(*) FROM accounts) AS accounts, (SELECT COUNT(*) FROM players) AS players")
+    online = db.one("SELECT COUNT(*) AS n FROM cockpit_online")
+    return page(
+        request, "_hero.html", user, game=services.get("Jogo"), login=services.get("Login"), bridge=bridge_status(), last=last,
+        peak=peak["n"], counts=counts, online=online["n"], host=system.host(),
+    )
 
 
 @app.get("/parts/online", response_class=HTMLResponse)
@@ -217,15 +240,23 @@ def part_online(request: Request):
     return page(request, "_online.html", user, rows=rows, bridge=bridge_status())
 
 
+ACTION_LABELS = {
+    "give_item": "🎁 item", "give_money": "💰 dinheiro", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
+    "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
+    "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão",
+}
+
+
 @app.get("/parts/feed", response_class=HTMLResponse)
-def part_feed(request: Request, alvo: str = ""):
+def part_feed(request: Request, alvo: str = "", n: int = 20):
     user = require(request)
     if alvo.isdigit():
         p = db.one("SELECT name FROM players WHERE id = %s", int(alvo))
         rows = db.all("SELECT * FROM cockpit_commands WHERE target = %s ORDER BY id DESC LIMIT 15", p["name"] if p else "")
     else:
-        rows = db.all("SELECT * FROM cockpit_commands ORDER BY id DESC LIMIT 20")
-    return page(request, "_feed.html", user, rows=rows, names=gamedata.item_names())
+        rows = db.all("SELECT * FROM cockpit_commands ORDER BY id DESC LIMIT %s", clamp(n, 1, 50))
+    return page(request, "_feed.html", user, rows=rows, names=gamedata.item_names(), labels=ACTION_LABELS)
 
 
 @app.get("/jogadores", response_class=HTMLResponse)
@@ -379,53 +410,156 @@ def history(request: Request):
 # ---------------------------------------------------------------- the one action endpoint
 
 
-@app.post("/acao", response_class=HTMLResponse)
-async def action(request: Request):
-    user = require(request, post=True)
-    form = await request.form()
-    name = form.get("action", "")
-    alvo = str(form.get("alvo", ""))
-    text = str(form.get("text", "")).strip()[:500]
-
+def dispatch(actor, name, alvo, text, form, me=""):
+    """Validate one panel action against the allowlist and queue it. Returns (ok, message)."""
     if name in GLOBAL_ACTIONS:
         if GLOBAL_ACTIONS[name].get("text") and not text:
-            return toast("Escreva a mensagem.", ok=False)
-        db.enqueue(user["account"], name, text=text)
-        return toast("Enviado ao servidor.")
+            return False, "Escreva a mensagem."
+        db.enqueue(actor, name, text=text)
+        return True, "Enviado ao servidor."
 
     if name == "give_kit":
         kit = db.one("SELECT * FROM cockpit_kits WHERE id = %s", clamp(form.get("arg1"), 0, 10**9))
         if not kit:
-            return toast("Kit não encontrado.", ok=False)
+            return False, "Kit não encontrado."
         targets = resolve_targets(alvo)
         for t in targets:
             for part in kit["items"].split(","):
                 i, c = part.split(":")
-                db.enqueue(user["account"], "give_item", t, int(i), int(c))
-        return toast(f"{kit['name']} enviado para {len(targets)} jogador(es).")
+                db.enqueue(actor, "give_item", t, int(i), int(c))
+        return True, f"{kit['name']} enviado para {len(targets)} jogador(es)."
 
     spec = ACTIONS.get(name)
     if spec is None:
-        return toast("Ação não permitida.", ok=False)
+        return False, "Ação não permitida."
     if spec.get("text") and not text:
-        return toast("Escreva a mensagem.", ok=False)
+        return False, "Escreva a mensagem."
     args = {k: clamp(form.get(k), *spec[k]) if k in spec else 0 for k in ("arg1", "arg2", "arg3", "arg4")}
     if name == "give_item" and args["arg1"] not in gamedata.item_names():
-        return toast("Item desconhecido.", ok=False)
+        return False, "Item desconhecido."
     if name == "summon_to":
-        text = user["me"]
+        if not me:
+            return False, "Ação não permitida."
+        text = me
     if name == "set_outfit":
         text = ",".join(str(clamp(form.get(k), 0, 132)) for k in ("head", "body", "legs", "feet"))
 
     targets = resolve_targets(alvo)
     if not targets:
-        return toast("Ninguém para receber.", ok=False)
+        return False, "Ninguém para receber."
     for t in targets:
-        db.enqueue(user["account"], name, t, text=text, **args)
+        db.enqueue(actor, name, t, text=text, **args)
     label = targets[0] if len(targets) == 1 else f"{len(targets)} jogadores"
     offline = [t for t in targets if t not in online_names()]
     note = " Quem está offline recebe ao logar." if offline and name not in ("kick", "heal", "temple", "summon_to", "effect", "say_over") else ""
-    return toast(f"Enviado para {label}.{note}")
+    return True, f"Enviado para {label}.{note}"
+
+
+@app.post("/acao", response_class=HTMLResponse)
+async def action(request: Request):
+    user = require(request, post=True)
+    form = await request.form()
+    ok, msg = dispatch(
+        user["account"], form.get("action", ""), str(form.get("alvo", "")), str(form.get("text", "")).strip()[:500], form, me=user["me"]
+    )
+    return toast(msg, ok)
+
+
+# ---------------------------------------------------------------- scheduler
+
+TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+def schedules_page(request, user, msg=None):
+    jobs = db.all("SELECT * FROM cockpit_schedules ORDER BY enabled DESC, next_run, id")
+    for j in jobs:
+        j["when"] = scheduler.describe(j)
+    kits = db.all("SELECT id, name FROM cockpit_kits ORDER BY name")
+    return page(request, "schedules.html", user, jobs=jobs, kits=kits, job_actions=scheduler.JOB_ACTIONS,
+                weekdays=scheduler.WEEKDAYS, msg=msg, kit_names={k["id"]: k["name"] for k in kits}, names=gamedata.item_names())
+
+
+@app.get("/agenda", response_class=HTMLResponse)
+def schedules(request: Request):
+    return schedules_page(request, require(request))
+
+
+@app.post("/agenda", response_class=HTMLResponse)
+async def schedule_create(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    name = str(f.get("nome", "")).strip()[:64]
+    action = f.get("acao", "")
+    alvo = f.get("alvo", "turma") if f.get("alvo") in ("turma", "todos") else "turma"
+    text = str(f.get("texto", "")).strip()[:500]
+    kind = f.get("tipo", "")
+    arg1, arg2 = clamp(f.get("arg1"), 0, 10**9), clamp(f.get("arg2"), 1, 1000)
+    if action not in scheduler.JOB_ACTIONS or kind not in ("interval", "daily", "weekly"):
+        return toast("Escolha o que fazer e quando.", ok=False)
+    if action == "broadcast" and not text:
+        return toast("Escreva a mensagem do anúncio.", ok=False)
+    if action == "give_kit" and not db.one("SELECT id FROM cockpit_kits WHERE id = %s", arg1):
+        return toast("Escolha um kit.", ok=False)
+    if action == "give_item" and arg1 not in gamedata.item_names():
+        return toast("Item desconhecido.", ok=False)
+    job = {"kind": kind, "every_min": clamp(f.get("minutos"), 5, 10080), "at_time": str(f.get("hora", "")),
+           "weekdays": "".join(sorted({d for d in f.getlist("dias") if d in "0123456" and len(d) == 1})), "last_run": 0}
+    if kind != "interval" and not TIME_RE.match(job["at_time"]):
+        return toast("Hora inválida (use HH:MM).", ok=False)
+    if kind == "weekly" and not job["weekdays"]:
+        return toast("Marque pelo menos um dia da semana.", ok=False)
+    same = db.one(
+        "SELECT name FROM cockpit_schedules WHERE action = %s AND alvo = %s AND arg1 = %s AND text = %s AND kind = %s AND every_min = %s AND at_time = %s AND weekdays = %s",
+        action, alvo, arg1, text, kind, job["every_min"], job["at_time"], job["weekdays"],
+    )
+    if same:
+        return toast(f"Essa tarefa já existe: {same['name']}.", ok=False)
+    now = int(time.time())
+    nxt = scheduler.next_run(job, now)
+    db.run(
+        "INSERT INTO cockpit_schedules (name, action, alvo, arg1, arg2, text, kind, every_min, at_time, weekdays, created_by, next_run) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        name or scheduler.JOB_ACTIONS[action], action, alvo, arg1, arg2, text, kind, job["every_min"], job["at_time"], job["weekdays"],
+        user["account"], nxt,
+    )
+    db.audit(user["account"], "schedule_create", name or action, scheduler.describe(job))
+    return Response(headers={"HX-Redirect": "/agenda"})
+
+
+def _job(sid):
+    job = db.one("SELECT * FROM cockpit_schedules WHERE id = %s", sid)
+    if not job:
+        raise HTTPException(404)
+    return job
+
+
+@app.post("/agenda/{sid}/ligar", response_class=HTMLResponse)
+def schedule_toggle(request: Request, sid: int):
+    user = require(request, post=True)
+    job = _job(sid)
+    on = 0 if job["enabled"] else 1
+    job["last_run"] = 0
+    db.run("UPDATE cockpit_schedules SET enabled = %s, next_run = %s WHERE id = %s", on, scheduler.next_run(job, int(time.time())) if on else 0, sid)
+    db.audit(user["account"], "schedule_on" if on else "schedule_off", job["name"])
+    return Response(headers={"HX-Redirect": "/agenda"})
+
+
+@app.post("/agenda/{sid}/rodar", response_class=HTMLResponse)
+def schedule_run_now(request: Request, sid: int):
+    user = require(request, post=True)
+    job = _job(sid)
+    ok, msg = scheduler.run_job(job, dispatch)
+    db.audit(user["account"], "schedule_run", job["name"], msg)
+    return toast(f"{job['name']}: {msg}", ok)
+
+
+@app.post("/agenda/{sid}/apagar", response_class=HTMLResponse)
+def schedule_delete(request: Request, sid: int):
+    user = require(request, post=True)
+    job = _job(sid)
+    db.run("DELETE FROM cockpit_schedules WHERE id = %s", sid)
+    db.audit(user["account"], "schedule_delete", job["name"])
+    return Response(headers={"HX-Redirect": "/agenda"})
 
 
 # ---------------------------------------------------------------- accounts and characters
@@ -667,26 +801,71 @@ def part_metrics(request: Request):
     online = db.one("SELECT COUNT(*) AS n, MAX(updated_at) AS t FROM cockpit_online")
     return page(
         request, "_metrics.html", user, host=system.host(), services=system.services(), last=last, counts=counts, online=online,
-        spark=system.sparkline([r["players"] for r in rows]), peak=max((r["players"] for r in rows), default=0),
-        spark_monsters=system.sparkline([r["monsters"] for r in rows]),
+        peak=max((r["players"] for r in rows), default=0),
     )
 
 
+PERIODS = {"1h": (3600, 60), "6h": (6 * 3600, 300), "24h": (86400, 600), "7d": (7 * 86400, 3600)}
+
+
+@app.get("/metricas/dados")
+def metrics_data(request: Request, periodo: str = "6h"):
+    """Time series for the charts, averaged into buckets so every period draws a few hundred points at most."""
+    require(request)
+    span, step = PERIODS.get(periodo, PERIODS["6h"])
+    since = int(time.time()) - span
+    host = db.all(
+        "SELECT ts DIV %s * %s AS t, AVG(cpu) AS cpu, AVG(mem) AS mem, AVG(load1) AS load1, AVG(disk) AS disk, AVG(game_ms) AS game_ms "
+        "FROM cockpit_host_metrics WHERE ts >= %s GROUP BY t ORDER BY t", step, step, since,
+    )
+    game = db.all(
+        "SELECT ts DIV %s * %s AS t, MAX(players) AS players, AVG(monsters) AS monsters, AVG(lua_kb) AS lua_kb "
+        "FROM cockpit_metrics WHERE ts >= %s GROUP BY t ORDER BY t", step, step, since,
+    )
+
+    def col(rows, key, scale=1.0, nd=1):
+        return [None if r[key] is None else round(float(r[key]) * scale, nd) for r in rows]
+
+    return {
+        "since": since, "step": step,
+        "host": {"t": [int(r["t"]) for r in host], "cpu": col(host, "cpu"), "mem": col(host, "mem"), "load": col(host, "load1", nd=2),
+                 "disk": col(host, "disk"), "game_ms": col(host, "game_ms", nd=0)},
+        "game": {"t": [int(r["t"]) for r in game], "players": col(game, "players", nd=0), "monsters": col(game, "monsters", nd=0),
+                 "lua_mb": col(game, "lua_kb", 1 / 1024, 1)},
+    }
+
+
+def _log_selection(pasta, arquivo, linhas=500, filtro=""):
+    path = system.log_path(pasta, arquivo)
+    if not path:
+        return None, []
+    st = os.stat(path)
+    sel = {"pasta": pasta, "arquivo": arquivo, "size": st.st_size, "mtime": int(st.st_mtime), "active": system.is_active(st.st_mtime)}
+    return sel, [(line, system.level(line)) for line in system.tail(path, linhas, filtro)]
+
+
 @app.get("/logs", response_class=HTMLResponse)
-def logs(request: Request):
+def logs(request: Request, pasta: str = "", arquivo: str = ""):
     user = require(request)
-    return page(request, "logs.html", user, dirs=system.log_files())
+    dirs = system.log_files()
+    if not arquivo:
+        newest = max(((d["label"], f) for d in dirs for f in d["files"]), key=lambda x: x[1]["mtime"], default=None)
+        if newest:
+            pasta, arquivo = newest[0], newest[1]["name"]
+    sel, rows = _log_selection(pasta, arquivo) if arquivo else (None, [])
+    return page(request, "logs.html", user, dirs=dirs, sel=sel, rows=rows, linhas=500, filtro="")
 
 
 @app.get("/logs/ver", response_class=HTMLResponse)
 def log_view(request: Request, pasta: str, arquivo: str, linhas: int = 500, filtro: str = ""):
     user = require(request)
-    path = system.log_path(pasta, arquivo)
-    if not path:
+    sel, rows = _log_selection(pasta, arquivo, linhas, filtro)
+    if not sel:
         raise HTTPException(404)
-    rows = [(line, system.level(line)) for line in system.tail(path, linhas, filtro)]
-    name = "_log_lines.html" if request.headers.get("HX-Request") else "log_view.html"
-    return page(request, name, user, rows=rows, pasta=pasta, arquivo=arquivo, linhas=linhas, filtro=filtro)
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse(f"/logs?pasta={quote(pasta)}&arquivo={quote(arquivo)}", 303)
+    name = "_log_lines.html" if request.headers.get("HX-Target") == "lines" else "_log_viewer.html"
+    return page(request, name, user, rows=rows, sel=sel, linhas=linhas, filtro=filtro)
 
 
 @app.get("/logs/baixar")

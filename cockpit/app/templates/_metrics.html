@@ -19,11 +19,6 @@
 </div>
 
 <div class="stats">
-  <article class="stat wide"><small class="muted">Jogadores online nas últimas 24h</small>
-    {% if spark %}<svg viewBox="0 0 300 48" preserveAspectRatio="none" class="spark"><polyline points="{{ spark }}"/></svg>{% else %}<p class="muted small">Os dados aparecem depois do primeiro minuto com a ponte ligada.</p>{% endif %}</article>
-  <article class="stat wide"><small class="muted">Monstros vivos no mapa (24h)</small>
-    {% if spark_monsters %}<svg viewBox="0 0 300 48" preserveAspectRatio="none" class="spark"><polyline points="{{ spark_monsters }}"/></svg>{% endif %}
-    <small class="muted">agora: {{ last.monsters if last else '—' }} monstros · {{ last.npcs if last else '—' }} NPCs · Lua {{ hb((last.lua_kb or 0) * 1024) if last else '—' }}</small></article>
+  <article class="stat"><small class="muted">No mapa agora</small><strong>{{ last.monsters if last else '—' }}</strong><small class="muted">monstros · {{ last.npcs if last else '—' }} NPCs</small></article>
   <article class="stat"><small class="muted">Banco de dados</small><strong>{{ hb(counts.db_size|int) }}</strong><small class="muted">{{ counts.accounts }} contas · {{ counts.players }} personagens</small></article>
 </div>
-<p class="muted small">CPU, memória e disco são da VM inteira, incluindo seus outros projetos.</p>

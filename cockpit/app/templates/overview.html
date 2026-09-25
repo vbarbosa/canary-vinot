@@ -1,27 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="grid2">
-  <section>
-    <h3>Quem está online</h3>
-    <div hx-get="/parts/online" hx-trigger="load, every 3s">…</div>
-  </section>
-  <section>
-    <h3>Voz do Mestre</h3>
-    <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
-      <input type="hidden" name="action" value="broadcast">
-      <textarea name="text" rows="2" placeholder="Ex.: Uma sombra cobre Thais... algo se aproxima!" required></textarea>
-      <button type="submit">Anunciar na tela de todos</button>
-    </form>
-    <h3>Servidor</h3>
-    <div class="row wrap">
-      <button class="secondary" hx-post="/acao" hx-vals='{"action":"save"}' hx-target="#toast">Salvar o jogo agora</button>
-      <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"clean_map"}' hx-target="#toast" hx-confirm="Limpar os itens jogados no chão do mapa todo?">Limpar o chão do mapa</button>
-      <button class="outline danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar.">Fechar servidor</button>
-      <button class="outline" hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast">Abrir servidor</button>
-      <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"effect","alvo":"todos","arg1":"30"}' hx-target="#toast">Fogos em todo mundo</button>
+<section class="hero">
+  <img src="/static/emblem.svg" alt="" class="hero-emblem">
+  <div class="hero-text">
+    <p class="greet">{{ 'Bom dia' if hour < 12 else 'Boa tarde' if hour < 18 else 'Boa noite' }}, {{ user.me }}.</p>
+    <h1><img src="/static/wordmark.svg" alt="VinOT" class="hero-logo"></h1>
+    <p class="muted">O mundo do Vinicius. Tibia 13.40, só para a turma.</p>
+  </div>
+  <div class="hero-status" hx-get="/parts/hero" hx-trigger="load, every 10s"></div>
+</section>
+
+<div class="portal">
+  <div class="col-main">
+    <article class="panel">
+      <header class="row"><h4>⚔ No mundo agora</h4><a href="/jogadores" class="right small">todos os jogadores →</a></header>
+      <div hx-get="/parts/online" hx-trigger="load, every 3s"><p class="muted">…</p></div>
+    </article>
+
+    <div class="grid2 tight">
+      <article class="panel">
+        <header><h4>🏆 Ranking</h4></header>
+        <ol class="ranking">
+          {% for p in top %}
+          <li><span class="medal">{{ ['🥇', '🥈', '🥉'][loop.index0] if loop.index0 < 3 else loop.index }}</span>
+            <a href="/jogador/{{ p.id }}">{{ p.name }}</a><span class="muted small">{{ vocations.get(p.vocation, '') }}</span><strong class="right">{{ p.level }}</strong></li>
+          {% else %}<li class="muted">Ninguém ainda.</li>{% endfor %}
+        </ol>
+      </article>
+      <article class="panel">
+        <header class="row"><h4>⏱ Próximas tarefas</h4><a href="/agenda" class="right small">agenda →</a></header>
+        <ul class="upcoming">
+          {% for j in jobs %}<li><strong>{{ j.name }}</strong><br><small class="muted"><span data-ts="{{ j.next_run }}"></span> · {{ j.when }}</small></li>
+          {% else %}<li class="muted">Nada agendado. <a href="/agenda">Criar uma tarefa</a></li>{% endfor %}
+        </ul>
+      </article>
     </div>
-    <h3>Últimas ações</h3>
-    <div hx-get="/parts/feed" hx-trigger="load, every 2s">…</div>
-  </section>
+  </div>
+
+  <aside class="col-side">
+    <article class="panel voice">
+      <header><h4>📣 Voz do Mestre</h4></header>
+      <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+        <input type="hidden" name="action" value="broadcast">
+        <textarea name="text" rows="2" placeholder="Uma sombra cobre Thais... algo se aproxima!" required></textarea>
+        <button type="submit">Anunciar para todos</button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header><h4>✨ Ações rápidas</h4></header>
+      <div class="quick">
+        <button hx-post="/acao" hx-vals='{"action":"save"}' hx-target="#toast"><span>💾</span>Salvar</button>
+        <button hx-post="/acao" hx-vals='{"action":"effect","alvo":"todos","arg1":"30"}' hx-target="#toast"><span>🎆</span>Fogos</button>
+        <button hx-post="/acao" hx-vals='{"action":"heal","alvo":"todos"}' hx-target="#toast"><span>💚</span>Curar todos</button>
+        <button hx-post="/acao" hx-vals='{"action":"clean_map"}' hx-target="#toast" hx-confirm="Limpar os itens jogados no chão do mapa todo?"><span>🧹</span>Limpar chão</button>
+        <button hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast"><span>🔓</span>Abrir</button>
+        <button class="danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar."><span>🔒</span>Fechar</button>
+      </div>
+      {% if kits %}
+      <p class="small muted">Presente para a turma:</p>
+      <div class="row wrap">{% for k in kits %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"give_kit","alvo":"turma","arg1":"{{ k.id }}"}' hx-target="#toast">🎁 {{ k.name }}</button>{% endfor %}</div>
+      {% endif %}
+    </article>
+
+    <article class="panel">
+      <header class="row"><h4>📜 Últimas ações</h4><a href="/historico" class="right small">histórico →</a></header>
+      <div hx-get="/parts/feed?n=8" hx-trigger="load, every 2s">…</div>
+    </article>
+  </aside>
 </div>
 {% endblock %}

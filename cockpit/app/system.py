@@ -17,23 +17,23 @@ SERVICES = [
 ]
 MAX_LINES = 2000
 
-_last_cpu = None
+_last_cpu = {}
 
 
-def _cpu_percent():
-    global _last_cpu
+def _cpu_percent(key):
+    """CPU use since the previous call with the same key (the page and the recorder keep separate windows)."""
     with open("/proc/stat") as f:
         vals = [int(v) for v in f.readline().split()[1:]]
     idle, total = vals[3] + vals[4], sum(vals)
-    prev, _last_cpu = _last_cpu, (idle, total)
+    prev, _last_cpu[key] = _last_cpu.get(key), (idle, total)
     if not prev:
         time.sleep(0.2)
-        return _cpu_percent()
+        return _cpu_percent(key)
     d_total = total - prev[1]
     return round(100 * (1 - (idle - prev[0]) / d_total), 1) if d_total else 0.0
 
 
-def host():
+def host(key="page"):
     info = {}
     try:
         mem = {}
@@ -48,7 +48,7 @@ def host():
         with open("/proc/uptime") as f:
             info["uptime"] = int(float(f.read().split()[0]))
         info["cpus"] = os.cpu_count()
-        info["cpu"] = _cpu_percent()
+        info["cpu"] = _cpu_percent(key)
     except OSError:
         pass
     disk = shutil.disk_usage(next((d for d in LOG_DIRS.values() if os.path.isdir(d)), "/"))
@@ -76,10 +76,15 @@ def log_files():
             for e in os.scandir(path):
                 if e.is_file():
                     st = e.stat()
-                    files.append({"name": e.name, "size": st.st_size, "mtime": int(st.st_mtime)})
+                    files.append({"name": e.name, "size": st.st_size, "mtime": int(st.st_mtime), "active": is_active(st.st_mtime)})
         files.sort(key=lambda f: f["mtime"], reverse=True)
         out.append({"label": label, "exists": os.path.isdir(path), "files": files[:200]})
     return out
+
+
+def is_active(mtime):
+    """A log written in the last 10 minutes is still being written; older ones are history."""
+    return time.time() - mtime < 600
 
 
 def log_path(label, name):
@@ -129,12 +134,3 @@ def human_duration(s):
     h, s = divmod(s, 3600)
     m = s // 60
     return (f"{d}d " if d else "") + f"{h}h {m}min"
-
-
-def sparkline(values, width=300, height=48):
-    """SVG polyline points for a small chart (no chart library)."""
-    if len(values) < 2:
-        return ""
-    hi = max(values) or 1
-    step = width / (len(values) - 1)
-    return " ".join(f"{i * step:.1f},{height - (v / hi) * (height - 4) - 2:.1f}" for i, v in enumerate(values))
