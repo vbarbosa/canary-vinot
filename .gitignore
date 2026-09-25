@@ -400,3 +400,4 @@ cmake-build-*
 
 # VinOT portal secrets (SMTP key, session secret)
 docker/portal.env
+docker/downloads/

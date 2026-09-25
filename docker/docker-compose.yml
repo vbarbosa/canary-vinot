@@ -71,6 +71,9 @@ services:
     ports:
       # Only on localhost: the internet reaches it through Cloudflare Tunnel, never directly.
       - '${PORTAL_BIND:-127.0.0.1}:8091:8091'
+    volumes:
+      # Client releases for /baixar: one folder per version (see portal/app/downloads.py).
+      - '${PORTAL_DOWNLOADS_DIR:-./downloads}:/downloads:ro'
     read_only: true
     tmpfs:
       - /tmp
