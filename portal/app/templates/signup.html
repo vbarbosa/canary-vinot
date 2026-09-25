@@ -4,7 +4,7 @@
 {% block main %}
 <section class="wrap section auth-wide">
   <div class="auth-side">
-    <div class="heroes small">{% for id in [4, 3, 1, 2] %}<img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px bob" style="animation-delay: {{ loop.index0 * 0.3 }}s">{% endfor %}</div>
+    <div class="heroes small">{% for id in [4, 3, 1, 2] %}<img src="{{ hero_art[id] }}" alt="" class="px d{{ loop.index0 }}">{% endfor %}</div>
     <h1>Crie sua conta</h1>
     <p>Leva um minuto. Depois é só confirmar o e-mail, baixar o cliente e entrar.</p>
     <ul class="checks">
@@ -64,7 +64,7 @@
         {% for id, name in vocations.items() %}
         <label class="voc-option">
           <input type="radio" name="vocacao" value="{{ id }}" {{ 'checked' if chosen == id|string }}>
-          <span class="card"><img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px voc-hero"><b>{{ name }}</b><small>{{ blurbs[id] }}</small></span>
+          <span class="card"><img src="{{ hero_art[id] }}" alt="" class="px voc-hero"><b>{{ name }}</b><small>{{ blurbs[id] }}</small></span>
         </label>
         {% endfor %}
       </div>

@@ -57,7 +57,19 @@ VOCATION_BLURB = {
     3: "Arqueiro certeiro que equilibra ataque e defesa.",
     4: "Linha de frente: aguenta a pancada pra turma brilhar.",
 }
-HERO_ART = {1: "hero-sorcerer", 2: "hero-druid", 3: "hero-paladin", 4: "hero-knight"}
+HERO_ART = {1: "/static/heroes/sorcerer.png", 2: "/static/heroes/druid.png", 3: "/static/heroes/paladin.png", 4: "/static/heroes/knight.png"}
+VOC_INFO = {
+    1: {"key": "sorcerer", "role": "Dano mágico", "tags": ["Fogo e energia", "À distância"], "stats": {"Ataque": 5, "Defesa": 1, "Magia": 5, "Cura": 2}},
+    2: {"key": "druid", "role": "Suporte e cura", "tags": ["Gelo e terra", "Cura o grupo"], "stats": {"Ataque": 3, "Defesa": 2, "Magia": 5, "Cura": 5}},
+    3: {"key": "paladin", "role": "Atirador", "tags": ["Arco e besta", "Equilibrado"], "stats": {"Ataque": 4, "Defesa": 3, "Magia": 3, "Cura": 2}},
+    4: {"key": "knight", "role": "Tanque", "tags": ["Corpo a corpo", "Muita vida"], "stats": {"Ataque": 4, "Defesa": 5, "Magia": 1, "Cura": 1}},
+}
+
+
+def hero_img(vocation):
+    base = vocation - 4 if vocation and vocation > 4 else vocation
+    return HERO_ART.get(base, HERO_ART[4])
+
 # Sprites cut from the 13.40 client by tools/extract_creatures.py
 TIERS = {"facil": "Iniciante", "medio": "Intermediário", "dificil": "Difícil", "chefe": "Chefão"}
 CREATURES = [
@@ -134,7 +146,7 @@ def fmt_date(value, with_time=False):
 
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
-    categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART,
+    categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART, hero_img=hero_img, voc_info=VOC_INFO,
     turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open,
 )
 

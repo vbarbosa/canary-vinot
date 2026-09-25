@@ -2,34 +2,34 @@
 {% block body_class %}home{% endblock %}
 {% block main %}
 <section class="hero">
-  <div class="sky" aria-hidden="true"></div>
-  <div class="wrap hero-inner">
-    {% include "_flash.html" %}
-    <img src="/static/px/emblem.svg" alt="" class="px hero-emblem float">
-    <h1>{{ home.heroTitle }}</h1>
-    <p class="lead">{{ home.heroText }}</p>
-    <div class="row center wrap-row">
-      {% if me %}<a href="/conta" class="btn big">Ir pra minha conta</a>
-      {% elif signups_open() %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>
-      {% else %}<a href="/entrar" class="btn big">Entrar</a>{% endif %}
-      <a href="#jogar" class="btn ghost big">Como jogar</a>
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      {% include "_flash.html" %}
+      <span class="badge"><span class="dot {{ 'on' if stats and stats.up else 'off' }}"></span>Tibia 13.40 · {{ 'Servidor online' if stats and stats.up else 'Em manutenção' }}</span>
+      <h1>{{ home.heroTitle }}</h1>
+      <p class="lead">{{ home.heroText }}</p>
+      <div class="row wrap-row">
+        {% if me %}<a href="/conta" class="btn big">Ir pra minha conta</a>
+        {% elif signups_open() %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>
+        {% else %}<a href="/entrar" class="btn big">Entrar</a>{% endif %}
+        <a href="#jogar" class="btn ghost big">Baixar o cliente</a>
+      </div>
+      {% if stats %}
+      <ul class="hero-stats" aria-label="Situação do servidor">
+        <li><b>{{ stats.online }}</b><small>jogando agora</small></li>
+        <li><b>{{ stats.record }}</b><small>recorde online</small></li>
+        <li><b>{{ stats.chars }}</b><small>aventureiros</small></li>
+      </ul>
+      {% endif %}
     </div>
-    {% if stats %}
-    <ul class="stats" aria-label="Situação do servidor">
-      <li><span class="dot {{ 'on' if stats.up else 'off' }}"></span><b>{{ 'Online' if stats.up else 'Em manutenção' }}</b><small>servidor</small></li>
-      <li><b>{{ stats.online }}</b><small>jogando agora</small></li>
-      <li><b>{{ stats.record }}</b><small>recorde online</small></li>
-      <li><b>{{ stats.chars }}</b><small>aventureiros</small></li>
-    </ul>
-    {% endif %}
-  </div>
-  <div class="party" aria-hidden="true">
-    <div class="heroes">
-      {% for id in [4, 3, 1, 2] %}<img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px hero-sprite bob" style="animation-delay: {{ loop.index0 * 0.3 }}s">{% endfor %}
-    </div>
-    <div class="foes">
-      <img src="/static/creatures/dragon.png" alt="" class="px foe float">
-      <img src="/static/creatures/demon.png" alt="" class="px foe big">
+    <div class="hero-art" aria-hidden="true">
+      <div class="glow"></div>
+      <img src="/static/creatures/dragon-lord.png" alt="" class="px boss">
+      <div class="party">
+        {% for id in [4, 3, 1, 2] %}<img src="{{ hero_art[id] }}" alt="" class="px d{{ loop.index0 }}">{% endfor %}
+      </div>
+      <div class="platform"></div>
     </div>
   </div>
 </section>
@@ -38,85 +38,125 @@
 <section class="wrap promos">
   {% for p in promos %}
   <a class="promo" href="/noticias/{{ p.slug }}">
-    <img src="/static/px/{{ 'gift' if p.category == 'promocao' else 'skull' }}.svg" alt="" class="px s40 wiggle">
+    <span class="promo-icon"><img src="/static/px/{{ 'gift' if p.category == 'promocao' else 'skull' }}.svg" alt="" class="px"></span>
     <div><small>{{ categories.get(p.category) }}{% if p.endsAt %} · até {{ p.endsAt | date(true) }}{% endif %}</small><b>{{ p.title }}</b>{% if p.excerpt %}<span>{{ p.excerpt }}</span>{% endif %}</div>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">→</span>
   </a>
   {% endfor %}
 </section>
 {% endif %}
 
-<section class="wrap section">
-  <h2 class="title"><img src="/static/px/chest.svg" alt="" class="px s32"> O que tem no VinOT</h2>
-  <div class="features">
-    {% for f in home.features %}
-    <div class="card feature">
-      <img src="/static/px/{{ f.icon or 'chest' }}.svg" alt="" class="px s48">
-      <h3>{{ f.title }}</h3>
-      <p>{{ f.text }}</p>
-    </div>
-    {% endfor %}
-  </div>
-</section>
+<div class="wrap portal">
+  <div class="portal-main">
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Novidades</span><h2>Últimas notícias</h2></div>
+        <a href="/noticias" class="more">Ver todas</a>
+      </div>
+      <div class="posts">
+        {% for p in posts %}{% include "_post_card.html" %}{% else %}<p class="muted">Nenhuma notícia ainda.</p>{% endfor %}
+      </div>
+    </section>
 
-<section class="band">
+    <section class="section">
+      <div class="section-head"><div><span class="eyebrow">O servidor</span><h2>O que tem no VinOT</h2></div></div>
+      <div class="features">
+        {% for f in home.features %}
+        <div class="card feature">
+          <span class="icon-ring"><img src="/static/px/{{ f.icon or 'chest' }}.svg" alt="" class="px"></span>
+          <div><h3>{{ f.title }}</h3><p>{{ f.text }}</p></div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="sidebar">
+    <div class="box">
+      <h3 class="box-title">Status do servidor</h3>
+      <ul class="kv">
+        <li><span>Situação</span><b class="status {{ 'on' if stats and stats.up else 'off' }}">{{ 'Online' if stats and stats.up else 'Offline' }}</b></li>
+        <li><span>Jogando agora</span><b>{{ stats.online if stats else '—' }}</b></li>
+        <li><span>Recorde</span><b>{{ stats.record if stats else '—' }}</b></li>
+        <li><span>Versão</span><b>13.40</b></li>
+      </ul>
+    </div>
+
+    <div class="box">
+      {% if me %}
+      <h3 class="box-title">Sua conta</h3>
+      <p class="muted small">Você já está conectado.</p>
+      <a href="/conta" class="btn block">Minha conta</a>
+      {% else %}
+      <h3 class="box-title">Acesso à conta</h3>
+      <a href="/entrar" class="btn block">Entrar</a>
+      {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
+      <a href="/esqueci" class="box-link">Esqueci a senha</a>
+      {% endif %}
+    </div>
+
+    <div class="box">
+      <h3 class="box-title">Top 5 level</h3>
+      <ol class="toplist">
+        {% for p in top %}
+        <li><span class="rank">{{ loop.index }}</span><img src="{{ hero_img(p.vocation) }}" alt="" class="px"><span>{{ p.name }}<small>{{ vocation_names.get(p.vocation, '') }}</small></span><b>{{ p.level }}</b></li>
+        {% else %}<li class="muted small">O ranking aparece quando a turma começar a jogar.</li>{% endfor %}
+      </ol>
+      <a href="/ranking" class="box-link">Ranking completo</a>
+    </div>
+  </aside>
+</div>
+
+<section class="band" id="vocacoes">
   <div class="wrap section">
-    <h2 class="title"><img src="/static/px/sword.svg" alt="" class="px s32"> Escolha sua vocação</h2>
+    <div class="section-head center"><div><span class="eyebrow">Escolha seu caminho</span><h2>Vocações</h2></div></div>
     <div class="vocations">
       {% for id, name in vocations.items() %}
-      <a class="card vocation" href="/criar-conta?vocacao={{ id }}">
-        <div class="stage"><img src="/static/px/{{ hero_art[id] }}.svg" alt="" class="px hero-card"></div>
-        <h3>{{ name }}</h3>
-        <p>{{ blurbs[id] }}</p>
+      {% set v = voc_info[id] %}
+      <a class="vocation v-{{ v.key }}" href="/criar-conta?vocacao={{ id }}">
+        <div class="voc-art"><img src="{{ hero_art[id] }}" alt="" class="px"></div>
+        <div class="voc-body">
+          <span class="voc-role">{{ v.role }}</span>
+          <h3>{{ name }}</h3>
+          <p>{{ blurbs[id] }}</p>
+          <ul class="bars">
+            {% for label, val in v.stats.items() %}<li><span>{{ label }}</span><i class="lv{{ val }}"></i></li>{% endfor %}
+          </ul>
+          <div class="voc-tags">{% for t in v.tags %}<span>{{ t }}</span>{% endfor %}</div>
+        </div>
       </a>
       {% endfor %}
     </div>
   </div>
 </section>
 
-<section class="wrap section">
-  <h2 class="title"><img src="/static/px/skull.svg" alt="" class="px s32"> Criaturas que te esperam</h2>
-  <p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p>
-  <div class="bestiary">
+<section class="wrap section" id="bestiario">
+  <div class="section-head">
+    <div><span class="eyebrow">Bestiário</span><h2>Criaturas que te esperam</h2><p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p></div>
+  </div>
+  <div class="bestiary" tabindex="0" aria-label="Criaturas">
     {% for slug, name, tier, blurb in creatures %}
-    <div class="card creature tier-{{ tier }}">
+    <div class="creature tier-{{ tier }}">
       <div class="lair"><img src="/static/creatures/{{ slug }}.png" alt="{{ name }}" class="px"></div>
-      <span class="tag tier">{{ tiers[tier] }}</span>
-      <h3>{{ name }}</h3>
-      <p>{{ blurb }}</p>
+      <div class="creature-body">
+        <span class="tier-chip">{{ tiers[tier] }}</span>
+        <h3>{{ name }}</h3>
+        <p>{{ blurb }}</p>
+      </div>
     </div>
     {% endfor %}
   </div>
 </section>
 
-<section class="wrap section two-col">
-  <div>
-    <h2 class="title"><img src="/static/px/scroll.svg" alt="" class="px s32"> Últimas notícias</h2>
-    <div class="posts">
-      {% for p in posts %}{% include "_post_card.html" %}{% else %}<p class="muted">Nenhuma notícia ainda.</p>{% endfor %}
-    </div>
-    <a href="/noticias" class="more">Ver todas as notícias ›</a>
-  </div>
-  <aside>
-    <h2 class="title"><img src="/static/px/coin.svg" alt="" class="px s32"> Top 5</h2>
-    <ol class="card toplist">
-      {% for p in top %}
-      <li><img src="/static/px/{{ vocation_art.get(p.vocation, 'scroll') }}.svg" alt="" class="px s24"><span>{{ p.name }}<small>{{ vocation_names.get(p.vocation, '') }}</small></span><b>{{ p.level }}</b></li>
-      {% else %}<li class="muted">O ranking aparece quando a turma começar a jogar.</li>{% endfor %}
-    </ol>
-    <a href="/ranking" class="more">Ranking completo ›</a>
-  </aside>
-</section>
-
 <section class="band" id="jogar">
   <div class="wrap section">
-    <h2 class="title"><img src="/static/px/map.svg" alt="" class="px s32"> Como jogar</h2>
+    <div class="section-head center"><div><span class="eyebrow">Comece agora</span><h2>Como jogar</h2></div></div>
     <ol class="steps">
       {% for step in site.howToPlay %}
-      <li class="card"><span class="num">{{ loop.index }}</span><p>{{ step }}</p></li>
+      <li><span class="num">{{ loop.index }}</span><p>{{ step }}</p></li>
       {% endfor %}
     </ol>
-    <div class="row center wrap-row downloads">
+    <div class="downloads">
       {% if site.clientAndroidUrl %}<a class="btn" href="{{ site.clientAndroidUrl }}" rel="noopener">Baixar pro Android</a>{% endif %}
       {% if site.clientWindowsUrl %}<a class="btn" href="{{ site.clientWindowsUrl }}" rel="noopener">Baixar pro Windows</a>{% endif %}
       {% if not site.clientAndroidUrl and not site.clientWindowsUrl %}<p class="muted">Os links do cliente aparecem aqui assim que forem publicados.</p>{% endif %}

@@ -169,5 +169,128 @@ def main():
         json.dump(meta, f, ensure_ascii=False, indent=1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "--vocations" not in sys.argv:
     main()
+
+
+# ------------------------------------------------------------- player outfits (vocation art)
+
+def outfit_color(c):
+    """Tibia's 133-colour outfit palette (HSI), as in OTClient Outfit::getColor."""
+    import colorsys
+    if c >= 19 * 7:
+        c = 0
+    if c % 19 == 0:
+        h, s, v = 0.0, 0.0, 1 - c / 19 / 7
+    else:
+        h = (c % 19) / 18
+        s, v = {0: (0.25, 1.0), 1: (0.25, 0.75), 2: (0.5, 0.75), 3: (0.667, 0.75), 4: (1.0, 1.0), 5: (1.0, 0.75), 6: (1.0, 0.5)}[c // 19]
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return int(r * 255), int(g * 255), int(b * 255)
+
+
+def nearest_color(rgb):
+    return min(range(133), key=lambda i: sum((a - b) ** 2 for a, b in zip(outfit_color(i), rgb)))
+
+
+def outfit_infos(path, wanted):
+    """{looktype: dict(px, py, pz, layers, ids)} of the first frame group."""
+    out = {}
+    for num, wt, obj in _fields(open(path, "rb").read()):
+        if num != 2 or wt != 2:
+            continue
+        oid, info = None, None
+        for n, w, v in _fields(obj):
+            if n == 1 and w == 0:
+                oid = v
+            elif n == 2 and w == 2 and info is None:
+                for fn, fw, fv in _fields(v):
+                    if fn == 3 and fw == 2:
+                        info = {"px": 1, "py": 1, "pz": 1, "layers": 1, "ids": []}
+                        for sn, sw, sv in _fields(fv):
+                            key = {1: "px", 2: "py", 3: "pz", 4: "layers"}.get(sn)
+                            if key:
+                                info[key] = sv
+                            elif sn == 5:
+                                info["ids"] += _packed(sw, sv)
+        if oid in wanted and info:
+            out[oid] = info
+    return out
+
+
+class Sprites:
+    def __init__(self):
+        self.catalog = [e for e in json.loads(fetch("catalog-content.json")) if e.get("type") == "sprite"]
+        self.cache = {}
+
+    def get(self, sid):
+        entry = next(e for e in self.catalog if e["firstspriteid"] <= sid <= e["lastspriteid"])
+        if entry["file"] not in self.cache:
+            self.cache[entry["file"]] = decode_sheet(fetch(entry["file"]))
+        sheet = self.cache[entry["file"]]
+        w, h = SPRITE_SIZES.get(entry.get("spritetype", 0), (32, 32))
+        idx = sid - entry["firstspriteid"]
+        cols = sheet.width // w
+        return sheet.crop(((idx % cols) * w, (idx // cols) * h, (idx % cols) * w + w, (idx // cols) * h + h))
+
+
+def colorize(base, mask, colors):
+    """Tint the base sprite where the template mask is yellow/red/green/blue (head/body/legs/feet)."""
+    out = base.copy()
+    bp, mp, op = base.load(), mask.load(), out.load()
+    keys = {(255, 255, 0): "head", (255, 0, 0): "body", (0, 255, 0): "legs", (0, 0, 255): "feet"}
+    for y in range(base.height):
+        for x in range(base.width):
+            r, g, b, a = mp[x, y]
+            part = keys.get((r, g, b)) if a else None
+            if part:
+                cr, cg, cb = colors[part]
+                br, bg, bb, ba = bp[x, y]
+                op[x, y] = (br * cr // 255, bg * cg // 255, bb * cb // 255, ba)
+    return out
+
+
+def render_outfit(sprites, info, colors, addons=(1, 2), direction=2):
+    layers = info["layers"]
+
+    def sprite(x, y, layer):
+        i = ((y * info["px"]) + x) * layers + layer
+        return sprites.get(info["ids"][i]) if i < len(info["ids"]) else None
+
+    img = None
+    for y in (0,) + tuple(a for a in addons if a < info["py"]):
+        base = sprite(direction, y, 0)
+        if base is None:
+            continue
+        if layers > 1:
+            mask = sprite(direction, y, 1)
+            if mask is not None:
+                base = colorize(base, mask, colors)
+        img = base if img is None else Image.alpha_composite(img, base)
+    return img
+
+
+# VinOT colours for the vocation heroes (nearest entries of Tibia's outfit palette)
+VOCATION_OUTFITS = {
+    "knight": (131, {"head": (240, 200, 90), "body": (170, 40, 30), "legs": (70, 70, 80), "feet": (110, 70, 40)}),
+    "paladin": (129, {"head": (120, 80, 40), "body": (60, 130, 50), "legs": (120, 80, 40), "feet": (80, 50, 30)}),
+    "sorcerer": (130, {"head": (140, 80, 200), "body": (110, 60, 180), "legs": (240, 200, 90), "feet": (60, 40, 90)}),
+    "druid": (144, {"head": (90, 160, 60), "body": (60, 120, 50), "legs": (160, 120, 60), "feet": (90, 60, 30)}),
+}
+
+
+def vocations(scale=4):
+    infos = outfit_infos(os.path.join(ROOT, "data", "items", "appearances.dat"), {lt for lt, _ in VOCATION_OUTFITS.values()})
+    sprites = Sprites()
+    out_dir = os.path.join(HERE, "..", "app", "static", "heroes")
+    os.makedirs(out_dir, exist_ok=True)
+    for voc, (lt, target) in VOCATION_OUTFITS.items():
+        colors = {part: outfit_color(nearest_color(rgb)) for part, rgb in target.items()}
+        img = render_outfit(sprites, infos[lt], colors)
+        img = img.crop(img.getbbox())
+        img.resize((img.width * scale, img.height * scale), Image.NEAREST).save(os.path.join(out_dir, f"{voc}.png"), optimize=True)
+        print("ok", voc, img.size, infos[lt]["px"], infos[lt]["py"], infos[lt]["layers"])
+
+
+if __name__ == "__main__" and "--vocations" in sys.argv:
+    vocations()

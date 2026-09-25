@@ -8,32 +8,38 @@
 <meta property="og:title" content="{{ self.title() }}">
 <meta property="og:description" content="{{ self.description() }}">
 <meta property="og:image" content="/static/og.png">
-<meta name="theme-color" content="#15130f">
+<meta name="theme-color" content="#0e0c0a">
 <link rel="icon" href="/static/favicon.png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Nunito:wght@400;600;800&display=swap">
-<link rel="stylesheet" href="/static/portal.css?v=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/static/portal.css?v=4">
 {% block head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}inner{% endblock %}">
 <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-{% if site.notice %}<div class="notice"><img src="/static/px/torch.svg" alt="" class="px s16"> {{ site.notice }}</div>{% endif %}
+{% if site.notice %}<div class="notice"><span class="notice-dot"></span>{{ site.notice }}</div>{% endif %}
 <header class="top">
-  <div class="wrap row">
-    <a href="/" class="brand" aria-label="{{ site.serverName }}, início"><img src="/static/px/logo.svg" alt="{{ site.serverName }}" class="px"></a>
+  <div class="wrap nav">
+    <a href="/" class="brand" aria-label="{{ site.serverName }}, início">
+      <img src="/static/px/emblem.svg" alt="" class="px">
+      <span>{{ site.serverName }}</span>
+    </a>
     <input type="checkbox" id="menu" class="menu-toggle" aria-label="Abrir menu">
     <label for="menu" class="menu-button" aria-hidden="true"><span></span><span></span><span></span></label>
     <nav class="links">
       <a href="/" {{ 'aria-current=page' if path == '/' }}>Início</a>
       <a href="/noticias" {{ 'aria-current=page' if path.startswith('/noticias') }}>Notícias</a>
+      <a href="/#vocacoes">Vocações</a>
+      <a href="/#bestiario">Bestiário</a>
       <a href="/ranking" {{ 'aria-current=page' if path == '/ranking' }}>Ranking</a>
       <a href="/#jogar">Como jogar</a>
+      <span class="nav-sep"></span>
       {% if me %}
-      <a href="/conta" class="btn small" {{ 'aria-current=page' if path.startswith('/conta') }}><img src="/static/px/mascot.svg" alt="" class="px s16"> Minha conta</a>
+      <a href="/conta" class="btn small" {{ 'aria-current=page' if path.startswith('/conta') }}>Minha conta</a>
       {% else %}
-      <a href="/entrar" {{ 'aria-current=page' if path == '/entrar' }}>Entrar</a>
+      <a href="/entrar" class="nav-login" {{ 'aria-current=page' if path == '/entrar' }}>Entrar</a>
       {% if signups_open() %}<a href="/criar-conta" class="btn small">Criar conta</a>{% endif %}
       {% endif %}
     </nav>
@@ -43,11 +49,10 @@
 {% block main %}{% endblock %}
 </main>
 <footer class="foot">
-  <div class="ground" aria-hidden="true"></div>
   <div class="wrap foot-grid">
-    <div>
-      <img src="/static/px/logo.svg" alt="{{ site.serverName }}" class="px foot-logo">
-      <p class="muted">{{ site.tagline }}</p>
+    <div class="foot-brand">
+      <a href="/" class="brand"><img src="/static/px/emblem.svg" alt="" class="px"><span>{{ site.serverName }}</span></a>
+      <p>{{ site.tagline }}</p>
     </div>
     <div>
       <h4>Jogo</h4>
@@ -62,14 +67,15 @@
       <a href="/noticias?categoria=evento">Eventos</a>
     </div>
     <div>
-      <h4>Turma</h4>
+      <h4>Comunidade</h4>
       {% if site.whatsappUrl %}<a href="{{ site.whatsappUrl }}" rel="noopener" target="_blank">WhatsApp</a>{% endif %}
       {% if site.instagramUrl %}<a href="{{ site.instagramUrl }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
       <a href="/entrar">Minha conta</a>
     </div>
   </div>
   <div class="wrap signature">
-    <img src="/static/px/emblem.svg" alt="" class="px s16"> Feito com carinho pela equipe VinOT · {{ year() }} · Tibia é marca da CipSoft; o VinOT é um projeto de fã, sem fins lucrativos.
+    <span>© {{ year() }} equipe VinOT</span>
+    <span>Tibia é marca registrada da CipSoft GmbH. O VinOT é um projeto de fã, sem fins lucrativos.</span>
   </div>
 </footer>
 {% block scripts %}{% endblock %}

@@ -26,7 +26,7 @@
   <div class="chars">
     {% for c in chars %}
     <div class="card char">
-      <img src="/static/px/{{ hero_art.get(c.vocation if c.vocation < 5 else c.vocation - 4, 'hero-knight') if c.vocation else 'mascot' }}.svg" alt="" class="px char-hero">
+      <img src="{{ hero_img(c.vocation) if c.vocation else '/static/px/mascot.svg' }}" alt="" class="px char-hero">
       <div class="char-main">
         <h3>{{ c.name }} {% if c.online %}<span class="tag on">online</span>{% endif %}</h3>
         <p class="muted">Level {{ c.level }} · {{ vocation_names.get(c.vocation, '') }} · {{ 'Masculino' if c.sex else 'Feminino' }}</p>
