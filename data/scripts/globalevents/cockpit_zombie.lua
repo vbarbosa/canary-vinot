@@ -114,11 +114,7 @@ local function finish(reason)
 	for _, p in ipairs(Game.getPlayers()) do
 		p:sendTextMessage(MESSAGE_EVENT_ADVANCE, text)
 	end
-	db.query(string.format(
-		"UPDATE `cockpit_events` SET `status` = 'done', `ended_at` = %d, `winners` = %s, `details` = %s WHERE `id` = %d",
-		os.time(), db.escapeString(table.concat(winners, ", ")),
-		db.escapeString(reason .. (#Z.out > 0 and ("; saiu: " .. table.concat(Z.out, ", ")) or "")), Z.eventId
-	))
+	db.query(string.format("UPDATE `cockpit_events` SET `status` = 'done', `ended_at` = %d, `winners` = %s, `details` = %s WHERE `id` = %d", os.time(), db.escapeString(table.concat(winners, ", ")), db.escapeString(reason .. (#Z.out > 0 and ("; saiu: " .. table.concat(Z.out, ", ")) or "")), Z.eventId))
 end
 
 local function tick()
