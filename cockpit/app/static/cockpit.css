@@ -136,7 +136,7 @@ nav.top .brand { display: flex; align-items: center; gap: .5rem; text-decoration
 .log-files .live-dot { color: #7fc16a; width: .45rem; height: .45rem; }
 @keyframes pulse { 50% { opacity: .3; } }
 .hero-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: .4rem; }
-.hero-nums div { display: flex; flex-direction: column; }
+.hero-nums div, .hero-nums a { display: flex; flex-direction: column; }
 .hero-nums strong { font-size: 1.8rem; line-height: 1.1; color: #f3d27a; }
 .hero-nums small { color: #9a8f7c; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
 .hero-status p { margin: 0; }
@@ -371,3 +371,18 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .side ul li a { margin: 0; }
 .side details.side-sec > summary::after { transform: none; }
 .side details.side-sec[open] > summary::after { transform: rotate(90deg); }
+/* Ranking */
+.leaders { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+.leader { display: flex; flex-direction: column; gap: .1rem; padding: .6rem .8rem; border: 1px solid #3a3326; border-radius: .5rem; background: #1f1b14; text-decoration: none; color: inherit; }
+.leader:hover, .leader.active { border-color: var(--pico-primary); }
+.leader .ic { font-size: 1.3rem; }
+.leader strong { color: var(--pico-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-filters { gap: .6rem; margin-bottom: .8rem; }
+.chips a.chip { display: inline-block; padding: .2rem .65rem; margin: 0 .25rem .3rem 0; border: 1px solid #3a3326; border-radius: 999px; font-size: .82rem; text-decoration: none; color: #d8cdb8; }
+.chips a.chip.on { background: var(--pico-primary-background); color: #15130f; border-color: transparent; }
+.rank-table tr.podium td { font-weight: 600; }
+.num { text-align: right; }
+.panel header.row a.more { margin-left: auto; font-size: .82rem; }
+.hero-nums a { text-decoration: none; color: inherit; border-radius: .4rem; }
+.hero-nums a:hover strong { color: var(--pico-primary); }
+p.row a.more, header.row a.more { margin-left: auto; font-size: .82rem; }

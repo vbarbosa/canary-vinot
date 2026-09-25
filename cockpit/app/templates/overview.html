@@ -13,13 +13,13 @@
 <div class="portal">
   <div class="col-main">
     <article class="panel">
-      <header class="row"><h4>⚔ No mundo agora</h4><a href="/jogadores" class="right small">todos os jogadores →</a></header>
+      <header class="row"><h4>⚔ No mundo agora</h4><a href="/jogadores" class="more">ver todos os jogadores →</a></header>
       <div hx-get="/parts/online" hx-trigger="load, every 3s"><p class="muted">…</p></div>
     </article>
 
     <div class="grid2 tight">
       <article class="panel">
-        <header><h4>🏆 Ranking</h4></header>
+        <header class="row"><h4>🏆 Ranking</h4><a href="/ranking" class="more">ver ranking completo →</a></header>
         <ol class="ranking">
           {% for p in top %}
           <li><span class="medal">{{ ['🥇', '🥈', '🥉'][loop.index0] if loop.index0 < 3 else loop.index }}</span>
@@ -28,7 +28,7 @@
         </ol>
       </article>
       <article class="panel">
-        <header class="row"><h4>⏱ Próximas tarefas</h4><a href="/agenda" class="right small">agenda →</a></header>
+        <header class="row"><h4>⏱ Próximas tarefas</h4><a href="/agenda" class="more">ver agenda →</a></header>
         <ul class="upcoming">
           {% for j in jobs %}<li><strong>{{ j.name }}</strong><br><small class="muted"><span data-ts="{{ j.next_run }}"></span> · {{ j.when }}</small></li>
           {% else %}<li class="muted">Nada agendado. <a href="/agenda">Criar uma tarefa</a></li>{% endfor %}
@@ -39,7 +39,7 @@
 
   <aside class="col-side">
     <article class="panel voice">
-      <header><h4>📣 Voz do Mestre</h4></header>
+      <header class="row"><h4>📣 Voz do Mestre</h4><a href="/agenda" class="more">agendar anúncios →</a></header>
       <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
         <input type="hidden" name="action" value="broadcast">
         <textarea name="text" rows="2" placeholder="Uma sombra cobre Thais... algo se aproxima!" required></textarea>
@@ -48,7 +48,7 @@
     </article>
 
     <article class="panel">
-      <header><h4>✨ Ações rápidas</h4></header>
+      <header class="row"><h4>✨ Ações rápidas</h4><a href="/turma" class="more">mais na Turma →</a></header>
       <div class="quick">
         <button hx-post="/acao" hx-vals='{"action":"save"}' hx-target="#toast"><span>💾</span>Salvar</button>
         <button hx-post="/acao" hx-vals='{"action":"effect","alvo":"todos","arg1":"30"}' hx-target="#toast"><span>🎆</span>Fogos</button>
@@ -57,14 +57,14 @@
         <button hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast"><span>🔓</span>Abrir</button>
         <button class="danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar."><span>🔒</span>Fechar</button>
       </div>
-      <p class="small muted">Presente para a turma:</p>
+      <p class="small muted row">Presente para a turma: <a href="/kits" class="more">editar kits →</a></p>
       <div class="row wrap">
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_training","alvo":"turma"}' hx-target="#toast"
                 title="Armas de treino lasting (14400 cargas) certas para a vocação de cada um">🏋 Kit de treino</button>{% for k in kits %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"give_kit","alvo":"turma","arg1":"{{ k.id }}"}' hx-target="#toast">🎁 {{ k.name }}</button>{% endfor %}</div>
     </article>
 
     <article class="panel">
-      <header class="row"><h4>📜 Últimas ações</h4><a href="/historico" class="right small">histórico →</a></header>
+      <header class="row"><h4>📜 Últimas ações</h4><a href="/historico" class="more">ver histórico →</a></header>
       <div hx-get="/parts/feed?n=8" hx-trigger="load, every 2s">…</div>
     </article>
   </aside>

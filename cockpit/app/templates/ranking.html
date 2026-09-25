@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Ranking{% endblock %}
+{% macro val(k, v) %}{% if k == 'online' %}{{ hd(v) }}{% elif k == 'rich' %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% else %}{{ v }}{% endif %}{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <h3>🏆 Ranking</h3>
+  <p class="muted">O hall da fama do VinOT. Contas de staff ficam de fora. Quem está online aparece atualizado depois do save.</p>
+</div>
+
+{% if leaders %}
+<div class="leaders">
+  {% for l in leaders %}
+  <a class="leader {{ 'active' if l.key == tipo }}" href="/ranking?tipo={{ l.key }}&voc={{ voc }}">
+    <span class="ic">{{ l.icon }}</span><small class="muted">{{ l.label }}</small>
+    <strong>{{ l.name }}</strong><small>{{ val(l.key, l.value) }}</small>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row wrap rank-filters">
+  <div class="chips">
+    {% for k, b in boards.items() %}<a href="/ranking?tipo={{ k }}&voc={{ voc }}" class="chip {{ 'on' if k == tipo }}">{{ b[1] }} {{ b[0] }}</a>{% endfor %}
+  </div>
+  <div class="chips">
+    {% for k, g in voc_groups.items() %}<a href="/ranking?tipo={{ tipo }}&voc={{ k }}" class="chip {{ 'on' if k == voc }}">{{ g[0] }}</a>{% endfor %}
+  </div>
+</div>
+
+<article class="panel">
+  <header><h4>{{ boards[tipo][1] }} {{ boards[tipo][0] }}{% if voc %} · {{ voc_groups[voc][0] }}{% endif %}</h4></header>
+  <table class="compact rank-table">
+    <thead><tr><th>#</th><th>Personagem</th><th>Vocação</th>{% if tipo != "level" %}<th class="num">Nível</th>{% endif %}<th class="num">{{ boards[tipo][0] }}</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr class="{{ 'podium' if loop.index <= 3 }}">
+        <td>{{ ['🥇', '🥈', '🥉'][loop.index0] if loop.index0 < 3 else loop.index }}</td>
+        <td><a href="/jogador/{{ r.id }}">{{ r.name }}</a></td>
+        <td class="muted">{{ vocations.get(r.vocation, '') }}</td>
+        {% if tipo != "level" %}<td class="num">{{ r.level }}</td>{% endif %}
+        <td class="num"><strong>{{ val(tipo, r.value) }}</strong></td>
+      </tr>
+    {% else %}<tr><td colspan="5" class="muted">Ninguém nesse ranking ainda.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endblock %}

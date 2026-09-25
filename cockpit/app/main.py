@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places, raids, realty, sheet, world
+from . import places, raids, ranking, realty, sheet, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -1089,6 +1089,22 @@ def place_delete(request: Request, lid: int):
     db.run("DELETE FROM cockpit_places WHERE id = %s", lid)
     db.audit(user["account"], "lugar_apagado", p["name"] if p else str(lid))
     return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+# ---------------------------------------------------------------- ranking
+
+VOC_GROUPS = {"": ("Todas", None), "ek": ("Knights", [4, 8]), "rp": ("Paladins", [3, 7]), "ms": ("Sorcerers", [1, 5]),
+              "ed": ("Druids", [2, 6]), "rook": ("Sem vocação", [0])}
+
+
+@app.get("/ranking", response_class=HTMLResponse)
+def ranking_page(request: Request, tipo: str = "level", voc: str = ""):
+    user = require(request)
+    if tipo not in ranking.BOARDS:
+        tipo = "level"
+    vocs = VOC_GROUPS.get(voc, ("", None))[1]
+    return page(request, "ranking.html", user, tipo=tipo, voc=voc, boards=ranking.BOARDS, voc_groups=VOC_GROUPS,
+                rows=ranking.board(tipo, vocs), leaders=ranking.leaders())
 
 
 # ---------------------------------------------------------------- raids

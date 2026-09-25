@@ -1,10 +1,10 @@
 {% set up = game and game.ok %}
 <div class="pill {{ 'up' if up else 'down' }}"><b class="live-dot"></b> {{ 'Servidor online' if up else 'Servidor fora do ar' }}</div>
 <div class="hero-nums">
-  <div><strong>{{ online }}</strong><small>online</small></div>
-  <div><strong>{{ peak }}</strong><small>pico 24h</small></div>
-  <div><strong>{{ counts.players }}</strong><small>personagens</small></div>
-  <div><strong>{{ counts.accounts }}</strong><small>contas</small></div>
+  <a href="/turma"><strong>{{ online }}</strong><small>online</small></a>
+  <a href="/metricas"><strong>{{ peak }}</strong><small>pico 24h</small></a>
+  <a href="/jogadores"><strong>{{ counts.players }}</strong><small>personagens</small></a>
+  <a href="/contas"><strong>{{ counts.accounts }}</strong><small>contas</small></a>
 </div>
 <p class="small muted">
   {% if last and last.started_at %}No ar há {{ hd(now() - last.started_at) }}{% else %}Tempo no ar: sem dados{% endif %}
