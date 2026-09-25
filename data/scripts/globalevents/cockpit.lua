@@ -679,6 +679,23 @@ globalActions.apply_world = function()
 	if rentMult then
 		lines[#lines + 1] = string.format("housePriceRentMultiplier = %.2f", math.max(0, math.min(100, rentMult)))
 	end
+	-- daily server save (tela Mundo)
+	for _, key in ipairs({ "globalServerSaveShutdown", "globalServerSaveCleanMap" }) do
+		if saved[key] then
+			lines[#lines + 1] = key .. " = " .. (saved[key] == "1" and "true" or "false")
+		end
+	end
+	if saved.globalServerSaveShutdown then
+		lines[#lines + 1] = "globalServerSaveNotifyMessage = " .. (saved.globalServerSaveShutdown == "1" and "true" or "false")
+	end
+	local saveTime = tostring(saved.globalServerSaveTime or ""):match("^(%d%d:%d%d):%d%d$")
+	if saveTime then
+		lines[#lines + 1] = string.format('globalServerSaveTime = "%s:00"', saveTime)
+	end
+	local notify = tonumber(saved.globalServerSaveNotifyDuration)
+	if notify then
+		lines[#lines + 1] = "globalServerSaveNotifyDuration = " .. math.max(1, math.min(60, math.floor(notify)))
+	end
 	if saved.serverName and saved.serverName ~= "" then
 		lines[#lines + 1] = string.format("serverName = %q", worldText(saved.serverName, 30))
 	end

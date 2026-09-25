@@ -5,8 +5,10 @@ writes cockpit-world.lua next to config.lua (config.lua loads it last, so its va
 config and rebuilds the stage tables. The list below is the whole allowlist: nothing else is written.
 """
 
+import datetime as dt
 import re
 import unicodedata
+from zoneinfo import ZoneInfo
 
 from . import db
 
@@ -155,3 +157,41 @@ def seed(actor="cockpit"):
 
 def last_result():
     return db.one("SELECT status, result, done_at, created_at FROM cockpit_commands WHERE action = 'apply_world' ORDER BY id DESC LIMIT 1")
+
+
+# ---------------------------------------------------------------- daily server save
+# The game's global_server_save.lua: warns N minutes before, then (optionally) cleans the floor and shuts the game down,
+# which saves everything; docker brings it back up. The time is the game container's clock (UTC); the panel shows Brasília.
+SAVE_DEFAULTS = {"globalServerSaveShutdown": "1", "globalServerSaveTime": "06:00:00", "globalServerSaveNotifyDuration": "5",
+                 "globalServerSaveCleanMap": "0"}
+SAVE_TZ = "America/Sao_Paulo"
+
+
+def _shift(hhmm, to_utc):
+    h, m = (int(x) for x in hhmm.split(":")[:2])
+    br, utc = ZoneInfo(SAVE_TZ), dt.timezone.utc
+    day = dt.date.today()
+    src = dt.datetime(day.year, day.month, day.day, h, m, tzinfo=br if to_utc else utc)
+    out = src.astimezone(utc if to_utc else br)
+    return out.strftime("%H:%M")
+
+
+def save_settings():
+    saved = {r["k"][6:]: r["v"] for r in db.all("SELECT k, v FROM cockpit_settings WHERE k LIKE 'world.globalServerSave%%'")}
+    s = {k: saved.get(k, v) for k, v in SAVE_DEFAULTS.items()}
+    s["local_time"] = _shift(s["globalServerSaveTime"], to_utc=False)
+    return s
+
+
+def store_save(on, local_time, notify, clean):
+    if not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", local_time or ""):
+        return "Horário: use HH:MM (ex.: 06:00)."
+    try:
+        notify = max(1, min(60, int(notify)))
+    except (TypeError, ValueError):
+        return "Aviso: minutos de 1 a 60."
+    rows = {"globalServerSaveShutdown": "1" if on else "0", "globalServerSaveTime": _shift(local_time, to_utc=True) + ":00",
+            "globalServerSaveNotifyDuration": str(notify), "globalServerSaveCleanMap": "1" if clean else "0"}
+    for k, v in rows.items():
+        db.run("INSERT INTO cockpit_settings (k, v) VALUES (%s, %s) ON DUPLICATE KEY UPDATE v = VALUES(v)", f"world.{k}", v)
+    return ""

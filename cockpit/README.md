@@ -88,6 +88,9 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   próximo início do jogo); "fixar" faz o laço de minuto regravar todo dia. Bosses: só Archfoe, como no sorteio.
 - Manual (Painel › Manual, aberto a toda a equipe): comandos dos jogadores e do Mestre, lidos dos `TalkAction` do datapack
   (comando sem texto em `manual.py` aparece como "sem descrição"), e um guia de cada tela do painel.
+- Server save diário (Mundo): liga ou desliga o reinício diário, horário em Brasília (gravado em UTC, o relógio do contêiner
+  do jogo), minutos de aviso e limpar o chão antes. Vai para o `config.lua` pela ponte (`apply_world`); o horário novo só vale
+  depois do próximo reinício, porque o `global_server_save.lua` marca a hora ao carregar.
 - Logo: `tools/make_logo.py` desenha o logo em pixel art a partir das grades no próprio arquivo.
 
 ## Subir na VM Oracle

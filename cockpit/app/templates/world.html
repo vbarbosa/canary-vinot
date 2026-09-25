@@ -86,4 +86,20 @@
   <p class="small muted">"Até" vazio vale para todos os níveis acima. As faixas de skill usam o nível da skill, não o do personagem.</p>
   <button>💾 Salvar e aplicar no jogo</button>
 </form>
+
+<article class="panel server-save">
+  <header><h4>💾 Server save diário</h4></header>
+  <form hx-post="/mundo/save" hx-target="#toast" class="rules">
+    <label class="switch-row"><input type="checkbox" role="switch" name="ligado" value="1" {{ 'checked' if ss.globalServerSaveShutdown == '1' }}>
+      <span><strong>Reiniciar o jogo todo dia</strong><br><small class="muted">Avisa, salva tudo, desliga e o servidor volta sozinho em seguida. É nessa hora que trocam a criatura do dia e as raids do dia.</small></span></label>
+    <div class="rate-grid">
+      <label>Horário (Brasília)<input name="hora" type="time" value="{{ ss.local_time }}"></label>
+      <label>Avisar antes (min)<input name="aviso" type="number" min="1" max="60" value="{{ ss.globalServerSaveNotifyDuration }}"></label>
+    </div>
+    <label class="switch-row"><input type="checkbox" role="switch" name="limpar" value="1" {{ 'checked' if ss.globalServerSaveCleanMap == '1' }}>
+      <span>Limpar o chão do mapa antes</span></label>
+    <p class="small muted">No jogo fica {{ ss.globalServerSaveTime[:5] }} (UTC). Mudar o horário vale a partir do próximo reinício.</p>
+    <button>Salvar server save</button>
+  </form>
+</article>
 {% endblock %}

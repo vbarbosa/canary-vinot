@@ -1631,7 +1631,19 @@ def world_page(request: Request):
     user = require(request)
     return page(request, "world.html", user, s=world.load(), switches=world.SWITCHES, rates=world.RATES, stages=world.STAGES,
                 world_types=world.WORLD_TYPES, numbers=world.NUMBERS, texts=world.TEXTS,
-                last=world.last_result())
+                last=world.last_result(), ss=world.save_settings())
+
+
+@app.post("/mundo/save", response_class=HTMLResponse)
+async def world_server_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    err = world.store_save(bool(f.get("ligado")), str(f.get("hora", "")), f.get("aviso"), bool(f.get("limpar")))
+    if err:
+        return toast(err, ok=False)
+    world.apply(user["account"])
+    db.audit(user["account"], "server_save", "", f"{'ligado' if f.get('ligado') else 'desligado'} {f.get('hora')}")
+    return toast("Salvo. Aviso, limpeza e ligar ou desligar valem já; o horário novo vale depois do próximo reinício do jogo.")
 
 
 @app.post("/mundo", response_class=HTMLResponse)
