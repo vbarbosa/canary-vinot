@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places, realty, sheet, world
+from . import places, raids, realty, sheet, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -258,7 +258,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "place_dummy": "🎯 dummy",
 }
 
 
@@ -449,6 +449,13 @@ def dispatch(actor, name, alvo, text, form, me=""):
         db.enqueue(actor, name, text=text)
         return True, "Enviado ao servidor."
 
+    if name == "start_raid":
+        r = raids.get(text)
+        if not r:
+            return False, "Raid desconhecida."
+        db.enqueue(actor, "start_raid", text=r["name"])
+        return True, f"Soltando a raid {r['label']} ({r['where']})."
+
     if name == "give_training":
         targets = resolve_targets(alvo)
         for t in targets:
@@ -515,6 +522,7 @@ def schedules_page(request, user, msg=None):
         j["when"] = scheduler.describe(j)
     kits = db.all("SELECT id, name FROM cockpit_kits ORDER BY name")
     return page(request, "schedules.html", user, jobs=jobs, kits=kits, job_actions=scheduler.JOB_ACTIONS,
+                raids=raids.all_raids(), raid_labels={r["name"]: r["label"] for r in raids.all_raids()},
                 weekdays=scheduler.WEEKDAYS, msg=msg, kit_names={k["id"]: k["name"] for k in kits}, names=gamedata.item_names())
 
 
@@ -1081,6 +1089,31 @@ def place_delete(request: Request, lid: int):
     db.run("DELETE FROM cockpit_places WHERE id = %s", lid)
     db.audit(user["account"], "lugar_apagado", p["name"] if p else str(lid))
     return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+# ---------------------------------------------------------------- raids
+
+
+@app.get("/raids", response_class=HTMLResponse)
+def raids_page(request: Request, q: str = "", tipo: str = ""):
+    user = require(request)
+    recent = db.all("SELECT text, status, result, created_at, created_by FROM cockpit_commands WHERE action = 'start_raid' ORDER BY id DESC LIMIT 8")
+    labels = {r["name"]: r["label"] for r in raids.all_raids()}
+    return page(request, "raids.html", user, rows=raids.search(q, tipo), q=q, tipo=tipo, recent=recent, labels=labels,
+                total=len(raids.all_raids()))
+
+
+@app.get("/raids/lista", response_class=HTMLResponse)
+def raids_list(request: Request, q: str = "", tipo: str = ""):
+    user = require(request)
+    return page(request, "_raids.html", user, rows=raids.search(q, tipo), q=q)
+
+
+@app.post("/raids/soltar", response_class=HTMLResponse)
+def raid_start(request: Request, nome: str = Form(...)):
+    user = require(request, post=True)
+    ok, msg = dispatch(user["account"], "start_raid", "", nome, {})
+    return toast(msg, ok=ok)
 
 
 # ---------------------------------------------------------------- world settings

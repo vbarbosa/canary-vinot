@@ -125,7 +125,8 @@
     const form = document.getElementById("job-form");
     form.reset();
     form.elements.id.value = d.id || "";
-    ["nome", "acao", "alvo", "texto", "tipo", "minutos", "hora"].forEach(k => { if (d[k] !== undefined && d[k] !== "") form.elements[k].value = d[k]; });
+    form.querySelectorAll("[name=texto]").forEach(el => (el.value = d.texto || ""));
+    ["nome", "acao", "alvo", "tipo", "minutos", "hora"].forEach(k => { if (d[k] !== undefined && d[k] !== "") form.elements[k].value = d[k]; });
     form.querySelectorAll("[name=arg1]").forEach(el => (el.value = d.arg1 || el.value));
     if (d.arg2) form.querySelector("[name=arg2]").value = d.arg2;
     form.querySelectorAll("[name=dias]").forEach(c => (c.checked = (d.dias || "").includes(c.value)));
@@ -231,6 +232,43 @@
     if (e.target.id !== "place-from" || !e.target.value) return;
     const [x, y, z] = e.target.value.split(","), pf = document.getElementById("place-form");
     Object.assign(pf.elements.x, { value: x }); pf.elements.y.value = y; pf.elements.z.value = z;
+  });
+
+  // Sidebar: mini mode on desktop, drawer on phones; sections remember open/closed.
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  const phone = () => window.matchMedia("(max-width: 900px)").matches;
+  function setMini(on) {
+    document.documentElement.classList.toggle("side-mini", on);
+    store.set("cockpit.side", on ? "mini" : "full");
+  }
+  function saveSections() {
+    const closed = [...document.querySelectorAll(".side-sec:not([open])")].map(d => d.dataset.sec);
+    store.set("cockpit.sections", closed.join(","));
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    const closed = (store.get("cockpit.sections") || "").split(",");
+    document.querySelectorAll(".side-sec").forEach(d => {
+      // the section with the current page always starts open
+      if (closed.includes(d.dataset.sec) && !d.querySelector("a.active")) d.open = false;
+      d.addEventListener("toggle", saveSections);
+    });
+  });
+  document.addEventListener("click", e => {
+    if (e.target.closest("#side-toggle")) {
+      if (phone()) document.body.classList.toggle("side-open");
+      else setMini(!document.documentElement.classList.contains("side-mini"));
+    } else if (e.target.closest("#side-collapse")) {
+      setMini(!document.documentElement.classList.contains("side-mini"));
+    } else if (e.target.closest("#side-shade")) {
+      document.body.classList.remove("side-open");
+    } else if (e.target.closest("[data-sections]")) {
+      const open = e.target.closest("[data-sections]").dataset.sections === "open";
+      document.querySelectorAll(".side-sec").forEach(d => (d.open = open));
+      saveSections();
+    }
   });
 
   document.addEventListener("htmx:load", e => init(e.detail.elt));

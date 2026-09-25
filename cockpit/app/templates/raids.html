@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Raids{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>👹 Raids</h3>
+  <p class="muted">As {{ total }} invasões do mapa. Solte uma agora ou agende na Agenda. O aviso aparece para todos no jogo.</p>
+</div>
+<div class="with-catalog tp">
+  <section>
+    <form class="row wrap tp-search" hx-get="/raids/lista" hx-target="#raids" hx-trigger="input changed delay:300ms from:input[name=q], change, submit">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar: dragon, Thais, orc, boss…">
+      <div class="chips" role="radiogroup">
+        {% for k, label in [('', 'Todas'), ('normal', '🐺 Invasões'), ('boss', '👑 Bosses')] %}
+        <label><input type="radio" name="tipo" value="{{ k }}" {{ 'checked' if tipo == k }}> {{ label }}</label>{% endfor %}
+      </div>
+    </form>
+    <div id="raids">{% include "_raids.html" %}</div>
+  </section>
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>Últimas raids soltas</h4></header>
+      <ul class="ledger">
+        {% for r in recent %}
+        <li><span>{{ labels.get(r.text, r.text) }}</span>
+          <small class="muted">{{ {'done': '✅ ', 'error': '⚠ ', 'pending': '⏳ '}.get(r.status, '') }}{{ r.result or 'na fila' }} · {{ r.created_by }} · <span data-ts="{{ r.created_at }}"></span></small></li>
+        {% else %}<li class="muted small">Nenhuma ainda.</li>{% endfor %}
+      </ul>
+      <a href="/agenda" class="small">⏰ Agendar raids na Agenda</a>
+    </article>
+  </aside>
+</div>
+{% endblock %}

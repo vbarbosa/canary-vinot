@@ -358,6 +358,21 @@ globalActions.house_rent = function(cmd)
 	return true, amount .. " gold pago (offline)"
 end
 
+-- text = raid name: a Lua raid (Raid.registry) or a legacy XML raid, like the /raid command
+globalActions.start_raid = function(cmd)
+	if Raid and Raid.registry and Raid.registry[cmd.text] then
+		if Raid.registry[cmd.text]:tryStart(true) then
+			return true, "raid solta"
+		end
+		return false, "a raid nao pode comecar agora"
+	end
+	local ret = Game.startRaid(cmd.text)
+	if ret ~= RETURNVALUE_NOERROR then
+		return false, Game.getReturnMessage(ret)
+	end
+	return true, "raid solta"
+end
+
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"

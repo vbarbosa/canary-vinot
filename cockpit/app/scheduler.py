@@ -23,6 +23,7 @@ JOB_ACTIONS = {
     "save": "Salvar o jogo",
     "broadcast": "Anunciar mensagem",
     "clean_map": "Limpar o chão do mapa",
+    "start_raid": "Soltar uma raid",
     "give_kit": "Dar um kit",
     "give_item": "Dar um item",
     "give_training": "Dar kit de treino",

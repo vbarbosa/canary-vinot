@@ -11,14 +11,14 @@
     {% for j in jobs %}
     <article class="job {{ 'off' if not j.enabled }}">
       <header class="row">
-        <span class="job-icon">{{ {'save': '💾', 'broadcast': '📣', 'clean_map': '🧹', 'give_kit': '🎁', 'give_item': '🎁', 'give_training': '🏋', 'heal': '💚', 'close_server': '🔒', 'open_server': '🔓'}.get(j.action, '⏱') }}</span>
+        <span class="job-icon">{{ {'save': '💾', 'broadcast': '📣', 'clean_map': '🧹', 'start_raid': '👹', 'give_kit': '🎁', 'give_item': '🎁', 'give_training': '🏋', 'heal': '💚', 'close_server': '🔒', 'open_server': '🔓'}.get(j.action, '⏱') }}</span>
         <div><strong>{{ j.name }}</strong><br><small class="muted">{{ j.when }}</small></div>
         <label class="right"><input type="checkbox" role="switch" {{ 'checked' if j.enabled }} hx-post="/agenda/{{ j.id }}/ligar" hx-trigger="change"> {{ 'ligada' if j.enabled else 'desligada' }}</label>
       </header>
       <p class="small">
         {{ job_actions[j.action] }}{% if j.action == 'give_kit' %}: {{ kit_names.get(j.arg1, 'kit apagado') }}{% elif j.action == 'give_item' %}: {{ j.arg2 }}x {{ names.get(j.arg1, j.arg1) }}{% endif %}
         {% if j.action in ('give_kit', 'give_item', 'give_training') %} para {{ 'a turma' if j.alvo == 'turma' else 'quem estiver online' }}{% endif %}
-        {% if j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
+        {% if j.action == 'start_raid' %}: {{ raid_labels.get(j.text, j.text) }}{% elif j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
       </p>
       <footer class="row wrap small">
         <span class="muted">Próxima: {% if j.enabled and j.next_run %}<span data-ts="{{ j.next_run }}"></span>{% else %}—{% endif %}</span>
@@ -58,6 +58,9 @@
             {% for k, v in job_actions.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
           </select>
         </label>
+        <div data-show="start_raid">
+          <select name="texto" disabled>{% for r in raids %}<option value="{{ r.name }}">{{ r.where }} · {{ r.label }}{{ ' (boss)' if r.kind == 'boss' }}</option>{% endfor %}</select>
+        </div>
         <div data-show="broadcast"><textarea name="texto" rows="2" placeholder="Mensagem que aparece na tela de todos"></textarea></div>
         <div data-show="give_kit">
           <select name="arg1">{% for k in kits %}<option value="{{ k.id }}">{{ k.name }}</option>{% else %}<option value="0">Crie um kit na tela Kits primeiro</option>{% endfor %}</select>
