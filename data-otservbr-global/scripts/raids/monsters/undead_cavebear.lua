@@ -1,7 +1,7 @@
-local zone = Zone("farmine.draptor")
+local zone = Zone("farmine.undead-cavebear")
 zone:addArea(Position(31909, 32554, 7), Position(31983, 32579, 7))
 
-local raid = Raid("farmine.draptor", {
+local raid = Raid("farmine.undead-cavebear", {
 	zone = zone,
 	allowedDays = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" },
 	minActivePlayers = 2,
