@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site.serverName }}{% endblock %}</title>
+<meta name="description" content="{% block description %}{{ site.tagline }}{% endblock %}">
+<meta property="og:title" content="{{ self.title() }}">
+<meta property="og:description" content="{{ self.description() }}">
+<meta property="og:image" content="/static/og.png">
+<meta name="theme-color" content="#15130f">
+<link rel="icon" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="/static/portal.css?v=1">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+{% if site.notice %}<div class="notice"><img src="/static/px/torch.svg" alt="" class="px s16"> {{ site.notice }}</div>{% endif %}
+<header class="top">
+  <div class="wrap row">
+    <a href="/" class="brand" aria-label="{{ site.serverName }}, início"><img src="/static/px/logo.svg" alt="{{ site.serverName }}" class="px"></a>
+    <input type="checkbox" id="menu" class="menu-toggle" aria-label="Abrir menu">
+    <label for="menu" class="menu-button" aria-hidden="true"><span></span><span></span><span></span></label>
+    <nav class="links">
+      <a href="/" {{ 'aria-current=page' if path == '/' }}>Início</a>
+      <a href="/noticias" {{ 'aria-current=page' if path.startswith('/noticias') }}>Notícias</a>
+      <a href="/ranking" {{ 'aria-current=page' if path == '/ranking' }}>Ranking</a>
+      <a href="/#jogar">Como jogar</a>
+      {% if me %}
+      <a href="/conta" class="btn small" {{ 'aria-current=page' if path.startswith('/conta') }}><img src="/static/px/mascot.svg" alt="" class="px s16"> Minha conta</a>
+      {% else %}
+      <a href="/entrar" {{ 'aria-current=page' if path == '/entrar' }}>Entrar</a>
+      <a href="/criar-conta" class="btn small">Criar conta</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+{% block main %}{% endblock %}
+</main>
+<footer class="foot">
+  <div class="ground" aria-hidden="true"></div>
+  <div class="wrap foot-grid">
+    <div>
+      <img src="/static/px/logo.svg" alt="{{ site.serverName }}" class="px foot-logo">
+      <p class="muted">{{ site.tagline }}</p>
+    </div>
+    <div>
+      <h4>Jogo</h4>
+      <a href="/criar-conta">Criar conta</a>
+      <a href="/#jogar">Baixar o cliente</a>
+      <a href="/ranking">Ranking</a>
+    </div>
+    <div>
+      <h4>Novidades</h4>
+      <a href="/noticias">Notícias</a>
+      <a href="/noticias?categoria=promocao">Promoções</a>
+      <a href="/noticias?categoria=evento">Eventos</a>
+    </div>
+    <div>
+      <h4>Turma</h4>
+      {% if site.whatsappUrl %}<a href="{{ site.whatsappUrl }}" rel="noopener" target="_blank">WhatsApp</a>{% endif %}
+      {% if site.instagramUrl %}<a href="{{ site.instagramUrl }}" rel="noopener" target="_blank">Instagram</a>{% endif %}
+      <a href="/entrar">Minha conta</a>
+    </div>
+  </div>
+  <div class="wrap signature">
+    <img src="/static/px/emblem.svg" alt="" class="px s16"> Feito com carinho pelo Vinicius · {{ year() }} · Tibia é marca da CipSoft; o VinOT é um projeto de fã, sem fins lucrativos.
+  </div>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

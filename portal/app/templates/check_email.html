@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Confirme seu e-mail · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap narrow section center-text">
+  <div class="card pad">
+    <img src="/static/px/scroll.svg" alt="" class="px s64 float">
+    <h1>Olhe seu e-mail</h1>
+    <p>Mandamos um link de confirmação pra <b>{{ email }}</b>. Abra o link pra criar a conta. Ele vale por 24 horas.</p>
+    {% if note %}<div class="flash warn">{{ note }}</div>{% endif %}
+    <p class="muted small">Não chegou? Olhe a caixa de spam ou peça de novo.</p>
+    <form method="post" action="/reenviar" class="row center">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      <button class="btn ghost" type="submit">Reenviar o link</button>
+    </form>
+    {% if dev_link %}<p class="dev">Modo de teste: <a href="{{ dev_link }}">{{ dev_link }}</a></p>{% endif %}
+  </div>
+</section>
+{% endblock %}

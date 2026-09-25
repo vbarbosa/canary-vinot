@@ -53,6 +53,35 @@ services:
       database:
         condition: service_healthy
 
+  # Public site (landing, news, player accounts). See portal/README.md.
+  portal:
+    build:
+      context: ../portal
+    restart: unless-stopped
+    env_file:
+      - '.env'
+      # SMTP key, PORTAL_SECRET, Sanity project id; kept out of git.
+      - path: 'portal.env'
+        required: false
+    environment:
+      MYSQL_HOST: database
+      PORTAL_GAME_HOST: server
+    networks:
+      - canary-net
+    ports:
+      # Only on localhost: the internet reaches it through Cloudflare Tunnel, never directly.
+      - '${PORTAL_BIND:-127.0.0.1}:8091:8091'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      database:
+        condition: service_healthy
+
 volumes:
   db-volume:
 

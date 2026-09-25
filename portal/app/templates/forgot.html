@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Esqueci a senha · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section auth">
+  <div class="card pad form">
+    <div class="center-text"><img src="/static/px/key.svg" alt="" class="px s64"><h1>Esqueci a senha</h1></div>
+    {% if sent %}
+      <p>Se existir uma conta com esse e-mail, mandamos um link pra criar uma senha nova. Ele vale por 1 hora.</p>
+      {% if dev_link %}<p class="dev">Modo de teste: <a href="{{ dev_link }}">{{ dev_link }}</a></p>{% endif %}
+      <a class="btn block" href="/entrar">Voltar pra entrar</a>
+    {% else %}
+    <form method="post" action="/esqueci">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p>Digite o e-mail da sua conta que a gente manda um link.</p>
+      <label>E-mail <input type="email" name="email" required autocomplete="email" autofocus></label>
+      <button class="btn big block" type="submit">Mandar o link</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

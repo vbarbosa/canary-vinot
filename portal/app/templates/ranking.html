@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Ranking · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap narrow section">
+  <h1 class="title"><img src="/static/px/coin.svg" alt="" class="px s40"> Ranking</h1>
+  <div class="card table-wrap">
+  <table class="table">
+    <thead><tr><th>#</th><th>Personagem</th><th>Vocação</th><th class="num">Level</th></tr></thead>
+    <tbody>
+    {% for p in top %}
+      <tr><td>{{ loop.index }}</td><td><img src="/static/px/{{ vocation_art.get(p.vocation, 'scroll') }}.svg" alt="" class="px s16"> {{ p.name }}</td><td>{{ vocation_names.get(p.vocation, '') }}</td><td class="num">{{ p.level }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Ninguém no ranking ainda. Que tal ser o primeiro?</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

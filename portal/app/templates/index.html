@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block body_class %}home{% endblock %}
+{% block main %}
+<section class="hero">
+  <div class="sky" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    {% include "_flash.html" %}
+    <img src="/static/px/emblem.svg" alt="" class="px hero-emblem float">
+    <h1>{{ home.heroTitle }}</h1>
+    <p class="lead">{{ home.heroText }}</p>
+    <div class="row center wrap-row">
+      {% if me %}<a href="/conta" class="btn big">Ir pra minha conta</a>
+      {% else %}<a href="/criar-conta" class="btn big">{{ home.ctaText }}</a>{% endif %}
+      <a href="#jogar" class="btn ghost big">Como jogar</a>
+    </div>
+    {% if stats %}
+    <ul class="stats" aria-label="Situação do servidor">
+      <li><span class="dot {{ 'on' if stats.up else 'off' }}"></span><b>{{ 'Online' if stats.up else 'Em manutenção' }}</b><small>servidor</small></li>
+      <li><b>{{ stats.online }}</b><small>jogando agora</small></li>
+      <li><b>{{ stats.record }}</b><small>recorde online</small></li>
+      <li><b>{{ stats.chars }}</b><small>aventureiros</small></li>
+    </ul>
+    {% endif %}
+  </div>
+  <img src="/static/px/mascot.svg" alt="" class="px mascot bob" aria-hidden="true">
+</section>
+
+{% if promos %}
+<section class="wrap promos">
+  {% for p in promos %}
+  <a class="promo" href="/noticias/{{ p.slug }}">
+    <img src="/static/px/{{ 'gift' if p.category == 'promocao' else 'skull' }}.svg" alt="" class="px s40 wiggle">
+    <div><small>{{ categories.get(p.category) }}{% if p.endsAt %} · até {{ p.endsAt | date(true) }}{% endif %}</small><b>{{ p.title }}</b>{% if p.excerpt %}<span>{{ p.excerpt }}</span>{% endif %}</div>
+    <span class="arrow">›</span>
+  </a>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="wrap section">
+  <h2 class="title"><img src="/static/px/chest.svg" alt="" class="px s32"> O que tem no VinOT</h2>
+  <div class="features">
+    {% for f in home.features %}
+    <div class="card feature">
+      <img src="/static/px/{{ f.icon or 'chest' }}.svg" alt="" class="px s48">
+      <h3>{{ f.title }}</h3>
+      <p>{{ f.text }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap section">
+    <h2 class="title"><img src="/static/px/sword.svg" alt="" class="px s32"> Escolha sua vocação</h2>
+    <div class="vocations">
+      {% for id, name in vocations.items() %}
+      <a class="card vocation" href="/criar-conta?vocacao={{ id }}">
+        <img src="/static/px/{{ vocation_art[id] }}.svg" alt="" class="px s64">
+        <h3>{{ name }}</h3>
+        <p>{{ blurbs[id] }}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="wrap section two-col">
+  <div>
+    <h2 class="title"><img src="/static/px/scroll.svg" alt="" class="px s32"> Últimas notícias</h2>
+    <div class="posts">
+      {% for p in posts %}{% include "_post_card.html" %}{% else %}<p class="muted">Nenhuma notícia ainda.</p>{% endfor %}
+    </div>
+    <a href="/noticias" class="more">Ver todas as notícias ›</a>
+  </div>
+  <aside>
+    <h2 class="title"><img src="/static/px/coin.svg" alt="" class="px s32"> Top 5</h2>
+    <ol class="card toplist">
+      {% for p in top %}
+      <li><img src="/static/px/{{ vocation_art.get(p.vocation, 'scroll') }}.svg" alt="" class="px s24"><span>{{ p.name }}<small>{{ vocation_names.get(p.vocation, '') }}</small></span><b>{{ p.level }}</b></li>
+      {% else %}<li class="muted">O ranking aparece quando a turma começar a jogar.</li>{% endfor %}
+    </ol>
+    <a href="/ranking" class="more">Ranking completo ›</a>
+  </aside>
+</section>
+
+<section class="band" id="jogar">
+  <div class="wrap section">
+    <h2 class="title"><img src="/static/px/map.svg" alt="" class="px s32"> Como jogar</h2>
+    <ol class="steps">
+      {% for step in site.howToPlay %}
+      <li class="card"><span class="num">{{ loop.index }}</span><p>{{ step }}</p></li>
+      {% endfor %}
+    </ol>
+    <div class="row center wrap-row downloads">
+      {% if site.clientAndroidUrl %}<a class="btn" href="{{ site.clientAndroidUrl }}" rel="noopener">Baixar pro Android</a>{% endif %}
+      {% if site.clientWindowsUrl %}<a class="btn" href="{{ site.clientWindowsUrl }}" rel="noopener">Baixar pro Windows</a>{% endif %}
+      {% if not site.clientAndroidUrl and not site.clientWindowsUrl %}<p class="muted">Os links do cliente aparecem aqui assim que o Vinicius publicar.</p>{% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
