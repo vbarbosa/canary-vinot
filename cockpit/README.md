@@ -63,6 +63,11 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   `cockpit_signup_players` (`data/scripts/globalevents/cockpit_signup.lua`). O laço de minuto do painel avisa
   quando falta 1 minuto e, no fim do prazo, começa o evento com os inscritos online (ou cancela sem ninguém).
   Dá para começar antes ou cancelar pela faixa no topo da tela Eventos.
+- Raids automáticas (Raids › Automáticas): as raids novas (`scripts/raids/**`) rolam uma chance a cada minuto; o painel
+  liga e desliga cada uma e troca a chance por minuto e o mínimo de jogadores (`cockpit_raid_auto`, aplicado pela ponte
+  com `raid_auto`, que embrulha `Raid.tryStart`; desligada, ainda dá para soltar pelo painel e pela Agenda). As antigas do
+  `raids.xml` só ligam ou desligam todas (`disableLegacyRaids`, via `apply_world`; religar vale depois de reiniciar). A agenda
+  semanal fixa do jogo (`raids_schedule.lua`, que chamava nomes inexistentes) foi apagada e virou tarefas da Agenda.
 - Imobiliária: as 984 casas do mapa (`world/otservbr-house.xml`) com o dono da tabela `houses`. Dar,
   passar e despejar vão pela ponte Lua (`house_owner`). O aluguel do jogo fica desligado
   (`houseRentPeriod = "never"`) e quem cobra é o painel: semanal ou mensal, uma porcentagem do aluguel do

@@ -195,6 +195,13 @@ SCHEMA += [
         `at` INT UNSIGNED NOT NULL,
         PRIMARY KEY (`signup_id`, `player_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_raid_auto` (
+        `name` VARCHAR(64) NOT NULL,
+        `enabled` TINYINT NOT NULL DEFAULT 1,
+        `chance` DECIMAL(7,3) NULL,
+        `min_players` INT NULL,
+        PRIMARY KEY (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     """CREATE TABLE IF NOT EXISTS `cockpit_quiz` (
         `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
         `question` VARCHAR(255) NOT NULL,

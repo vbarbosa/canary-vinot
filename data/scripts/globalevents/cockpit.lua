@@ -474,7 +474,7 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids" }
 local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
@@ -741,6 +741,60 @@ local function writeMetrics()
 	db.query("DELETE FROM `cockpit_metrics` WHERE `ts` < " .. (now - METRICS_KEEP_DAYS * 86400))
 end
 
+-- Automatic Lua raids: the panel's overrides (tela Raids > Automaticas) from `cockpit_raid_auto`.
+-- Off = the minute roll skips it (the panel and the Agenda can still force it). Chance = a flat % per minute check,
+-- replacing the raid's own curve (initialChance growing to targetChancePerDay); min players replaces minActivePlayers.
+local raidOff = {}
+
+local function applyRaidAuto()
+	if not (Raid and Raid.registry) then
+		return 0
+	end
+	raidOff = {}
+	for _, raid in pairs(Raid.registry) do
+		if raid.cockpitDefaults then
+			local d = raid.cockpitDefaults
+			raid.initialChance, raid.targetChancePerDay, raid.maxChancePerCheck, raid.minActivePlayers = d[1], d[2], d[3], d[4]
+		end
+	end
+	local n = 0
+	local resultId = db.storeQuery("SELECT `name`, `enabled`, IFNULL(`chance`, -1) AS `chance`, IFNULL(`min_players`, -1) AS `min_players` FROM `cockpit_raid_auto`")
+	if resultId then
+		repeat
+			local raid = Raid.registry[Result.getString(resultId, "name")]
+			if raid then
+				raid.cockpitDefaults = raid.cockpitDefaults or { raid.initialChance, raid.targetChancePerDay, raid.maxChancePerCheck, raid.minActivePlayers }
+				raidOff[raid.name] = Result.getNumber(resultId, "enabled") == 0
+				local chance, minPlayers = tonumber(Result.getString(resultId, "chance")), Result.getNumber(resultId, "min_players")
+				if chance >= 0 then -- a flat chance per minute check
+					raid.initialChance, raid.targetChancePerDay, raid.maxChancePerCheck = chance, chance, math.min(100, chance)
+				end
+				if minPlayers >= 0 then
+					raid.minActivePlayers = minPlayers
+				end
+				n = n + 1
+			end
+		until not Result.next(resultId)
+		Result.free(resultId)
+	end
+	return n
+end
+
+if Raid and not Raid.cockpitWrapped then
+	local tryStart = Raid.tryStart
+	Raid.tryStart = function(self, force)
+		if not force and raidOff[self.name] then
+			return false
+		end
+		return tryStart(self, force)
+	end
+	Raid.cockpitWrapped = true
+end
+
+globalActions.raid_auto = function()
+	return true, applyRaidAuto() .. " raid(s) com ajuste do painel"
+end
+
 local startup = GlobalEvent("CockpitStartup")
 
 function startup.onStartup()
@@ -751,6 +805,7 @@ function startup.onStartup()
 	local saved = readWorld()
 	applyStages(saved) -- config.lua already read cockpit-world.lua; the stage tables live here
 	applyTexts(saved)
+	applyRaidAuto()
 	startedAt = os.time()
 	writeMetrics()
 	logger.info("[cockpit] bridge ready")

@@ -51,6 +51,7 @@ def startup():
     world.seed()
     events.seed_quiz()
     wheel.seed()
+    raids.seed_weekly(scheduler.next_run)
     if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
         scheduler.start(dispatch)
 
@@ -331,7 +332,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
 }
 
 
@@ -1581,6 +1582,32 @@ def raids_page(request: Request, q: str = "", tipo: str = ""):
     labels = {r["name"]: r["label"] for r in raids.all_raids()}
     return page(request, "raids.html", user, rows=raids.search(q, tipo), q=q, tipo=tipo, recent=recent, labels=labels,
                 total=len(raids.all_raids()))
+
+
+@app.get("/raids/auto", response_class=HTMLResponse)
+def raids_auto_page(request: Request):
+    user = require(request)
+    weekly = db.all("SELECT * FROM cockpit_schedules WHERE action = 'start_raid' ORDER BY weekdays, at_time")
+    return page(request, "raids_auto.html", user, rows=raids.auto_rows(), legacy=raids.legacy_rows(), legacy_on=raids.legacy_on(),
+                weekly=weekly, labels={r["name"]: r["label"] for r in raids.all_raids()}, describe=scheduler.describe)
+
+
+@app.post("/raids/auto", response_class=HTMLResponse)
+async def raids_auto_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    if f.get("legacy") is not None:
+        off = "0" if f.get("legacy") == "1" else "1"
+        db.run("INSERT INTO cockpit_settings (k, v) VALUES ('world.disableLegacyRaids', %s) ON DUPLICATE KEY UPDATE v = VALUES(v)", off)
+        world.apply(user["account"])
+        db.audit(user["account"], "raids_antigas", "", "ligadas" if off == "0" else "desligadas")
+        return Response(headers={"HX-Redirect": "/raids/auto"})
+    name = str(f.get("nome", ""))
+    err = raids.save_override(name, f)
+    if err:
+        return toast(err, ok=False)
+    db.enqueue(user["account"], "raid_auto", text=name)
+    return toast("Salvo. Vale na próxima rolagem (a cada minuto).")
 
 
 @app.get("/raids/lista", response_class=HTMLResponse)
