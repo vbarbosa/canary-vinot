@@ -358,6 +358,98 @@ globalActions.house_rent = function(cmd)
 	return true, amount .. " gold pago (offline)"
 end
 
+-- World settings from the panel. Only these keys are written, with values checked here again.
+local WORLD_FILE = "cockpit-world.lua"
+local WORLD_MARK = "-- cockpit: world settings"
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages" }
+local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
+local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
+
+local function readWorld()
+	local saved = {}
+	local resultId = db.storeQuery("SELECT `k`, `v` FROM `cockpit_settings` WHERE `k` LIKE 'world.%'")
+	if resultId then
+		repeat
+			saved[Result.getString(resultId, "k"):sub(7)] = Result.getString(resultId, "v")
+		until not Result.next(resultId)
+		Result.free(resultId)
+	end
+	return saved
+end
+
+-- "1-50:10,51-:2" -> stage table, or nil when anything is off
+local function parseStages(text)
+	local stages = {}
+	for lo, hi, mult in (text or ""):gmatch("(%d+)%-(%d*):(%d+)") do
+		local stage = { minlevel = tonumber(lo), multiplier = math.min(tonumber(mult), 100) }
+		if hi ~= "" then
+			stage.maxlevel = tonumber(hi)
+		end
+		stages[#stages + 1] = stage
+	end
+	return #stages > 0 and stages or nil
+end
+
+-- config.lua is not in git; make sure it loads the panel's file last (once)
+local function ensureWorldLoader()
+	local f = io.open("config.lua", "r")
+	if not f then
+		return false
+	end
+	local text = f:read("*a")
+	f:close()
+	if text:find(WORLD_MARK, 1, true) then
+		return true
+	end
+	f = io.open("config.lua", "a")
+	if not f then
+		return false
+	end
+	f:write("\n" .. WORLD_MARK .. " (written by the Cockpit panel; these win over the values above)\n")
+	f:write('local cockpitWorld = io.open("' .. WORLD_FILE .. '")\nif cockpitWorld then\n\tcockpitWorld:close()\n\tdofile("' .. WORLD_FILE .. '")\nend\n')
+	f:close()
+	return true
+end
+
+local function applyStages(saved)
+	for _, name in ipairs(WORLD_STAGES) do
+		local stages = parseStages(saved[name])
+		if stages then
+			_G[name] = stages
+		end
+	end
+end
+
+globalActions.apply_world = function()
+	local saved = readWorld()
+	local lines = { "-- Written by the Cockpit panel (tela Mundo). Edit it there, not here." }
+	for _, key in ipairs(WORLD_BOOLS) do
+		if saved[key] then
+			lines[#lines + 1] = key .. " = " .. (saved[key] == "1" and "true" or "false")
+		end
+	end
+	for _, key in ipairs(WORLD_RATES) do
+		local v = tonumber(saved[key])
+		if v then
+			lines[#lines + 1] = key .. " = " .. math.max(1, math.min(100, math.floor(v)))
+		end
+	end
+	local f = io.open(WORLD_FILE, "w")
+	if not f then
+		return false, "nao consegui gravar " .. WORLD_FILE
+	end
+	f:write(table.concat(lines, "\n") .. "\n")
+	f:close()
+	if not ensureWorldLoader() then
+		return false, "nao consegui ligar o arquivo no config.lua"
+	end
+	applyStages(saved)
+	if not Game.reload(RELOAD_TYPE_CONFIG) then
+		return false, "config.lua nao recarregou"
+	end
+	return true, "ajustes aplicados"
+end
+
 local function run(cmd, player)
 	local handler = actions[cmd.action]
 	if not handler then
@@ -447,6 +539,7 @@ function startup.onStartup()
 		db.query(sql)
 	end
 	db.query("DELETE FROM `cockpit_online`")
+	applyStages(readWorld()) -- config.lua already read cockpit-world.lua; the stage tables live here
 	startedAt = os.time()
 	writeMetrics()
 	logger.info("[cockpit] bridge ready")

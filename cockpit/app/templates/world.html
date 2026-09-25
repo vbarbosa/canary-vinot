@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Mundo{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🌍 Mundo</h3>
+  <p class="muted">As regras do servidor: autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
+</div>
+{% if last %}
+<p class="small {{ 'muted' if last.status == 'done' else 'warn' }}">
+  {% if last.status == 'pending' %}⏳ Esperando o jogo aplicar (o jogo está ligado?).
+  {% elif last.status == 'done' %}✅ Aplicado no jogo <span data-ts="{{ last.done_at }}"></span>.
+  {% else %}⚠ O jogo não aplicou: {{ last.result }}.{% endif %}
+</p>
+{% endif %}
+<form hx-post="/mundo" hx-target="#toast" class="world">
+  <div class="grid2">
+    <article class="panel">
+      <header><h4>Liga e desliga</h4></header>
+      {% for k, (_, label, help, _) in switches.items() %}
+      <label class="switch-row"><input type="checkbox" role="switch" name="{{ k }}" value="1" {{ 'checked' if s[k] }}>
+        <span><strong>{{ label }}</strong><br><small class="muted">{{ help }}</small></span></label>
+      {% endfor %}
+    </article>
+
+    <article class="panel">
+      <header><h4>Rates fixas</h4></header>
+      <p class="small muted">Valem quando "Rates por nível" está desligado. O loot vale sempre.</p>
+      <div class="rate-grid">
+        {% for k, (label, _) in rates.items() %}
+        <label>{{ label }}<input name="{{ k }}" type="number" min="1" max="100" value="{{ s[k] }}"></label>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+
+  <div class="grid3 stages">
+    {% for k, (label, _) in stages.items() %}
+    <article class="panel">
+      <header><h4>{{ label }}</h4></header>
+      <table class="compact stage-table" data-stage="{{ k }}">
+        <thead><tr><th>De</th><th>Até</th><th>Vezes</th><th></th></tr></thead>
+        <tbody>
+          {% for lo, hi, x in s[k] %}
+          <tr><td><input name="{{ k }}_de" type="number" min="0" value="{{ lo }}"></td>
+            <td><input name="{{ k }}_ate" type="number" min="0" value="{{ hi if hi is not none else '' }}" placeholder="∞"></td>
+            <td><input name="{{ k }}_x" type="number" min="1" max="100" value="{{ x }}"></td>
+            <td><button type="button" class="outline small danger" data-stage-del title="Tirar faixa">✕</button></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="button" class="outline small" data-stage-add="{{ k }}">+ faixa</button>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="small muted">"Até" vazio vale para todos os níveis acima. As faixas de skill usam o nível da skill, não o do personagem.</p>
+  <button>💾 Salvar e aplicar no jogo</button>
+</form>
+{% endblock %}

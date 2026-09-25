@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import places, realty
+from . import places, realty, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -48,6 +48,7 @@ templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(tim
 @app.on_event("startup")
 def startup():
     db.init_schema()
+    world.seed()
     if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
         scheduler.start(dispatch)
 
@@ -1070,6 +1071,32 @@ def place_delete(request: Request, lid: int):
     db.run("DELETE FROM cockpit_places WHERE id = %s", lid)
     db.audit(user["account"], "lugar_apagado", p["name"] if p else str(lid))
     return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+# ---------------------------------------------------------------- world settings
+
+
+@app.get("/mundo", response_class=HTMLResponse)
+def world_page(request: Request):
+    user = require(request)
+    return page(request, "world.html", user, s=world.load(), switches=world.SWITCHES, rates=world.RATES, stages=world.STAGES,
+                last=world.last_result())
+
+
+@app.post("/mundo", response_class=HTMLResponse)
+async def world_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    values = {k: f.get(k) for k in world.SWITCHES} | {k: f.get(k, "") for k in world.RATES}
+    for k in world.STAGES:
+        rows = zip(f.getlist(f"{k}_de"), f.getlist(f"{k}_ate"), f.getlist(f"{k}_x"))
+        values[k] = ",".join(f"{lo.strip()}-{hi.strip()}:{x.strip()}" for lo, hi, x in rows if lo.strip() and x.strip())
+    err = world.save(values)
+    if err:
+        return toast(err, ok=False)
+    world.apply(user["account"])
+    db.audit(user["account"], "ajustes_mundo", "", "salvo e aplicado")
+    return Response(headers={"HX-Redirect": "/mundo?ok=1"})
 
 
 # ---------------------------------------------------------------- real estate

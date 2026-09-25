@@ -167,6 +167,25 @@
       });
       return;
     }
+    const stageAdd = e.target.closest("[data-stage-add]");
+    if (stageAdd) {
+      const body = document.querySelector(`[data-stage="${stageAdd.dataset.stageAdd}"] tbody`), last = body.lastElementChild;
+      const row = last ? last.cloneNode(true) : null;
+      if (row) {
+        const prev = last.querySelector("[name$=_ate]").value;
+        row.querySelectorAll("input").forEach(i => (i.value = ""));
+        row.querySelector("[name$=_de]").value = prev ? Number(prev) + 1 : "";
+        row.querySelector("[name$=_x]").value = 1;
+        body.appendChild(row);
+      }
+      return;
+    }
+    const stageDel = e.target.closest("[data-stage-del]");
+    if (stageDel) {
+      const body = stageDel.closest("tbody");
+      if (body.children.length > 1) stageDel.closest("tr").remove();
+      return;
+    }
     const add = e.target.closest("[data-add-who]");
     if (add) {
       const o = JSON.parse(add.dataset.addWho), list = document.getElementById("pick-list");
