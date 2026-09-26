@@ -264,11 +264,31 @@ def name_problem(name):
     return None
 
 
+_blank_cols = None
+
+
+def blank_player_columns():
+    """Text columns of players that are NOT NULL without a default (added by other tools, e.g. `comment`).
+    MySQL in strict mode refuses the insert unless they get a value, so they are filled with ''."""
+    global _blank_cols
+    if _blank_cols is None:
+        rows = db.all(
+            "SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'players' "
+            "AND IS_NULLABLE = 'NO' AND COLUMN_DEFAULT IS NULL AND EXTRA = '' "
+            "AND DATA_TYPE IN ('char', 'varchar', 'tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob', 'longblob')"
+        )
+        known = {"name", "conditions"}
+        _blank_cols = [r["c"] for r in rows if r["c"] not in known and re.fullmatch(r"\w+", r["c"])]
+    return _blank_cols
+
+
 def create_character(account_id, name, sex, vocation):
+    extra = blank_player_columns()
     db.run(
         "INSERT INTO players (name, group_id, account_id, level, vocation, health, healthmax, experience, "
-        "lookbody, lookfeet, lookhead, looklegs, looktype, mana, manamax, town_id, conditions, cap, sex) "
-        "VALUES (%s, 1, %s, %s, %s, %s, %s, %s, 106, 95, 78, 116, %s, %s, %s, %s, '', %s, %s)",
+        "lookbody, lookfeet, lookhead, looklegs, looktype, mana, manamax, town_id, conditions, cap, sex"
+        + "".join(f", `{c}`" for c in extra) + ") "
+        "VALUES (%s, 1, %s, %s, %s, %s, %s, %s, 106, 95, 78, 116, %s, %s, %s, %s, '', %s, %s" + ", ''" * len(extra) + ")",
         name, account_id, NEW_CHAR["level"], vocation, NEW_CHAR["health"], NEW_CHAR["health"], NEW_CHAR["experience"],
         128 if sex else 136, NEW_CHAR["mana"], NEW_CHAR["mana"], START_TOWN, NEW_CHAR["cap"], 1 if sex else 0,
     )
