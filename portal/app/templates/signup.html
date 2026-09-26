@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Criar conta · {{ site.serverName }}{% endblock %}
+{% block head %}{% if turnstile_site %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}{% endblock %}
+{% block main %}
+<section class="wrap section auth-wide">
+  <div class="auth-side">
+    <div class="heroes small">{% for id in [4, 3, 1, 2] %}<img src="{{ hero_art[id] }}" alt="" class="px d{{ loop.index0 }}">{% endfor %}</div>
+    <h1>Crie sua conta</h1>
+    <p>Leva um minuto. Depois é só confirmar o e-mail, baixar o cliente e entrar.</p>
+    <ul class="checks">
+      <li><img src="/static/px/heart.svg" alt="" class="px s24"> Grátis e sem pay-to-win</li>
+      <li><img src="/static/px/key.svg" alt="" class="px s24"> Você entra no jogo com o e-mail e a senha daqui</li>
+      <li><img src="/static/px/gift.svg" alt="" class="px s24"> Seu personagem já nasce em Thais, level 8</li>
+    </ul>
+    <p class="muted small">Já tem conta? <a href="/entrar">Entrar</a></p>
+  </div>
+
+  {% if not signups_open() %}
+  <div class="card pad center-text">
+    <img src="/static/px/key.svg" alt="" class="px s64">
+    <h2>Cadastros fechados no momento</h2>
+    <p>O VinOT está recebendo só convidados por enquanto. Volte em breve!</p>
+    <p class="muted small">Já tem conta? <a href="/entrar">Entrar</a></p>
+  </div>
+  {% else %}
+  <form method="post" action="/criar-conta" class="card pad form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>
+    {% if errors.geral %}<div class="flash err" role="alert">{{ errors.geral }}</div>{% endif %}
+
+    <fieldset>
+      <legend><span class="step">1</span> Sua conta</legend>
+      <label>E-mail
+        <input type="email" name="email" value="{{ form.email }}" required maxlength="255" autocomplete="email" {{ 'aria-invalid=true' if errors.email }}>
+        {% with field='email' %}{% include "_field_error.html" %}{% endwith %}
+      </label>
+      <label>Confirme o e-mail
+        <input type="email" name="email2" value="{{ form.email2 }}" required maxlength="255" autocomplete="email" {{ 'aria-invalid=true' if errors.email2 }}>
+        {% with field='email2' %}{% include "_field_error.html" %}{% endwith %}
+      </label>
+      <div class="grid-2">
+        <label>Senha
+          <input type="password" name="senha" required minlength="8" maxlength="64" autocomplete="new-password" {{ 'aria-invalid=true' if errors.senha }}>
+          {% with field='senha' %}{% include "_field_error.html" %}{% endwith %}
+        </label>
+        <label>Repita a senha
+          <input type="password" name="senha2" required minlength="8" maxlength="64" autocomplete="new-password" {{ 'aria-invalid=true' if errors.senha2 }}>
+          {% with field='senha2' %}{% include "_field_error.html" %}{% endwith %}
+        </label>
+      </div>
+      <small class="hint">Pelo menos 8 caracteres, com letras e números. Não use a mesma senha de outros sites.</small>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="step">2</span> Seu personagem</legend>
+      <label>Nome do personagem
+        <input name="personagem" value="{{ form.personagem }}" required minlength="3" maxlength="29" autocomplete="off" pattern="[A-Za-z][A-Za-z ']+[A-Za-z]" {{ 'aria-invalid=true' if errors.personagem }}>
+        {% with field='personagem' %}{% include "_field_error.html" %}{% endwith %}
+        <small class="hint">Só letras, espaço e apóstrofo. Ex.: Sir Aldric, Lady Aurora.</small>
+      </label>
+      <span class="label">Vocação</span>
+      {% set chosen = (form.vocacao or request.query_params.get('vocacao') or '4') | string %}
+      <div class="voc-pick" role="radiogroup" aria-label="Vocação">
+        {% for id, name in vocations.items() %}
+        <label class="voc-option">
+          <input type="radio" name="vocacao" value="{{ id }}" {{ 'checked' if chosen == id|string }}>
+          <span class="card"><img src="{{ hero_art[id] }}" alt="" class="px voc-hero"><b>{{ name }}</b><small>{{ blurbs[id] }}</small></span>
+        </label>
+        {% endfor %}
+      </div>
+      {% with field='vocacao' %}{% include "_field_error.html" %}{% endwith %}
+      <span class="label">Sexo</span>
+      <div class="seg" role="radiogroup" aria-label="Sexo">
+        <label><input type="radio" name="sexo" value="1" {{ 'checked' if form.sexo != '0' }}><span>Masculino</span></label>
+        <label><input type="radio" name="sexo" value="0" {{ 'checked' if form.sexo == '0' }}><span>Feminino</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="step">3</span> Quase lá</legend>
+      <label class="check"><input type="checkbox" name="regras" value="1" required> <span>Li e aceito as <a href="#regras">regras do servidor</a>.</span></label>
+      {% with field='regras' %}{% include "_field_error.html" %}{% endwith %}
+      <label class="check"><input type="checkbox" name="novidades" value="1" {{ 'checked' if form.novidades }}> <span>Quero receber avisos de eventos e promoções por e-mail.</span></label>
+      {% if turnstile_site %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site }}" data-theme="dark" data-language="pt-BR"></div>{% endif %}
+    </fieldset>
+
+    <button type="submit" class="btn big block">Criar conta</button>
+
+    <details id="regras" class="rules">
+      <summary>Regras do servidor</summary>
+      <ol>
+        <li>Respeite todo mundo. Nada de ofensa, preconceito ou assédio.</li>
+        <li>Sem bots, macros ou programas que joguem por você.</li>
+        <li>Achou um bug? Avise a administração em vez de abusar dele.</li>
+        <li>Não compartilhe sua conta nem peça a senha de ninguém.</li>
+        <li>O mestre do jogo pode mudar as coisas pra deixar o servidor mais divertido.</li>
+      </ol>
+    </details>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

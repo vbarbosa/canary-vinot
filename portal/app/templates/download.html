@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Download · {{ site.serverName }}{% endblock %}
+{% set plats = [
+  ('windows', 'Windows', 'sword', 'Windows 10 ou 11, 64 bits', ['Baixe o instalador e abra o arquivo.', 'Se o Windows avisar, clique em "Mais informações" e depois em "Executar assim mesmo".', 'Abra o VinOT pelo atalho na área de trabalho.']),
+  ('android', 'Android', 'potion', 'Celular ou tablet com Android 8 ou mais novo', ['Baixe o APK no próprio aparelho.', 'Abra o arquivo e permita instalar apps desta fonte.', 'Se já tinha uma versão antiga, desinstale ela antes.']),
+] %}
+{% block main %}
+<section class="dl-hero">
+  <div class="wrap">
+    <span class="eyebrow"><img src="/static/px/chest.svg" alt="" class="px">Download</span>
+    <h1>Baixe o cliente do VinOT</h1>
+    <p class="lead">O cliente já vem configurado pro VinOT. Instale e entre com o e-mail e a senha da sua conta.</p>
+    {% if current %}
+    <div class="release-badge"><span class="tag on">Versão atual</span><b>v{{ current.version }}</b><span class="muted">lançada em {{ current.date | date }}</span></div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="wrap section dl-section">
+  <div class="dl-grid">
+    {% for key, title, icon, sub, steps in plats %}
+    {% set f = current.files.get(key) if current else None %}
+    {% set link = links.get(key) %}
+    <div class="card dl-card">
+      <div class="dl-head">
+        <span class="icon-ring big"><img src="/static/px/{{ icon }}.svg" alt="" class="px"></span>
+        <div><h2>{{ title }}</h2><p class="muted small">{{ sub }}</p></div>
+      </div>
+      {% if f %}
+      <a class="btn big block" href="{{ f.url }}" download>Baixar pro {{ title }}</a>
+      <dl class="dl-facts">
+        <div><dt>Versão</dt><dd>v{{ current.version }}</dd></div>
+        <div><dt>Tamanho</dt><dd>{{ size(f.size) }}</dd></div>
+        <div><dt>Arquivo</dt><dd>{{ f.name }}</dd></div>
+      </dl>
+      <details class="dl-sha"><summary>Conferir o arquivo (SHA-256)</summary><code>{{ sha(f.path) }}</code></details>
+      {% elif link %}
+      <a class="btn big block" href="{{ link }}" rel="noopener">Baixar pro {{ title }}</a>
+      {% else %}
+      <span class="btn big block disabled" aria-disabled="true">Em breve</span>
+      <p class="dl-meta">O arquivo aparece aqui assim que a administração publicar a primeira versão.</p>
+      {% endif %}
+      <ol class="dl-steps">{% for s in steps %}<li>{{ s }}</li>{% endfor %}</ol>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if current and (current.notes or current.title) %}
+  <div class="card pad changelog">
+    <h2 class="small-title"><img src="/static/px/scroll.svg" alt="" class="px s24"> Novidades da v{{ current.version }}{% if current.title %}: {{ current.title }}{% endif %}</h2>
+    <ul>{% for n in current.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if releases | length > 1 %}
+  <h2 class="title small-title"><img src="/static/px/map.svg" alt="" class="px s24"> Versões anteriores</h2>
+  <div class="release-list">
+    {% for r in releases[1:] %}
+    <details class="card release">
+      <summary><b>v{{ r.version }}</b>{% if r.title %}<span>{{ r.title }}</span>{% endif %}<small class="muted">{{ r.date | date }}</small></summary>
+      <div class="release-body">
+        {% if r.notes %}<ul>{% for n in r.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+        <div class="row wrap-row">{% for key, f in r.files.items() %}<a class="btn ghost small" href="{{ f.url }}" download>{{ f.label }} · {{ size(f.size) }}</a>{% endfor %}</div>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card pad dl-help">
+    <img src="/static/px/key.svg" alt="" class="px s40">
+    <div>
+      <h3>Ainda não tem conta?</h3>
+      <p class="muted">Crie a conta aqui no site, confirme o e-mail e use o mesmo e-mail e senha no cliente. Por enquanto o acesso ao servidor é liberado pela administração pra quem foi convidado.</p>
+    </div>
+    {% if not me %}<a class="btn ghost" href="/criar-conta">Criar conta</a>{% endif %}
+  </div>
+</section>
+{% endblock %}

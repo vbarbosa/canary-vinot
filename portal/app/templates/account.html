@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Minha conta · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  {% include "_flash.html" %}
+  <div class="account-head card pad">
+    <img src="/static/px/mascot.svg" alt="" class="px s64">
+    <div>
+      <h1>Minha conta</h1>
+      <p class="muted">{{ acc.email }} · desde {{ acc.creation | date }}</p>
+    </div>
+    <form method="post" action="/sair" class="right">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn ghost small" type="submit">Sair</button>
+    </form>
+  </div>
+
+  <div class="account-stats">
+    <div class="card stat"><img src="/static/px/chest.svg" alt="" class="px s32"><div><small>Premium</small><b>{% if premium_until %}até {{ premium_until | date }}{% elif acc.premdays %}{{ acc.premdays }} dias{% else %}Conta grátis{% endif %}</b></div></div>
+    <div class="card stat"><img src="/static/px/coin.svg" alt="" class="px s32"><div><small>Tibia Coins</small><b>{{ acc.coins }}</b></div></div>
+    <div class="card stat"><img src="/static/px/gift.svg" alt="" class="px s32"><div><small>Coins transferíveis</small><b>{{ acc.coins_transferable }}</b></div></div>
+    <div class="card stat"><img src="/static/px/sword.svg" alt="" class="px s32"><div><small>Personagens</small><b>{{ chars | length }} de {{ max_chars }}</b></div></div>
+  </div>
+
+  <h2 class="title"><img src="/static/px/sword.svg" alt="" class="px s32"> Personagens</h2>
+  <div class="chars">
+    {% for c in chars %}
+    <div class="card char">
+      <img src="{{ hero_img(c.vocation) if c.vocation else '/static/px/mascot.svg' }}" alt="" class="px char-hero">
+      <div class="char-main">
+        <h3>{{ c.name }} {% if c.online %}<span class="tag on">online</span>{% endif %}</h3>
+        <p class="muted">Level {{ c.level }} · {{ vocation_names.get(c.vocation, '') }} · {{ 'Masculino' if c.sex else 'Feminino' }}</p>
+      </div>
+      <dl>
+        <div><dt>Cidade</dt><dd>{{ c.town or '—' }}</dd></div>
+        <div><dt>Banco</dt><dd>{{ '{:,}'.format(c.balance).replace(',', '.') }} gp</dd></div>
+        <div><dt>Último login</dt><dd>{{ c.lastlogin | date(true) if c.lastlogin else 'nunca' }}</dd></div>
+        <div><dt>Tempo jogado</dt><dd>{{ (c.onlinetime // 3600) }} h</dd></div>
+      </dl>
+    </div>
+    {% else %}
+    <p class="muted">Você ainda não tem personagem. Crie um aqui embaixo.</p>
+    {% endfor %}
+  </div>
+
+  <div class="two-col">
+    {% if chars | length < max_chars %}
+    <form method="post" action="/conta/personagem" class="card pad form">
+      <h2 class="title small-title"><img src="/static/px/potion.svg" alt="" class="px s24"> Novo personagem</h2>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Nome <input name="personagem" required minlength="3" maxlength="29" autocomplete="off"></label>
+      <div class="grid-2">
+        <label>Vocação <select name="vocacao">{% for id, name in vocations.items() %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</select></label>
+        <label>Sexo <select name="sexo"><option value="1">Masculino</option><option value="0">Feminino</option></select></label>
+      </div>
+      <button class="btn block" type="submit">Criar personagem</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/conta/senha" class="card pad form" id="senha">
+      <h2 class="title small-title"><img src="/static/px/key.svg" alt="" class="px s24"> Trocar senha</h2>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Senha atual <input type="password" name="atual" required autocomplete="current-password"></label>
+      <div class="grid-2">
+        <label>Senha nova <input type="password" name="senha" required minlength="8" maxlength="64" autocomplete="new-password"></label>
+        <label>Repita <input type="password" name="senha2" required minlength="8" maxlength="64" autocomplete="new-password"></label>
+      </div>
+      <button class="btn ghost block" type="submit">Trocar senha</button>
+      <small class="hint">A senha nova também vale no jogo.</small>
+    </form>
+  </div>
+</section>
+{% endblock %}
