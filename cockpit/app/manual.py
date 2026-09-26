@@ -100,7 +100,7 @@ HOWTO = {
     "/metin": "Pedra Metin: tipos (vida, ondas de monstros, loot), lugares onde soltar, soltar agora, placar de dano e histórico das pedras já destruídas.",
     "/dungeons": "Dungeons (salas de boss com alavanca já existentes no mapa): quem está dentro agora, liberar uma sala travada, zerar o cooldown de um jogador, mudar o tempo limite da luta, o tempo pra lutar de novo e um prêmio extra por cima do loot normal.",
     "/agenda": "Tarefas automáticas: salvar, anunciar, limpar o chão, raids, eventos, presentes, abrir e fechar o servidor.",
-    "/jogadores": "A ficha de cada personagem: itens, level, skills, outfit, grupo, banir, renomear, troféu do Vinot, giros da roleta.",
+    "/jogadores": "A ficha de cada personagem: itens, level, skills, outfit, grupo, banir, renomear, troféu do Vinot, giros da roleta, encher stamina.",
     "/contas": "Criar conta e personagem, trocar senha, premium e Tibia coins.",
     "/guilds": "O portal das guilds: criar, membros, cargos, líder, banco, mensagem do dia e guerras.",
     "/kits": "Pacotes de itens prontos para dar de uma vez (e para prêmio de eventos).",

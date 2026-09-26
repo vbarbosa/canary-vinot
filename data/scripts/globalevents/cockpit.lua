@@ -304,6 +304,13 @@ actions.heal = function(player)
 	return true, "curado"
 end
 
+-- Enche a stamina (42h): jogador em 0 de stamina ganha 0% de XP, mesmo matando criatura.
+actions.stamina_full = function(player)
+	player:setStamina(2520)
+	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_GREEN)
+	return true, "stamina cheia"
+end
+
 -- Ground with no blocking flag, so the player lands somewhere they can actually walk out of.
 local function walkable(pos)
 	local tile = Tile(pos)

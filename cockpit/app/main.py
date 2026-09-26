@@ -344,7 +344,7 @@ def part_online(request: Request):
 
 ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
-    "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "teleport": "✨ teleporte", "temple": "⛪ templo",
+    "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "stamina_full": "⏳ stamina cheia", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
