@@ -62,6 +62,8 @@ def main(force=False):
     todo_c = [c for c in d["creatures"] if force or not os.path.exists(os.path.join(OUT, "c", c["slug"] + ".png"))]
     todo_i = [i for i in d["drops"] if force or not os.path.exists(os.path.join(OUT, "i", f"{i}.png"))]
     todo_i += [c["looktype_ex"] for c in todo_c if c["looktype_ex"]]
+    if EXTRA_ITEMS:  # e.g. every weapon/armor the MediaWiki export lists, not only loot
+        todo_i += [i for i in EXTRA_ITEMS if i not in todo_i and (force or not os.path.exists(os.path.join(OUT, "i", f"{i}.png")))]
     print(f"{len(todo_c)} creatures and {len(todo_i)} items to draw")
     outfits = infos(2, {c["looktype"] for c in todo_c if c["looktype"]})
     objects = infos(1, set(todo_i))
@@ -103,5 +105,10 @@ def main(force=False):
     print(f"drew {done} pictures, {len(sprites.cache)} sheets downloaded")
 
 
+EXTRA_ITEMS = []
+
 if __name__ == "__main__":
+    if "--extra-items" in sys.argv:
+        with open(sys.argv[sys.argv.index("--extra-items") + 1]) as f:
+            EXTRA_ITEMS = [int(x) for x in f.read().split() if x.isdigit()]
     main(force="--force" in sys.argv)
