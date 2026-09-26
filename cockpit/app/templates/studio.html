@@ -93,6 +93,7 @@
           <input name="motivo" placeholder="Motivo (opcional)" maxlength="200">
           <button class="outline small danger">Banir</button>
         </form>
+        <button class="outline small danger" hx-post="/jogador/{{ p.id }}/apagar" hx-target="#toast" hx-confirm="Apagar {{ p.name }} para sempre? Itens, level e tudo mais somem.">Apagar personagem</button>
         {% endif %}
       </div>
     </details>

@@ -978,6 +978,8 @@ def character_delete(request: Request, pid: int):
     p = db.one("SELECT name, account_id, group_id FROM players WHERE id = %s", pid)
     if not p:
         return toast("Personagem não encontrado.", ok=False)
+    if locked_account(user, p["account_id"]):
+        return toast(LOCKED, ok=False)
     if p["group_id"] >= GOD_GROUP:
         return toast("Personagem God não pode ser apagado pelo painel.", ok=False)
     if is_online(pid):

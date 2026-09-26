@@ -10,6 +10,7 @@
     {% if r.group_id < 6 %}
       {% if r.banned %}<button class="outline small" hx-post="/jogadores/{{ r.id }}/desban" hx-target="#toast">Desbanir</button>
       {% else %}<button class="outline small danger" hx-post="/jogadores/{{ r.id }}/ban" hx-vals='{"dias":"7"}' hx-target="#toast" hx-confirm="Banir a conta de {{ r.name }} por 7 dias?">Banir 7d</button>{% endif %}
+      <button class="outline small danger" hx-post="/jogador/{{ r.id }}/apagar" hx-target="#toast" hx-confirm="Apagar {{ r.name }} para sempre? Itens, level e tudo mais somem.">Apagar</button>
     {% endif %}
   </td>
 </tr>
