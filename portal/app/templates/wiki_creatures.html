@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Criaturas · Wiki · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  <a href="/wiki" class="more back">Wiki</a>
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/skull.svg" alt="" class="px">Wiki</span>
+    <h1>Criaturas</h1>
+    <p class="muted">{{ total }} monstros, direto dos arquivos do servidor.</p>
+  </div></div>
+
+  <form class="rank-tools" method="get" action="/wiki/criaturas">
+    <nav class="chips wiki-class-chips" aria-label="Classe">
+      <a href="/wiki/criaturas{{ '?q=' ~ q if q }}" {{ 'aria-current=page' if not classe }}>Todas</a>
+      {% for cls, n in classes %}<a href="/wiki/criaturas?classe={{ cls | urlencode }}{{ '&q=' ~ q if q }}" {{ 'aria-current=page' if classe == cls }}>{{ wiki_class_pt(cls) }}</a>{% endfor %}
+    </nav>
+    {% if classe %}<input type="hidden" name="classe" value="{{ classe }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar criatura" aria-label="Buscar criatura" maxlength="40">
+  </form>
+
+  <div class="wiki-grid">
+    {% for c in creatures %}
+    <a class="card wiki-card" href="/wiki/criaturas/{{ c.slug }}">
+      <div class="wiki-thumb"><img src="/static/wiki/c/{{ c.slug }}.png" alt="" class="px" loading="lazy" onerror="this.style.visibility='hidden'"></div>
+      <div class="wiki-card-body">
+        <b>{{ c.name }}</b>
+        <small>{{ wiki_class_pt(c.class) if c.class else '—' }} {% if c.boss %}· <span class="tag boss">Boss</span>{% endif %}</small>
+        <span class="wiki-stat"><img src="/static/px/heart.svg" alt="" class="px s16">{{ fmt_int(c.health) }}</span>
+      </div>
+    </a>
+    {% else %}<p class="muted empty">Nada encontrado.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

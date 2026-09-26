@@ -631,3 +631,58 @@ input[aria-invalid=true] { border-color: var(--red); }
   .order-facts { grid-template-columns: 1fr 1fr; }
   .dl-facts { grid-template-columns: 1fr 1fr; }
 }
+
+/* wiki */
+.wiki-search { margin-bottom: 28px; }
+.wiki-search-form { display: flex; gap: 10px; max-width: 520px; }
+.wiki-search-form input { flex: 1; }
+.muted-card { opacity: .6; }
+.wiki-classes { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip-card { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--text); font-size: .9rem; }
+.chip-card:hover { border-color: var(--line-2); color: var(--text); }
+.chip-card b { color: var(--gold-2); }
+.wiki-class-chips { flex-wrap: wrap; }
+.wiki-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.wiki-grid.items { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.wiki-card { display: flex; flex-direction: column; padding: 14px; text-align: center; gap: 8px; transition: transform .15s, border-color .15s; }
+.wiki-card:hover { transform: translateY(-3px); border-color: rgba(232, 182, 76, .35); color: var(--text); }
+.wiki-thumb { height: 84px; display: grid; place-items: center; }
+.wiki-thumb img { max-height: 76px; max-width: 100%; image-rendering: pixelated; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .5)); }
+.wiki-card-body { display: grid; gap: 2px; }
+.wiki-card-body b { font-size: .92rem; }
+.wiki-card-body small { color: var(--muted); font-size: .74rem; }
+.wiki-stat { display: inline-flex; align-items: center; gap: 4px; justify-content: center; color: var(--gold-2); font-size: .78rem; font-weight: 600; }
+.tag.boss { background: rgba(239, 91, 91, .18); color: #ff9c9c; }
+.wiki-page { max-width: 980px; }
+.wiki-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 32px; align-items: start; }
+.wiki-article h1 { margin-top: 10px; }
+.wiki-article .lead { color: #d3d6de; }
+.wiki-article .small-title { margin-top: 26px; }
+.wiki-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: #d3d6de; }
+.wiki-list.voices li { font-style: italic; color: var(--muted); }
+.wiki-source { margin-top: 28px; }
+.wiki-source code { background: #0e1118; padding: 2px 6px; border-radius: 6px; }
+.loot-table td { vertical-align: middle; }
+.avatar.sm { width: 32px; height: 32px; border-radius: 8px; }
+.avatar.sm img { width: 26px; height: 26px; }
+.rarity-pill { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.r-comum { background: rgba(255, 255, 255, .08); color: #cfd3dc; }
+.r-incomum { background: rgba(79, 209, 139, .15); color: var(--green); }
+.r-semi-raro { background: rgba(90, 169, 240, .15); color: var(--blue); }
+.r-raro { background: rgba(178, 108, 240, .15); color: #c79bf5; }
+.r-muito-raro { background: rgba(232, 182, 76, .18); color: var(--gold-2); }
+.wiki-infobox { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; position: sticky; top: calc(var(--top-h) + 16px); }
+.wiki-infobox-art { height: 130px; display: grid; place-items: center; margin-bottom: 8px; background: radial-gradient(closest-side, rgba(255, 255, 255, .06), transparent 70%); border-radius: 10px; }
+.wiki-infobox-art img { max-height: 110px; max-width: 90%; image-rendering: pixelated; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .5)); }
+.wiki-infobox h2 { font-size: 1.2rem; text-align: center; margin-bottom: 14px; }
+.infobox-facts, .infobox-flags { display: grid; gap: 0; margin: 0 0 10px; border-top: 1px solid var(--line); }
+.infobox-facts div, .infobox-flags div { display: flex; justify-content: space-between; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
+.infobox-facts dt, .infobox-flags dt { color: var(--muted); }
+.infobox-facts dd, .infobox-flags dd { margin: 0; font-weight: 600; }
+.infobox-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 8px; }
+.ele-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ele-list li { display: flex; justify-content: space-between; font-size: .84rem; }
+.ele-list b.weak { color: #ff9c9c; } .ele-list b.resist { color: var(--green); }
+.immun-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.chip-tiny { font-size: .72rem; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); }
+@media (max-width: 900px) { .wiki-layout { grid-template-columns: 1fr; } .wiki-infobox { position: static; } }

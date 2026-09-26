@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }} · Wiki · {{ site.serverName }}{% endblock %}
+{% block description %}{{ c.description or c.name }} — vida {{ c.health }}, experiência {{ c.experience }}.{% endblock %}
+{% block main %}
+<section class="wrap section wiki-page">
+  <a href="/wiki/criaturas" class="more back">Criaturas</a>
+  <div class="wiki-layout">
+    <article class="wiki-article">
+      <span class="tag cat-{{ 'promocao' if c.boss else 'atualizacao' }}">{{ 'Boss' if c.boss else (wiki_class_pt(c.class) if c.class else 'Criatura') }}</span>
+      <h1>{{ c.name }}</h1>
+      {% if c.description %}<p class="lead">É {{ c.description }}.</p>{% endif %}
+
+      {% if c.locations %}
+      <h2 class="small-title">Onde encontrar</h2>
+      <p>{{ c.locations }}</p>
+      {% endif %}
+
+      {% if c.attacks or c.melee %}
+      <h2 class="small-title">Ataques</h2>
+      <ul class="wiki-list">
+        {% if c.melee %}<li>Corpo a corpo: até <b>{{ c.melee }}</b> de dano.</li>{% endif %}
+        {% for a in c.attacks %}<li>{{ a.element_pt or 'Especial' }}{% if a.area %} em área{% endif %}: até <b>{{ a.max }}</b> de dano{% if a.min != a.max %} (de {{ a.min }} a {{ a.max }}){% endif %}.</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if c.summons %}
+      <h2 class="small-title">Invoca</h2>
+      <p>{{ c.summons | join(', ') }}</p>
+      {% endif %}
+
+      {% if c.loot %}
+      <h2 class="small-title">Loot</h2>
+      <div class="card table-wrap">
+        <table class="table loot-table">
+          <thead><tr><th>Item</th><th>Chance</th><th class="right-col">Quantidade</th></tr></thead>
+          <tbody>
+          {% for it in c.loot %}
+          <tr class="rarity-{{ it.rarity }}">
+            <td><span class="who">{% if it.id %}<span class="avatar sm"><img src="/static/wiki/i/{{ it.id }}.png" alt="" class="px" onerror="this.parentElement.style.visibility='hidden'"></span>{% endif %}{% if it.id %}<a href="/wiki/itens/{{ it.id }}">{{ it.name }}</a>{% else %}{{ it.name }}{% endif %}</span></td>
+            <td><span class="rarity-pill r-{{ it.rarity }}">{{ wiki_rarity_pt(it.rarity) }}</span> <small class="muted">{{ it.chance_pt }}</small></td>
+            <td class="right-col">{% if it.max > 1 %}até {{ it.max }}{% else %}1{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if c.voices %}
+      <h2 class="small-title">Fala</h2>
+      <ul class="wiki-list voices">{% for v in c.voices %}<li>"{{ v }}"</li>{% endfor %}</ul>
+      {% endif %}
+
+      <p class="wiki-source muted small">Dados lidos de <code>{{ c.file }}</code>.</p>
+    </article>
+
+    <aside class="wiki-infobox">
+      <div class="wiki-infobox-art"><img src="/static/wiki/c/{{ c.slug }}.png" alt="{{ c.name }}" class="px" onerror="this.style.display='none'"></div>
+      <h2>{{ c.name }}</h2>
+      <dl class="infobox-facts">
+        <div><dt>Vida</dt><dd>{{ fmt_int(c.health) }}</dd></div>
+        <div><dt>Experiência</dt><dd>{{ fmt_int(c.experience) }}</dd></div>
+        <div><dt>Velocidade</dt><dd>{{ c.speed }}</dd></div>
+        {% if c.armor %}<div><dt>Armadura</dt><dd>{{ c.armor }}</dd></div>{% endif %}
+        {% if c.defense %}<div><dt>Defesa</dt><dd>{{ c.defense }}</dd></div>{% endif %}
+        {% if c.stars %}<div><dt>Estrelas do bestiário</dt><dd>{{ '★' * c.stars }}</dd></div>{% endif %}
+        {% if c.to_kill %}<div><dt>Pra completar</dt><dd>{{ c.to_kill }} mortes</dd></div>{% endif %}
+      </dl>
+      <dl class="infobox-flags">
+        <div><dt>Empurra</dt><dd>{{ 'Sim' if c.pushable else 'Não' }}</dd></div>
+        <div><dt>Convencível</dt><dd>{{ 'Sim' if c.convinceable else 'Não' }}</dd></div>
+        <div><dt>Ilusão</dt><dd>{{ 'Sim' if c.illusionable else 'Não' }}</dd></div>
+        <div><dt>Paralisia</dt><dd>{{ 'Imune' if c.paralyze_immune else 'Afeta' }}</dd></div>
+      </dl>
+      {% if c.elements %}
+      <h3 class="infobox-sub">Resistências</h3>
+      <ul class="ele-list">
+        {% for key, pct in c.elements.items() if pct != 0 %}
+        <li><span>{{ {'physical':'Físico','fire':'Fogo','earth':'Terra','energy':'Energia','ice':'Gelo','holy':'Sagrado','death':'Morte','lifedrain':'Dreno de vida','manadrain':'Dreno de mana','drown':'Afogamento'}.get(key, key) }}</span><b class="{{ 'weak' if pct > 0 else 'resist' }}">{{ '+' if pct > 0 else '' }}{{ pct }}%</b></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if c.immunities %}
+      <h3 class="infobox-sub">Imunidades</h3>
+      <p class="immun-list">{% for i in c.immunities %}<span class="chip-tiny">{{ {'paralyze':'Paralisia','invisible':'Invisível','outfit':'Troca de outfit','bleed':'Sangramento'}.get(i, i.title()) }}</span>{% endfor %}</p>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}

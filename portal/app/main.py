@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import cms, db, downloads, mailer, shop
+from . import wiki as wk
 from . import security as sec
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -149,6 +150,7 @@ templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
     categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART, hero_img=hero_img, voc_info=VOC_INFO,
     turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open,
+    wiki_class_pt=lambda c: wk.CLASS_PT.get(c, c), wiki_rarity_pt=lambda r: wk.RARITY_PT.get(r, r), fmt_int=wk.fmt_int, wiki_chance_pt=wk.fmt_chance,
 )
 
 
@@ -397,7 +399,52 @@ def download_file(version: str, fname: str):
 
 @app.get("/wiki", response_class=HTMLResponse)
 def wiki_home(request: Request):
-    return page(request, "wiki.html")
+    d = wk.data()
+    return page(request, "wiki.html", total_creatures=len(d["creatures"]), total_items=len(d["items"]), classes=d["classes"])
+
+
+@app.get("/wiki/criaturas", response_class=HTMLResponse)
+def wiki_creatures(request: Request, classe: str = "", q: str = ""):
+    d = wk.data()
+    rows = d["creatures"]
+    if classe:
+        rows = [c for c in rows if c["class"] == classe]
+    q = q.strip()[:40]
+    if q:
+        needle = wk.slugify(q)
+        rows = [c for c in rows if needle in c["slug"]]
+    return page(request, "wiki_creatures.html", creatures=rows, classes=d["classes"], classe=classe, q=q, total=len(d["creatures"]))
+
+
+@app.get("/wiki/criaturas/{slug}", response_class=HTMLResponse)
+def wiki_creature(request: Request, slug: str):
+    c = wk.creature(slug)
+    if not c:
+        return page(request, "404.html", status_code=404)
+    return page(request, "wiki_creature.html", c=c)
+
+
+@app.get("/wiki/itens", response_class=HTMLResponse)
+def wiki_items(request: Request, q: str = ""):
+    rows = wk.loot_items()
+    q = q.strip()[:40]
+    if q:
+        needle = wk.slugify(q)
+        rows = [i for i in rows if needle in i["slug"]]
+    return page(request, "wiki_items.html", items=rows, q=q, total=len(wk.loot_items()))
+
+
+@app.get("/wiki/itens/{iid}", response_class=HTMLResponse)
+def wiki_item(request: Request, iid: int):
+    it = wk.item(iid)
+    if not it:
+        return page(request, "404.html", status_code=404)
+    return page(request, "wiki_item.html", it=it)
+
+
+@app.get("/wiki/servidor", response_class=HTMLResponse)
+def wiki_server(request: Request):
+    return page(request, "wiki_server.html", rates=wk.rates(db))
 
 
 @app.get("/noticias", response_class=HTMLResponse)

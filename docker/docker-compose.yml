@@ -66,6 +66,7 @@ services:
     environment:
       MYSQL_HOST: database
       PORTAL_GAME_HOST: server
+      PORTAL_GAME_DATA: /gamedata
     networks:
       - canary-net
     ports:
@@ -74,6 +75,9 @@ services:
     volumes:
       # Client releases for /baixar: one folder per version (see portal/app/downloads.py).
       - '${PORTAL_DOWNLOADS_DIR:-./downloads}:/downloads:ro'
+      # Monster/item files for the Wiki (see portal/app/wiki.py); read-only, same source the game uses.
+      - '../data:/gamedata/data:ro'
+      - '../data-otservbr-global:/gamedata/data-otservbr-global:ro'
     read_only: true
     tmpfs:
       - /tmp

@@ -210,7 +210,7 @@ def fmt_int(n):
 
 
 def fmt_chance(ch):
-    p = ch / 1000  # loot chance is per 100000
+    p = min(ch, 100000) / 1000  # loot chance is per 100000; some monster files have a stray extra zero
     if p >= 10:
         return f"{p:.0f}%"
     if p >= 1:
@@ -219,7 +219,7 @@ def fmt_chance(ch):
 
 
 def rarity(ch):
-    p = ch / 1000
+    p = min(ch, 100000) / 1000
     return "comum" if p >= 25 else "incomum" if p >= 5 else "semi-raro" if p >= 1 else "raro" if p >= 0.2 else "muito-raro"
 
 

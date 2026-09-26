@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Itens · Wiki · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  <a href="/wiki" class="more back">Wiki</a>
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/chest.svg" alt="" class="px">Wiki</span>
+    <h1>Itens</h1>
+    <p class="muted">{{ total }} itens que caem de alguma criatura.</p>
+  </div></div>
+
+  <form class="rank-tools" method="get" action="/wiki/itens">
+    <span></span>
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar item" aria-label="Buscar item" maxlength="40">
+  </form>
+
+  <div class="wiki-grid items">
+    {% for it in items %}
+    <a class="card wiki-card" href="/wiki/itens/{{ it.id }}">
+      <div class="wiki-thumb"><img src="/static/wiki/i/{{ it.id }}.png" alt="" class="px" loading="lazy" onerror="this.style.visibility='hidden'"></div>
+      <div class="wiki-card-body">
+        <b>{{ it.name }}</b>
+        <small>{{ it.sources }} criatura{{ 's' if it.sources != 1 }} dropam</small>
+      </div>
+    </a>
+    {% else %}<p class="muted empty">Nada encontrado.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}
