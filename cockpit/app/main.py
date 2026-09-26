@@ -48,6 +48,7 @@ templates.env.globals.update(vocations=gamedata.vocations(), now=lambda: int(tim
 @app.on_event("startup")
 def startup():
     db.init_schema()
+    shop.init_schema()
     world.seed()
     events.seed_quiz()
     wheel.seed()
@@ -96,7 +97,7 @@ MENU = [
     ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
                                    ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/agenda", "⏰", "Agenda")]),
     ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Jogadores"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
-    ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
+    ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
 ]
 OWNER_MENU = ("dono", "👑", "Dono", [("/equipe", "👮", "Equipe")])
@@ -1928,9 +1929,43 @@ async def economy_shop(request: Request):
     if err:
         return toast(err, ok=False)
     s = shop.settings()
-    db.audit(user["account"], "loja_coins", "", f"R$ {s['coin_reais']:.2f} por coin, {'aberta' if s['enabled'] == '1' else 'fechada'}")
-    price = f"{s['coin_reais']:.2f}".replace(".", ",")
-    return toast(f"Loja salva: 1 coin = R$ {price}. O portal já mostra o valor novo.")
+    db.audit(user["account"], "loja_coins", "", f"R$ {s['price']} por coin, {'aberta' if s['open'] else 'fechada'}")
+    price = str(s["price"]).replace(".", ",")
+    return toast(f"Loja salva: 1 coin = R$ {price}. O portal mostra o valor novo em até 10 segundos.")
+
+
+def order_gone(msg):
+    """The row stays as it was; the message goes to the toast instead of the table."""
+    r = toast(msg, ok=False)
+    r.headers.update({"HX-Retarget": "#toast", "HX-Reswap": "innerHTML"})
+    return r
+
+
+@app.get("/pedidos", response_class=HTMLResponse)
+def shop_orders(request: Request):
+    user = require(request)
+    return page(request, "orders.html", user, pending=shop.orders("pending"), done=shop.orders("done", 30), c=shop.counts(),
+                shop=shop.settings(), status=shop.STATUS, brl=shop.brl)
+
+
+@app.post("/pedidos/{oid}/confirmar", response_class=HTMLResponse)
+def shop_order_confirm(request: Request, oid: int):
+    user = require(request, post=True)
+    o = shop.confirm(oid, user["account"])
+    if not o:
+        return order_gone("Esse pedido já foi resolvido (ou a conta não existe mais). Recarregue a página.")
+    db.audit(user["account"], "pix_pago", str(o["account_id"]), f"{o['code']}: {o['coins']} coins, {shop.brl(o['amount_cents'])}")
+    return HTMLResponse(templates.get_template("_order_row.html").render(o=o, status=shop.STATUS, brl=shop.brl))
+
+
+@app.post("/pedidos/{oid}/cancelar", response_class=HTMLResponse)
+def shop_order_cancel(request: Request, oid: int):
+    user = require(request, post=True)
+    o = shop.cancel(oid, user["account"], request.headers.get("HX-Prompt", ""))
+    if not o:
+        return order_gone("Esse pedido já foi resolvido. Recarregue a página.")
+    db.audit(user["account"], "pix_cancelado", str(o["account_id"]), f"{o['code']}: {o['note']}")
+    return HTMLResponse(templates.get_template("_order_row.html").render(o=o, status=shop.STATUS, brl=shop.brl))
 
 
 @app.get("/economia/dados")

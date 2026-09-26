@@ -293,6 +293,12 @@ def run(sql, *args):
         return cur.lastrowid
 
 
+def changed(sql, *args):
+    """Run an UPDATE/DELETE and return how many rows it touched (guards against double clicks)."""
+    with connect() as conn, conn.cursor() as cur:
+        return cur.execute(sql, args)
+
+
 # Columns added after a table first shipped; each runs once and is skipped when the column is already there.
 MIGRATIONS = [
     ("cockpit_event_presets", "extra", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `extra` VARCHAR(1000) NOT NULL DEFAULT ''"),

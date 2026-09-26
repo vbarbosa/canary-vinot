@@ -3,7 +3,7 @@
 {% block content %}
 <hgroup>
   <h3>Conta {{ acc.name }}</h3>
-  <p class="muted">{{ acc.email }} · {{ acc.coins }} Tibia coins · {{ acc.coins_transferable }} transferíveis · premium: {{ premium ~ ' dias' if premium else 'não' }}</p>
+  <p class="muted">{{ acc.email }} · {{ acc.coins }} Tibia coins · {{ acc.coins_transferable }} transferíveis · premium: {{ premium ~ ' dias' if premium else 'não' }} · <a href="/contas">← todas as contas</a></p>
 </hgroup>
 <div class="grid2">
   <section>

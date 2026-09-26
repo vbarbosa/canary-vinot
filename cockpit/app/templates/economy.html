@@ -94,16 +94,13 @@
     <article class="panel">
       <header><h4>🪙 Loja de coins (portal)</h4></header>
       <form hx-post="/economia/loja" hx-target="#toast" class="rules">
-        <label class="switch-row"><input type="checkbox" role="switch" name="enabled" value="1" {{ 'checked' if shop.enabled == '1' }}>
+        <label class="switch-row"><input type="checkbox" role="switch" name="shopOpen" value="1" {{ 'checked' if shop.shopOpen != '0' }}>
           <span><strong>Vender coins no portal</strong></span></label>
-        <div class="rate-grid">
-          <label>Preço de 1 coin (R$)<input name="coin_reais" type="number" min="0.01" step="0.01" value="{{ '%.2f'|format(shop.coin_reais) }}"></label>
-          <label>Pedido mínimo (coins)<input name="min_coins" type="number" min="1" value="{{ shop.min_coins }}"></label>
-        </div>
-        <label>Chave Pix<input name="pix_key" value="{{ shop.pix_key }}" maxlength="120" placeholder="e-mail, telefone ou chave aleatória"></label>
-        <label>Nome de quem recebe<input name="pix_name" value="{{ shop.pix_name }}" maxlength="80" placeholder="como aparece no app do banco"></label>
-        <label>O que escrever na descrição do Pix<input name="pix_note" value="{{ shop.pix_note }}" maxlength="200"></label>
-        <p class="small muted">Pix estático, conferido à mão: quando o pagamento cair, dê as coins na conta (tela Contas). O portal lê estes valores na hora.</p>
+        <label>Preço de 1 coin (R$)<input name="coinPrice" type="number" min="0.01" max="1000" step="0.01" value="{{ shop.price }}"></label>
+        <label>Chave Pix<input name="pixKey" value="{{ shop.pixKey }}" maxlength="120" placeholder="e-mail, telefone ou chave aleatória"></label>
+        <label>Nome no código Pix <small class="muted">(opcional, até 25 letras)</small><input name="pixName" value="{{ shop.pixName }}" maxlength="25" placeholder="VINOT"></label>
+        <p class="small muted">Pix estático, conferido à mão. O portal gera o código do pedido, que vai na descrição do Pix; quando o pagamento cair,
+          confirme em <a href="/pedidos">Pedidos Pix</a> e as coins entram na conta.</p>
         <button>Salvar loja</button>
       </form>
     </article>
