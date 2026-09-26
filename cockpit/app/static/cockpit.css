@@ -69,8 +69,8 @@ img.mini { width: 18px; height: 18px; vertical-align: middle; image-rendering: p
 .drop .item { display: none; }
 .drop.sortable-ghost, .drop:has(.sortable-ghost) { background: #3a3120; border-color: var(--pico-primary); }
 .drop.flash { background: #3d4a2c; border-color: #7fc16a; }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .8rem; margin-bottom: 1rem; }
-.card { border-style: solid; text-align: left; background: var(--pico-card-background-color); color: inherit; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .8rem; margin-bottom: 1rem; }
+.card { border-style: solid; text-align: left; background: var(--pico-card-background-color); color: inherit; min-height: 110px; }
 .card.offline { opacity: .6; }
 .card progress { margin: .3rem 0 0; height: .4rem; }
 

@@ -7,7 +7,7 @@
     {% if not members %}
       <p>A turma está vazia. Vá em <a href="/jogadores">Jogadores</a> e clique em "Pôr na turma" nos personagens dos seus amigos.</p>
     {% else %}
-    <div class="drop group-drop" data-alvo="turma">Solte aqui para dar para <strong>toda a turma</strong></div>
+    <div class="drop big group-drop" data-alvo="turma">Solte aqui para dar para <strong>toda a turma</strong></div>
     <div id="cards" hx-get="/parts/turma" hx-trigger="every 3s" class="cards">{% include "_group_cards.html" %}</div>
 
     <h4>Com toda a turma</h4>
