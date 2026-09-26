@@ -5,7 +5,7 @@
   <section>
     <hgroup>
       <h3>{% if p.online %}<span class="on">●</span>{% endif %} {{ p.name }}</h3>
-      <p class="muted">Level {{ p.level }} · {{ vocations.get(p.vocation, '') }} · {{ 'online' if p.online else 'offline: as mudanças entram quando ele logar' }} · <a href="/conta/{{ p.account_id }}">conta e loja</a> · <a href="/jogadores">← todos os jogadores</a></p>
+      <p class="muted">Level {{ p.level }} · {{ vocations.get(p.vocation, '') }} · {{ 'online' if p.online else 'offline: as mudanças entram quando ele logar' }} · <a href="/conta/{{ p.account_id }}">conta e loja</a> · <a href="/jogadores">← todos os personagens</a></p>
     </hgroup>
 
     <details open class="sheet-wrap">

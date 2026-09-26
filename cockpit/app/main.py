@@ -96,7 +96,7 @@ MENU = [
     ("painel", "🏠", "Painel", [("/", "🌅", "Visão geral"), ("/ranking", "🏆", "Ranking"), ("/historico", "📜", "Histórico"), ("/manual", "📖", "Manual")]),
     ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
                                    ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/dungeons", "🏯", "Dungeons"), ("/agenda", "⏰", "Agenda")]),
-    ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Jogadores"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
+    ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Personagens"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
     ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
 ]

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Jogadores{% endblock %}
+{% block title %}Personagens{% endblock %}
 {% block content %}
-<h3>Jogadores</h3>
+<h3>Personagens</h3>
 <input type="search" name="q" value="{{ q }}" placeholder="Buscar personagem…" hx-get="/jogadores" hx-trigger="input changed delay:300ms" hx-target="#rows">
 <table class="compact" data-plain>
   <thead><tr><th>Nome</th><th>Level</th><th>Vocação</th><th>Conta</th><th></th></tr></thead>
