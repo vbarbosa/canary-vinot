@@ -349,7 +349,7 @@ ACTION_LABELS = {
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
-    "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown",
+    "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
 }
 
 
@@ -1455,6 +1455,16 @@ def place_save(request: Request, nome: str = Form(...), nota: str = Form(""), x:
         db.run("INSERT INTO cockpit_places (name, note, x, y, z, created_by) VALUES (%s,%s,%s,%s,%s,%s)", nome, nota[:255], x, y, z, user["account"])
         db.audit(user["account"], "lugar_salvo", nome, f"{x},{y},{z}")
     return Response(headers={"HX-Redirect": "/teleporte?tipo=meu"})
+
+
+@app.post("/teleporte/monstro", response_class=HTMLResponse)
+def spawn_monster(request: Request, nome: str = Form(...), x: int = Form(...), y: int = Form(...), z: int = Form(...)):
+    user = require(request, post=True)
+    nome = nome.strip()[:64]
+    if not nome or not (0 <= z <= 15):
+        return toast("Dê o nome do monstro e uma posição válida.", ok=False)
+    db.enqueue(user["account"], "spawn_monster", text=nome, arg1=x, arg2=y, arg3=z)
+    return toast("Pedido enviado. Solta no próximo minuto.")
 
 
 @app.post("/teleporte/{lid}/apagar", response_class=HTMLResponse)

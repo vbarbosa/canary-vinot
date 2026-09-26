@@ -54,6 +54,22 @@
         <div class="row"><button id="place-save">Salvar lugar</button><button type="button" class="outline secondary" id="place-cancel" hidden>Cancelar</button></div>
       </form>
     </article>
+
+    <article class="panel">
+      <header><h4>👹 Soltar monstro ou boss</h4></header>
+      <form hx-post="/teleporte/monstro" hx-target="#toast">
+        <input name="nome" placeholder="Nome exato (ex.: Ferumbras, Demon)" required maxlength="64">
+        <div class="row coords"><input name="x" type="number" placeholder="x" required><input name="y" type="number" placeholder="y" required><input name="z" type="number" min="0" max="15" placeholder="z" required></div>
+        {% if online %}
+        <select onchange="if(this.value){const [x,y,z]=this.value.split(',');this.form.x.value=x;this.form.y.value=y;this.form.z.value=z}">
+          <option value="">Usar a posição atual de…</option>
+          {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
+        </select>
+        {% endif %}
+        <button>Soltar</button>
+        <p class="muted small">O nome tem que ser exatamente o do monstro (o filtro Criaturas aqui do lado ajuda a achar). Vale no próximo minuto.</p>
+      </form>
+    </article>
   </aside>
 </div>
 {% endblock %}

@@ -1014,6 +1014,20 @@ globalActions.dungeon_free = function(cmd)
 	return true, "sala liberada"
 end
 
+-- Painel > Teleporte > Soltar monstro/boss. text = nome do monstro, arg1/2/3 = x/y/z.
+globalActions.spawn_monster = function(cmd)
+	local pos = nearestWalkable(Position(cmd.arg1, cmd.arg2, cmd.arg3), 6)
+	if not pos then
+		return false, "sem lugar andavel por perto"
+	end
+	local ok, monster = pcall(Game.createMonster, cmd.text, pos, false, true)
+	if not ok or not monster then
+		return false, "monstro nao existe: " .. cmd.text
+	end
+	pos:sendMagicEffect(CONST_ME_TELEPORT)
+	return true, cmd.text .. " solto em " .. pos.x .. "," .. pos.y .. "," .. pos.z
+end
+
 local function writeDungeonStatus()
 	for name, lever in pairs(BossLever) do
 		if type(lever) == "table" and lever.getZone then
