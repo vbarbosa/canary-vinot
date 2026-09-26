@@ -33,10 +33,15 @@
     ('/#vocacoes', 'staff', 'Vocações'),
     ('/loja', 'coin', 'Loja de coins'),
   ] + ([('/conta', 'key', 'Minha conta')] if me else [('/entrar', 'key', 'Entrar'), ('/criar-conta', 'potion', 'Criar conta')])),
-  ('wiki', 'scroll', 'Wiki', [
+  ('wiki', 'scroll', 'Wiki', ([
+    (wiki_url ~ '/', 'map', 'Início da wiki'),
+    (wiki_url ~ '/index.php/Categoria:Criaturas', 'skull', 'Criaturas'),
+    (wiki_url ~ '/index.php/Categoria:Itens', 'chest', 'Itens'),
+  ] if wiki_url else [
     ('/wiki', 'map', 'Início da wiki'),
     ('/wiki/criaturas', 'skull', 'Criaturas'),
     ('/wiki/itens', 'chest', 'Itens'),
+  ]) + [
     ('/wiki/servidor', 'coin', 'Rates do servidor'),
   ]),
   ('comunidade', 'heart', 'Comunidade', [
@@ -103,8 +108,8 @@
         </div>
         <div>
           <h4>Wiki</h4>
-          <a href="/wiki/criaturas">Criaturas</a>
-          <a href="/wiki/itens">Itens</a>
+          <a href="{{ wiki_url ~ '/index.php/Categoria:Criaturas' if wiki_url else '/wiki/criaturas' }}">Criaturas</a>
+          <a href="{{ wiki_url ~ '/index.php/Categoria:Itens' if wiki_url else '/wiki/itens' }}">Itens</a>
           <a href="/wiki/servidor">Rates do servidor</a>
         </div>
         <div>

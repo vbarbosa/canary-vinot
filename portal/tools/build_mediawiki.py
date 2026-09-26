@@ -56,6 +56,37 @@ def clean(title):
     return t[:1].upper() + t[1:]
 
 
+SMALL_WORDS = {"of", "the", "a", "an", "and", "in", "on", "to", "with", "from", "for", "at", "by"}
+
+
+def title_case(name):
+    """Item names in TibiaWiki style: "giant sword" -> "Giant Sword", "ring of healing" -> "Ring of Healing"."""
+    return " ".join(w if (i and w.lower() in SMALL_WORDS) else w[:1].upper() + w[1:] for i, w in enumerate(name.split(" ")))
+
+
+def infobox(name, img, size, rows, sub=None, subrows=None, banner=None):
+    """The side box of a page, with only the rows that have a value."""
+    out = ['<div class="vinot-infobox">', f'<div class="vinot-infobox-title">{name}</div>']
+    if img:
+        out.append(f'<div class="vinot-infobox-art">[[Arquivo:{img}|{size}px|link=]]</div>')
+    if banner:
+        out.append(f'<div class="vinot-boss">{banner}</div>')
+    for head, table in ((None, rows), (sub, subrows or [])):
+        table = [(k, v) for k, v in table if v not in (None, "", 0, "0")]
+        if not table:
+            continue
+        if head:
+            out.append(f'<div class="vinot-infobox-sub">{head}</div>')
+        out.append('{| class="vinot-infobox-table"')
+        for i, (k, v) in enumerate(table):
+            if i:
+                out.append("|-")
+            out += [f"! {k}", f"| {v}"]
+        out.append("|}")
+    out.append("</div>")
+    return "\n".join(out)
+
+
 def num(v):
     try:
         f = float(v)
@@ -100,13 +131,13 @@ def main(out):
         ptype = (it["attrs"].get("primarytype") or "").lower()
         if ptype not in ITEM_CATS and it["id"] not in drops:
             continue
-        title = clean(it["name"])
+        title = clean(title_case(it["name"]))
         if len(title) < 2:
             continue
         if title in chosen:
             chosen[title].setdefault("_other_ids", []).append(it["id"])
             continue
-        chosen[title] = dict(it, _type=ptype)
+        chosen[title] = dict(it, _type=ptype, _label=title_case(it["name"]))
     creature_titles = {clean(c["name"]) for c in creatures}
     item_title = {}
     for title, it in list(chosen.items()):
@@ -118,7 +149,7 @@ def main(out):
 
     def item_link(iid, name=None):
         t = item_title.get(iid)
-        label = name or (items[iid]["name"] if iid in items else f"item {iid}")
+        label = title_case(name or (items[iid]["name"] if iid in items else f"item {iid}"))
         return f"[[{t}|{label}]]" if t else label
 
     def item_icon(iid):
@@ -145,16 +176,17 @@ def main(out):
         title = clean(c["name"])
         el = c["elements"]
         img = f"Criatura-{c['slug']}.png" if os.path.exists(os.path.join(SPRITES, "c", c["slug"] + ".png")) else ""
-        p = ["{{Infobox Criatura", f"|nome={c['name']}", f"|imagem={img}", f"|vida={c['health']}", f"|exp={c['experience']}",
-             f"|velocidade={c['speed']}", f"|armadura={c['armor']}", f"|defesa={c['defense']}", f"|classe={c['class_pt']}",
-             f"|boss={'sim' if c['boss'] else ''}", f"|estrelas={c['stars'] or ''}", f"|charms={c['charms'] or ''}",
-             f"|kills={c['to_kill'] or ''}", f"|paralisa={'não' if c['paralyze_immune'] else 'sim'}",
-             f"|invoca={c['summon_cost'] if c['summonable'] else ''}", f"|convence={c['summon_cost'] if c['convinceable'] else ''}"]
-        for key in ("physical", "fire", "ice", "energy", "earth", "holy", "death"):
-            if key in el:
-                p.append(f"|{key}={100 - el[key]}")
-        p.append("}}")
-        body = ["\n".join(p), "",
+        rows = [("Vida", wiki.fmt_int(c["health"])), ("Experiência", wiki.fmt_int(c["experience"])), ("Velocidade", c["speed"]),
+                ("Armadura", c["armor"]), ("Defesa", c["defense"]),
+                ("Classe", f"[[:Categoria:{c['class_pt']}|{c['class_pt']}]]" if c["class_pt"] else ""),
+                ("Bestiário", f"{c['stars']} ★ · {wiki.fmt_int(c['to_kill'])} kills · {c['charms']} charms" if c["stars"] else ""),
+                ("Paralisa?", "não" if c["paralyze_immune"] else "sim"),
+                ("Invocável", f"{c['summon_cost']} mana" if c["summonable"] else ""),
+                ("Convencível", f"{c['summon_cost']} mana" if c["convinceable"] else "")]
+        dmg = [(pt, f"{100 - el.get(k, 0)}%") for k, pt in (("physical", "Físico"), ("fire", "Fogo"), ("ice", "Gelo"),
+                                                            ("energy", "Energia"), ("earth", "Terra"), ("holy", "Sagrado"), ("death", "Morte"))]
+        box = infobox(c["name"], img, 96, rows, "Dano recebido", dmg, banner="Boss" if c["boss"] else None)
+        body = [box, "",
                 f"'''{c['name']}''' é {'um boss' if c['boss'] else 'uma criatura'}"
                 + (f" da classe [[:Categoria:{c['class_pt']}|{c['class_pt']}]]" if c["class_pt"] and not c["boss"] else "")
                 + f" com {wiki.fmt_int(c['health'])} de vida que dá {wiki.fmt_int(c['experience'])} de experiência."]
@@ -194,17 +226,17 @@ def main(out):
         cat_count[cat] = cat_count.get(cat, 0) + 1
         img = f"Item-{it['id']}.png" if os.path.exists(os.path.join(SPRITES, "i", f"{it['id']}.png")) else ""
         weight = num(a.get("weight"))
-        p = ["{{Infobox Item", f"|nome={it['name']}", f"|imagem={img}", f"|id={', '.join(str(i) for i in [it['id']] + it.get('_other_ids', []))}",
-             f"|categoria={cat}", f"|peso={'%.2f' % (weight / 100) if weight else ''}",
-             f"|ataque={a.get('attack', '')}", f"|defesa={a.get('defense', '')}"
-             + (f" +{a['extradef']}" if a.get("extradef") else ""),
-             f"|armadura={a.get('armor', '')}", f"|alcance={a.get('range', '')}", f"|maos={SLOT_PT.get(a.get('slottype', ''), '')}",
-             f"|slots={a.get('imbuementslot', '') and 'sim'}", f"|capacidade={a.get('containersize', '')}",
-             f"|cargas={a.get('charges', '')}"]
         bonus = [f"{pt} +{a[k]}" for k, pt in SKILLS if a.get(k)]
         prot = [f"{pt} {a['absorbpercent' + k]}%" for k, pt in ABSORB if a.get("absorbpercent" + k)]
-        p += [f"|bonus={', '.join(bonus)}", f"|protecao={', '.join(prot)}", "}}"]
-        body = ["\n".join(p), "", f"'''{it['name']}''' é um item da categoria [[:Categoria:{cat}|{cat}]]."]
+        rows = [("Categoria", f"[[:Categoria:{cat}|{cat}]]"), ("Ataque", a.get("attack")),
+                ("Defesa", (a.get("defense") or "") + (f" +{a['extradef']}" if a.get("extradef") else "")),
+                ("Armadura", a.get("armor")), ("Alcance", a.get("range")), ("Empunhadura", SLOT_PT.get(a.get("slottype", ""), "")),
+                ("Bônus", ", ".join(bonus)), ("Proteção", ", ".join(prot)), ("Imbuement", "sim" if a.get("imbuementslot") else ""),
+                ("Capacidade", f"{a['containersize']} espaços" if a.get("containersize") else ""), ("Cargas", a.get("charges")),
+                ("Peso", f"{weight / 100:.2f} oz".replace(".", ",") if weight else ""),
+                ("ID", ", ".join(str(i) for i in [it["id"]] + it.get("_other_ids", [])))]
+        box = infobox(it["_label"], img, 64, rows)
+        body = [box, "", f"'''{it['_label']}''' é um item da categoria [[:Categoria:{cat}|{cat}]]."]
         if a.get("description"):
             body += ["", f"''{a['description']}''"]
         who = drops.get(it["id"], [])
@@ -227,8 +259,6 @@ def main(out):
         dump.add(f"Categoria:{cat}", f"{cat} do VinOT ({group.lower()}).\n\n[[Categoria:Itens]]")
 
     # ------------------------------------------------------------ templates and style
-    dump.add("Predefinição:Infobox Criatura", INFOBOX_CRIATURA)
-    dump.add("Predefinição:Infobox Item", INFOBOX_ITEM)
     dump.add("MediaWiki:Common.css", COMMON_CSS)
     dump.add("MediaWiki:Sidebar", SIDEBAR)
 
@@ -250,102 +280,6 @@ def main(out):
           f"{len(os.listdir(os.path.join(out, 'images')))} pictures, {len(missing)} items without a picture")
 
 
-INFOBOX_CRIATURA = """<div class="vinot-infobox">
-<div class="vinot-infobox-title">{{{nome}}}</div>
-{{#if:{{{imagem|}}}|<div class="vinot-infobox-art">[[Arquivo:{{{imagem}}}|96px|link=]]</div>}}
-{| class="vinot-infobox-table"
-{{#if:{{{boss|}}}|{{!}} colspan="2" class="vinot-boss" {{!}} Boss
-{{!}}-}}
-! Vida
-| {{formatnum:{{{vida|0}}}}}
-|-
-! Experiência
-| {{formatnum:{{{exp|0}}}}}
-|-
-! Velocidade
-| {{{velocidade|}}}
-|-
-! Armadura
-| {{{armadura|}}}
-|-
-! Classe
-| {{{classe|}}}
-{{#if:{{{estrelas|}}}|{{!}}-
-! Bestiário
-{{!}} {{{estrelas}}} ★ · {{{kills}}} kills · {{{charms}}} charms}}
-|-
-! Paralisa?
-| {{{paralisa|}}}
-{{#if:{{{invoca|}}}|{{!}}-
-! Invocável
-{{!}} {{{invoca}}} mana}}
-{{#if:{{{convence|}}}|{{!}}-
-! Convencível
-{{!}} {{{convence}}} mana}}
-|}
-<div class="vinot-infobox-sub">Dano recebido</div>
-{| class="vinot-infobox-table vinot-elements"
-! Físico || {{{physical|100}}}%
-|-
-! Fogo || {{{fire|100}}}%
-|-
-! Gelo || {{{ice|100}}}%
-|-
-! Energia || {{{energy|100}}}%
-|-
-! Terra || {{{earth|100}}}%
-|-
-! Sagrado || {{{holy|100}}}%
-|-
-! Morte || {{{death|100}}}%
-|}
-</div><noinclude>Caixa de informações das criaturas. As páginas são geradas dos arquivos do jogo.</noinclude>"""
-
-INFOBOX_ITEM = """<div class="vinot-infobox">
-<div class="vinot-infobox-title">{{{nome}}}</div>
-{{#if:{{{imagem|}}}|<div class="vinot-infobox-art">[[Arquivo:{{{imagem}}}|64px|link=]]</div>}}
-{| class="vinot-infobox-table"
-! Categoria
-| [[:Categoria:{{{categoria}}}|{{{categoria}}}]]
-{{#if:{{{ataque|}}}|{{!}}-
-! Ataque
-{{!}} {{{ataque}}}}}
-{{#if:{{{defesa|}}}|{{!}}-
-! Defesa
-{{!}} {{{defesa}}}}}
-{{#if:{{{armadura|}}}|{{!}}-
-! Armadura
-{{!}} {{{armadura}}}}}
-{{#if:{{{alcance|}}}|{{!}}-
-! Alcance
-{{!}} {{{alcance}}}}}
-{{#if:{{{maos|}}}|{{!}}-
-! Empunhadura
-{{!}} {{{maos}}}}}
-{{#if:{{{bonus|}}}|{{!}}-
-! Bônus
-{{!}} {{{bonus}}}}}
-{{#if:{{{protecao|}}}|{{!}}-
-! Proteção
-{{!}} {{{protecao}}}}}
-{{#if:{{{slots|}}}|{{!}}-
-! Imbuement
-{{!}} {{{slots}}}}}
-{{#if:{{{capacidade|}}}|{{!}}-
-! Capacidade
-{{!}} {{{capacidade}}} espaços}}
-{{#if:{{{cargas|}}}|{{!}}-
-! Cargas
-{{!}} {{{cargas}}}}}
-{{#if:{{{peso|}}}|{{!}}-
-! Peso
-{{!}} {{{peso}}} oz}}
-|-
-! ID
-| {{{id}}}
-|}
-</div><noinclude>Caixa de informações dos itens. As páginas são geradas dos arquivos do jogo.</noinclude>"""
-
 COMMON_CSS = """/* VinOT Wiki */
 :root { --vinot-gold: #c9962f; --vinot-red: #8c2a1f; }
 .vinot-infobox { float: right; clear: right; width: 290px; margin: 0 0 1em 1.4em; border: 1px solid #c8ccd1; border-radius: 10px; background: #f8f9fa; overflow: hidden; font-size: 90%; }
@@ -356,7 +290,7 @@ COMMON_CSS = """/* VinOT Wiki */
 .vinot-infobox-table { width: 100%; border-collapse: collapse; }
 .vinot-infobox-table th, .vinot-infobox-table td { padding: 4px 10px; border-top: 1px solid #eaecf0; text-align: left; }
 .vinot-infobox-table th { width: 45%; color: #54595d; font-weight: 600; }
-.vinot-boss { text-align: center !important; background: var(--vinot-red); color: #fff; font-weight: bold; }
+.vinot-boss { text-align: center; background: var(--vinot-red); color: #fff; font-weight: bold; padding: 3px; letter-spacing: .08em; }
 .vinot-loot img, .mw-body img[src*="Item-"], .mw-body img[src*="Criatura-"] { image-rendering: pixelated; }
 .vinot-home { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .vinot-home > div { border: 1px solid #c8ccd1; border-radius: 10px; padding: 12px 16px; background: #f8f9fa; }
