@@ -6,6 +6,7 @@ Canary expects them (SHA-1 password, e-mail as the login), so the game client lo
 """
 
 import datetime as dt
+import hashlib
 import json
 import logging
 import os
@@ -107,6 +108,18 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 
+
+def _asset_version():
+    """Short hash of the CSS and JS, so browsers fetch them again after every deploy that changes them."""
+    h = hashlib.sha1()
+    for name in ("portal.css", "portal.js"):
+        with open(os.path.join(HERE, "static", name), "rb") as f:
+            h.update(f.read())
+    return h.hexdigest()[:10]
+
+
+ASSET_V = _asset_version()
+
 login_ip = sec.Limiter(10, 600)
 login_email = sec.Limiter(5, 600)
 signup_ip = sec.Limiter(5, 3600)
@@ -149,7 +162,7 @@ def fmt_date(value, with_time=False):
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
     categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART, hero_img=hero_img, voc_info=VOC_INFO,
-    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open,
+    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open, asset_v=ASSET_V,
     wiki_class_pt=lambda c: wk.CLASS_PT.get(c, c), wiki_rarity_pt=lambda r: wk.RARITY_PT.get(r, r), fmt_int=wk.fmt_int, wiki_chance_pt=wk.fmt_chance,
 )
 
@@ -356,7 +369,7 @@ def top_players(limit=5):
     try:
         return db.all(
             "SELECT name, level, vocation FROM players WHERE group_id = 1 AND deletion = 0 AND name NOT LIKE %s "
-            "ORDER BY level DESC, experience DESC LIMIT %s", "% Sample", limit,
+            "ORDER BY level DESC, experience DESC, name LIMIT %s", "% Sample", limit,
         )
     except Exception:
         return []
@@ -475,7 +488,7 @@ def ranking(request: Request, vocacao: str = "", q: str = ""):
     try:
         rows = db.all(
             f"SELECT name, level, vocation, experience, lastlogin FROM players WHERE {' AND '.join(where)} "
-            "ORDER BY level DESC, experience DESC LIMIT 100", *args,
+            "ORDER BY level DESC, experience DESC, name LIMIT 100", *args,
         )
     except Exception:
         rows = []

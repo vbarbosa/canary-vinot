@@ -8,7 +8,6 @@
     <article class="wiki-article">
       <span class="tag cat-{{ 'promocao' if c.boss else 'atualizacao' }}">{{ 'Boss' if c.boss else (wiki_class_pt(c.class) if c.class else 'Criatura') }}</span>
       <h1>{{ c.name }}</h1>
-      {% if c.description %}<p class="lead">É {{ c.description }}.</p>{% endif %}
 
       {% if c.locations %}
       <h2 class="small-title">Onde encontrar</h2>
