@@ -460,6 +460,16 @@ globalActions.house_owner = function(cmd)
 	return true, cmd.arg2 > 0 and (house:getName() .. " agora e de " .. name) or (house:getName() .. " ficou livre")
 end
 
+-- arg1 = house id, arg2 = list id (256 hospedes, 257 subdonos), text = lista completa de nomes (um por linha)
+globalActions.house_access = function(cmd)
+	local house = House(cmd.arg1)
+	if not house then
+		return false, "casa nao existe"
+	end
+	house:setAccessList(cmd.arg2, cmd.text)
+	return true, "lista atualizada"
+end
+
 -- arg1 = house id, arg2 = rent in gold, arg3 = owner guid the panel expects; paid from the bank, online or not
 globalActions.house_rent = function(cmd)
 	local house = House(cmd.arg1)

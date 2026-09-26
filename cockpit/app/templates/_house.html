@@ -13,10 +13,32 @@
     {% if h.warnings %}<br><span class="warn">⏰ {{ h.warnings }} de {{ s.grace }} cobranças sem saldo</span>{% endif %}
     {% if h.charging %}<br><span class="muted small">cobrança em andamento…</span>{% endif %}</dd>
   {% endif %}
-  {% if guests %}
-  <dt>Convidados</dt><dd class="small">{% for g in guests %}{{ {256: 'Hóspedes', 257: 'Subdonos'}.get(g.listid, 'Porta ' ~ g.listid) }}: {{ g.list|replace('\n', ', ') }}<br>{% endfor %}</dd>
-  {% endif %}
+  {% for g in guests if g.listid not in access_lists %}
+  <dt>Porta {{ g.listid }}</dt><dd class="small">{{ g.list|replace('\n', ', ') }}</dd>
+  {% endfor %}
 </dl>
+
+{% if h.owner %}
+<div class="house-guests">
+  {% for lid, label in access_lists.items() %}
+  <div class="small">
+    <strong>{{ label|capitalize }}s</strong>
+    {% if access[lid] %}
+    <ul class="feed">
+      {% for n in access[lid] %}
+      <li>{{ n }} <button type="button" class="outline small danger" hx-post="/imobiliaria/{{ h.id }}/convidado_remover" hx-vals='{"listid":"{{ lid }}","jogador":"{{ n }}"}' hx-target="#toast" hx-confirm="Tirar {{ n }} da lista de {{ label }}s?">remover</button></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted small">Ninguém na lista.</p>{% endif %}
+    <form class="row" hx-post="/imobiliaria/{{ h.id }}/convidado_add" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <input type="hidden" name="listid" value="{{ lid }}">
+      <input name="jogador" list="house-players" placeholder="Nome do personagem" required>
+      <button class="small">+ {{ label }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if auction %}
 <div class="auction-box">

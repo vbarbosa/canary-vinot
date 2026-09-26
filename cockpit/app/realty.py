@@ -23,7 +23,7 @@ DEFAULTS = {"period": "off", "percent": "100", "grace": "3"}
 ACTOR = "imobiliária"
 LOG_KINDS = {"aluguel": "💰 Aluguel pago", "atraso": "⏰ Sem saldo", "despejo": "🚪 Despejo", "dono": "🔑 Novo dono",
              "livre": "🏚 Ficou livre", "perdao": "🤝 Perdoado", "valor": "✏ Aluguel mudou", "venda": "🏷 Vendida",
-             "leilao": "🔨 Leilão"}
+             "leilao": "🔨 Leilão", "acesso": "👥 Convidados"}
 
 
 @lru_cache(maxsize=1)
@@ -173,6 +173,20 @@ def set_rent(actor, h, value):
     _row(h["id"], h["owner"])
     db.run("UPDATE cockpit_house_rent SET rent = %s WHERE house_id = %s", value, h["id"])
     log("valor", h, amount=value if value is not None else 0, note="valor próprio" if value is not None else "voltou ao padrão", actor=actor)
+
+
+GUEST_LIST, SUBOWNER_LIST = 256, 257
+ACCESS_LISTS = {GUEST_LIST: "hóspede", SUBOWNER_LIST: "subdono"}
+
+
+def access_names(hid, list_id):
+    row = db.one("SELECT list FROM house_lists WHERE house_id = %s AND listid = %s", hid, list_id)
+    return [n.strip() for n in row["list"].splitlines() if n.strip()] if row else []
+
+
+def set_access(actor, h, list_id, names, player=""):
+    db.enqueue(actor, "house_access", h["name"], h["id"], list_id, text="\n".join(names))
+    log("acesso", h, player=player, note=f"lista de {ACCESS_LISTS.get(list_id, list_id)}: {', '.join(names) or 'vazia'}", actor=actor)
 
 
 def tick():

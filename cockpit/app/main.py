@@ -1755,8 +1755,9 @@ def realty_house(request: Request, hid: int):
     guests = db.all("SELECT listid, list FROM house_lists WHERE house_id = %s", hid)
     players = db.all("SELECT name FROM players WHERE group_id < %s ORDER BY name", GOD_GROUP)
     auction = realty.auction_of(hid)
+    access = {lid: realty.access_names(hid, lid) for lid in (realty.GUEST_LIST, realty.SUBOWNER_LIST)}
     return page(request, "_house.html", user, h=h, s=s, guests=guests, players=players, log=realty.history(hid, 10), log_kinds=realty.LOG_KINDS,
-                auction=auction, bids=realty.bids(auction["id"]) if auction else [])
+                auction=auction, bids=realty.bids(auction["id"]) if auction else [], access=access, access_lists=realty.ACCESS_LISTS)
 
 
 def _house_done(msg, ok=True):
@@ -1820,6 +1821,25 @@ async def realty_action(request: Request, hid: int, acao: str):
             return toast("Aluguel precisa ser um número de gold.", ok=False)
         realty.set_rent(me, h, min(int(v), 100_000_000) if v else None)
         return _house_done("Aluguel próprio salvo." if v else "Aluguel voltou ao padrão.")
+    if acao in ("convidado_add", "convidado_remover"):
+        listid = clamp(f.get("listid"), realty.GUEST_LIST, realty.SUBOWNER_LIST)
+        nome = " ".join(str(f.get("jogador", "")).split())
+        if not nome:
+            return toast("Dê o nome do personagem.", ok=False)
+        current = realty.access_names(hid, listid)
+        label = realty.ACCESS_LISTS.get(listid, "acesso")
+        if acao == "convidado_add":
+            if not db.one("SELECT 1 AS x FROM players WHERE name = %s", nome):
+                return toast("Não achei esse personagem.", ok=False)
+            if any(n.lower() == nome.lower() for n in current):
+                return toast(f"{nome} já está na lista de {label}.", ok=False)
+            names = current + [nome]
+        else:
+            names = [n for n in current if n.lower() != nome.lower()]
+            if len(names) == len(current):
+                return toast(f"{nome} não estava na lista de {label}.", ok=False)
+        realty.set_access(me, h, listid, names, player=nome)
+        return _house_done(f"{nome} {'entrou na' if acao == 'convidado_add' else 'saiu da'} lista de {label} de {h['name']}.")
     return toast("Ação desconhecida.", ok=False)
 
 
