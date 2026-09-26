@@ -49,7 +49,7 @@
       {% if g.invites %}
       <p class="small muted">Convites pendentes:</p>
       <ul class="ledger">{% for i in g.invites %}<li><span>{{ i.name }}</span><small class="muted" data-ts="{{ i.date }}"></small>
-        <button class="outline small" hx-post="/guild/{{ g.id }}/convite_apagar" hx-vals='{"pid": "{{ i.id }}"}' hx-target="#toast">Cancelar</button></li>{% endfor %}</ul>
+        <button class="outline small" hx-post="/guild/{{ g.id }}/convite_apagar" hx-vals='{"pid": "{{ i.id }}"}' hx-target="#toast" hx-confirm="Cancelar o convite de {{ i.name }}?">Cancelar</button></li>{% endfor %}</ul>
       {% endif %}
     </article>
 
@@ -96,7 +96,7 @@
             <button class="outline small">Salvar</button>
           </form>
           <small class="muted">{{ rank_levels.get(r.level, r.level) }} · {{ r.n }} pessoa(s)
-            {% if not r.n %}<a href="#" hx-post="/guild/{{ g.id }}/cargo_apagar" hx-vals='{"rank": "{{ r.id }}"}' hx-target="#toast" class="danger-text">apagar</a>{% endif %}</small></li>
+            {% if not r.n %}<a href="#" hx-post="/guild/{{ g.id }}/cargo_apagar" hx-vals='{"rank": "{{ r.id }}"}' hx-target="#toast" hx-confirm="Apagar o cargo {{ r.name }}? Não tem volta." class="danger-text">apagar</a>{% endif %}</small></li>
         {% endfor %}
       </ul>
       <form hx-post="/guild/{{ g.id }}/cargo_novo" hx-target="#toast" class="row wrap">

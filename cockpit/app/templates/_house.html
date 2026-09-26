@@ -53,7 +53,7 @@
   {% else %}<p class="small muted">Cobrando o vencedor…</p>{% endif %}
 </div>
 {% endif %}
-<form hx-post="/imobiliaria/{{ h.id }}/dono" hx-target="#toast" class="row">
+<form hx-post="/imobiliaria/{{ h.id }}/dono" hx-target="#toast" class="row" {% if h.owner %}hx-confirm="Tirar {{ h.name }} de {{ h.owner_name }} e passar para outro personagem?"{% endif %}>
   <input name="jogador" list="house-players" placeholder="{{ 'Passar para…' if h.owner else 'Dar ou vender para…' }}" required>
   <datalist id="house-players">{% for p in players %}<option value="{{ p.name }}">{% endfor %}</datalist>
   <button class="small">🔑 Entregar</button>
