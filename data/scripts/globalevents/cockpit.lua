@@ -48,6 +48,41 @@ local tablesSql = {
 		`updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
 		PRIMARY KEY (`player_id`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_metin_types` (
+		`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		`name` VARCHAR(64) NOT NULL,
+		`health` INT UNSIGNED NOT NULL DEFAULT 5000,
+		`waves` VARCHAR(1000) NOT NULL DEFAULT '',
+		`loot` VARCHAR(1000) NOT NULL DEFAULT '',
+		`created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (`id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_metin_active` (
+		`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		`type_id` INT UNSIGNED NOT NULL,
+		`type_name` VARCHAR(64) NOT NULL DEFAULT '',
+		`x` INT NOT NULL,
+		`y` INT NOT NULL,
+		`z` TINYINT NOT NULL,
+		`health_max` INT UNSIGNED NOT NULL DEFAULT 0,
+		`health_now` INT UNSIGNED NOT NULL DEFAULT 0,
+		`status` VARCHAR(12) NOT NULL DEFAULT 'alive',
+		`created_by` VARCHAR(255) NOT NULL DEFAULT '',
+		`created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		`ended_at` INT UNSIGNED NULL,
+		PRIMARY KEY (`id`),
+		KEY `cockpit_metin_active_status` (`status`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_metin_damage` (
+		`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		`active_id` INT UNSIGNED NOT NULL,
+		`player_id` INT UNSIGNED NOT NULL DEFAULT 0,
+		`player_name` VARCHAR(255) NOT NULL DEFAULT '',
+		`damage` INT UNSIGNED NOT NULL DEFAULT 0,
+		`loot` VARCHAR(500) NOT NULL DEFAULT '',
+		PRIMARY KEY (`id`),
+		KEY `cockpit_metin_damage_active` (`active_id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
 }
 
 -- Actions that only make sense while the target is online. Anything else waits
@@ -886,6 +921,59 @@ globalActions.raid_auto = function()
 	return true, applyRaidAuto() .. " raid(s) com ajuste do painel"
 end
 
+-- Pedra Metin (cockpit/app/metin.py). arg1 = type id, arg2/3/4 = x/y/z, text = the cockpit_metin_active row id.
+-- MetinState (a global table, populated here) is read by data-otservbr-global/scripts/creaturescripts/monster/metin_stone.lua
+-- on think (waves) and on death (loot + damage), and is the only place the stone's config lives once it's spawned.
+MetinState = MetinState or {}
+
+globalActions.metin_spawn = function(cmd)
+	local resultId = db.storeQuery("SELECT `name`, `health`, `waves`, `loot` FROM `cockpit_metin_types` WHERE `id` = " .. cmd.arg1)
+	if not resultId then
+		return false, "tipo de pedra nao existe mais"
+	end
+	local name, health = Result.getString(resultId, "name"), Result.getNumber(resultId, "health")
+	local waves, loot = Result.getString(resultId, "waves"), Result.getString(resultId, "loot")
+	Result.free(resultId)
+	local pos = Position(cmd.arg2, cmd.arg3, cmd.arg4)
+	if not Tile(pos) then
+		return false, "posicao invalida"
+	end
+	local monster = Game.createMonster("Metin Stone", pos, false, true)
+	if not monster then
+		return false, "nao consegui criar a pedra"
+	end
+	monster:setMaxHealth(health)
+	monster:setHealth(health)
+	MetinState[monster:getId()] = {
+		activeId = tonumber(cmd.text) or 0,
+		waves = MetinParseWaves(waves),
+		loot = MetinParseLoot(loot),
+		fired = {},
+	}
+	pos:sendMagicEffect(CONST_ME_TELEPORT)
+	Game.broadcastMessage("Uma pedra Metin (" .. name .. ") apareceu!", MESSAGE_EVENT_ADVANCE)
+	return true, "pedra criada em " .. pos.x .. "," .. pos.y .. "," .. pos.z
+end
+
+-- arg1 = the cockpit_metin_active row id to remove (whatever live monster has that id in MetinState)
+globalActions.metin_remove = function(cmd)
+	for monsterId, state in pairs(MetinState) do
+		if state.activeId == cmd.arg1 then
+			local creature = Creature(monsterId)
+			MetinState[monsterId] = nil
+			if creature then
+				creature:remove()
+			end
+			db.query(string.format(
+				"UPDATE `cockpit_metin_active` SET `status` = 'removed', `ended_at` = %d WHERE `id` = %d AND `status` = 'alive'",
+				os.time(), cmd.arg1
+			))
+			return true, "pedra removida"
+		end
+	end
+	return false, "essa pedra ja nao esta mais lá"
+end
+
 local startup = GlobalEvent("CockpitStartup")
 
 function startup.onStartup()
@@ -893,6 +981,8 @@ function startup.onStartup()
 		db.query(sql)
 	end
 	db.query("DELETE FROM `cockpit_online`")
+	-- any Metin Stone still "alive" belonged to the previous run: MetinState (in memory) is gone with it
+	db.query(string.format("UPDATE `cockpit_metin_active` SET `status` = 'expired', `ended_at` = %d WHERE `status` = 'alive'", os.time()))
 	-- rewrite cockpit-world.lua with this version of the bridge: a panel deploy may have applied the world with the
 	-- old bridge just before the restart, leaving out keys this version knows
 	local ok, applied, msg = pcall(globalActions.apply_world)

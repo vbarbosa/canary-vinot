@@ -97,6 +97,7 @@ HOWTO = {
     "/eventos": "Mini-games (Zombie, Bolas de neve, Capture a bandeira, Battlefield, Quiz). Escolha a arena, quem joga e o prêmio. Salve como evento pronto para agendar; com inscrição, a galera entra com !evento.",
     "/roleta": "Prêmios, pesos (chance), giros grátis por dia, preço do giro e onde fica a roleta. Dá giros extras para alguém.",
     "/boosted": "Escolhe a criatura e o boss em destaque no lugar do sorteio. Vale no próximo início do jogo.",
+    "/metin": "Pedra Metin: tipos (vida, ondas de monstros, loot), lugares onde soltar, soltar agora, placar de dano e histórico das pedras já destruídas.",
     "/agenda": "Tarefas automáticas: salvar, anunciar, limpar o chão, raids, eventos, presentes, abrir e fechar o servidor.",
     "/jogadores": "A ficha de cada personagem: itens, level, skills, outfit, grupo, banir, renomear, troféu do Vinot, giros da roleta.",
     "/contas": "Criar conta e personagem, trocar senha, premium e Tibia coins.",

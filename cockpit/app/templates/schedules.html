@@ -18,7 +18,9 @@
       <p class="small">
         {{ job_actions[j.action] }}{% if j.action == 'give_kit' %}: {{ kit_names.get(j.arg1, 'kit apagado') }}{% elif j.action == 'give_item' %}: {{ j.arg2 }}x {{ names.get(j.arg1, j.arg1) }}{% endif %}
         {% if j.action in ('give_kit', 'give_item', 'give_training') %} para {{ 'a turma' if j.alvo == 'turma' else 'quem estiver online' }}{% endif %}
-        {% if j.action == 'event' %}: {{ (presets|selectattr('id', 'equalto', j.arg1)|map(attribute='name')|first) or 'evento apagado' }}{% elif j.action == 'start_raid' %}: {{ raid_labels.get(j.text, j.text) }}{% elif j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
+        {% if j.action == 'event' %}: {{ (presets|selectattr('id', 'equalto', j.arg1)|map(attribute='name')|first) or 'evento apagado' }}{% elif j.action == 'start_raid' %}: {{ raid_labels.get(j.text, j.text) }}
+        {% elif j.action == 'metin_spawn' %}: {{ (metin_types|selectattr('id', 'equalto', j.arg1)|map(attribute='name')|first) or 'tipo apagado' }} em {{ (metin_spots|selectattr('id', 'equalto', j.arg2)|map(attribute='name')|first) or 'lugar apagado' }}
+        {% elif j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
       </p>
       <footer class="row wrap small">
         <span class="muted">Próxima: {% if j.enabled and j.next_run %}<span data-ts="{{ j.next_run }}"></span>{% else %}—{% endif %}</span>
@@ -71,6 +73,10 @@
         <div data-show="give_item" class="row">
           <input name="arg1" type="number" min="100" placeholder="ID do item (veja no catálogo)" disabled>
           <input name="arg2" type="number" min="1" max="1000" value="1" class="w6" disabled>
+        </div>
+        <div data-show="metin_spawn" class="row">
+          <select name="arg1" disabled>{% for t in metin_types %}<option value="{{ t.id }}">{{ t.name }}</option>{% else %}<option value="0">Crie um tipo na tela Pedra Metin</option>{% endfor %}</select>
+          <select name="arg2" disabled>{% for s in metin_spots %}<option value="{{ s.id }}">{{ s.name }}</option>{% else %}<option value="0">Salve um lugar na tela Pedra Metin</option>{% endfor %}</select>
         </div>
         <div data-show="give_kit give_item give_training">
           <select name="alvo"><option value="turma">para a turma</option><option value="todos">para quem estiver online</option></select>

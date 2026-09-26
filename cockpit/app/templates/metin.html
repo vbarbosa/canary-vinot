@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Pedra Metin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>💎 Pedra Metin</h3>
+  <p class="muted">Uma pedra com muita vida que os jogadores atacam. Ao perder vida ela chama ondas de monstros;
+    ao ser destruída, todo mundo que bateu nela ganha uma chance de loot, e fica no histórico com o placar de dano.</p>
+</div>
+
+<article class="panel">
+  <header><h4>💥 Soltar uma pedra</h4></header>
+  {% if not types %}
+  <p class="muted">Crie um tipo de pedra abaixo antes de soltar uma.</p>
+  {% else %}
+  <form hx-post="/metin/soltar" hx-target="#toast" class="row wrap">
+    <select name="type_id" required>{% for t in types %}<option value="{{ t.id }}">{{ t.name }} ({{ t.health }} de vida)</option>{% endfor %}</select>
+    {% if spots %}
+    <select name="spot_id">
+      <option value="">Lugar salvo…</option>
+      {% for s in spots %}<option value="{{ s.id }}">{{ s.name }} ({{ s.x }}, {{ s.y }}, {{ s.z }})</option>{% endfor %}
+    </select>
+    {% endif %}
+    <span class="muted small">ou</span>
+    <input name="x" type="number" placeholder="x" class="w6"><input name="y" type="number" placeholder="y" class="w6"><input name="z" type="number" min="0" max="15" placeholder="z" class="w6">
+    <button>Soltar pedra</button>
+  </form>
+  {% endif %}
+</article>
+
+<article class="panel">
+  <header><h4>⏳ Pedras vivas ({{ active|length }})</h4></header>
+  {% if active %}
+  {% for a in active %}
+  <div class="row wrap" style="justify-content:space-between;align-items:center">
+    <div>
+      <strong>{{ a.type_name }}</strong> em <span class="mono">{{ a.x }}, {{ a.y }}, {{ a.z }}</span>
+      <div class="progress"><div class="progress-bar" style="width:{{ (100 * a.health_now / a.health_max)|round|int if a.health_max else 0 }}%"></div></div>
+      <small class="muted">{{ a.health_now }} / {{ a.health_max }} de vida{% if boards[a.id] %} · {{ boards[a.id]|length }} jogador(es) bateram nela{% endif %}</small>
+    </div>
+    <button class="outline small danger" hx-post="/metin/{{ a.id }}/remover" hx-target="#toast" hx-confirm="Remover essa pedra do jogo agora?">Remover</button>
+  </div>
+  {% if boards[a.id] %}
+  <table class="compact" data-plain>
+    <thead><tr><th>Jogador</th><th class="num">Dano</th><th>Loot</th></tr></thead>
+    <tbody>{% for d in boards[a.id] %}<tr><td>{{ d.player_name }}</td><td class="num">{{ d.damage }}</td><td class="muted">{{ d.loot or '—' }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  <hr>
+  {% endfor %}
+  {% else %}<p class="muted">Nenhuma pedra viva agora.</p>{% endif %}
+</article>
+
+<div class="grid2">
+  <article class="panel">
+    <header><h4>💎 Tipos de pedra</h4></header>
+    {% for t in types %}
+    <details>
+      <summary>{{ t.name }} — {{ t.health }} de vida, {{ t.waves_n }} onda(s), {{ t.loot_n }} item(ns) de loot</summary>
+      <form hx-post="/metin/tipo" hx-target="#toast" class="rules">
+        <input type="hidden" name="id" value="{{ t.id }}">
+        <input name="name" value="{{ t.name }}" maxlength="64" required>
+        <label>Vida<input name="health" type="number" min="100" max="1000000" value="{{ t.health }}" required></label>
+        <label>Ondas (uma por linha: % de vida, monstro, quantidade)
+          <textarea name="waves" rows="3" placeholder="75,Rotworm,5">{{ t.waves.replace(';', '\n') }}</textarea>
+        </label>
+        <label>Loot (uma por linha: id do item, chance %, mínimo, máximo)
+          <textarea name="loot" rows="3" placeholder="3031,80,10,50">{{ t.loot.replace(';', '\n') }}</textarea>
+        </label>
+        <div class="row wrap">
+          <button>Salvar</button>
+          <button type="button" class="outline danger" hx-post="/metin/tipo/{{ t.id }}/apagar" hx-target="#toast"
+                  hx-confirm="Apagar o tipo {{ t.name }}? As pedras já soltas não mudam.">Apagar tipo</button>
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+    <details {{ 'open' if not types }}>
+      <summary>+ Novo tipo</summary>
+      <form hx-post="/metin/tipo" hx-target="#toast" class="rules">
+        <input name="name" placeholder="Nome (ex.: Metin de fogo)" maxlength="64" required>
+        <label>Vida<input name="health" type="number" min="100" max="1000000" value="5000" required></label>
+        <label>Ondas (uma por linha: % de vida, monstro, quantidade)<textarea name="waves" rows="3" placeholder="75,Rotworm,5&#10;50,Rotworm Queen,1&#10;25,Rotworm,8"></textarea></label>
+        <label>Loot (uma por linha: id do item, chance %, mínimo, máximo)<textarea name="loot" rows="3" placeholder="3031,80,10,50"></textarea></label>
+        <button>Criar tipo</button>
+      </form>
+    </details>
+  </article>
+
+  <article class="panel">
+    <header><h4>📍 Lugares salvos</h4></header>
+    <ul class="ledger">
+      {% for s in spots %}
+      <li><span>{{ s.name }} <span class="muted mono small">{{ s.x }}, {{ s.y }}, {{ s.z }}</span></span>
+        <button class="outline small danger fit" hx-post="/metin/lugar/{{ s.id }}/apagar" hx-target="#toast" hx-confirm="Apagar o lugar {{ s.name }}?">✕</button></li>
+      {% else %}<li class="muted small">Nenhum ainda: solte em x,y,z direto ou salve um lugar aqui.</li>{% endfor %}
+    </ul>
+    <form hx-post="/metin/lugar" hx-target="#toast" class="row wrap">
+      <input name="name" placeholder="Nome do lugar" maxlength="64" required>
+      <input name="x" type="number" placeholder="x" class="w6" required><input name="y" type="number" placeholder="y" class="w6" required>
+      <input name="z" type="number" min="0" max="15" placeholder="z" class="w6" required>
+      <button>Salvar lugar</button>
+    </form>
+  </article>
+</div>
+
+<article class="panel">
+  <header><h4>📜 Histórico</h4></header>
+  {% if history %}
+  <table class="compact">
+    <thead><tr><th>Tipo</th><th>Lugar</th><th>Situação</th><th>Quando</th><th></th></tr></thead>
+    <tbody>
+    {% for a in history %}
+    <tr>
+      <td>{{ a.type_name }}</td><td class="mono">{{ a.x }}, {{ a.y }}, {{ a.z }}</td>
+      <td>{{ {'destroyed': '💥 destruída', 'removed': '🗑 removida', 'expired': '⏱ servidor reiniciou'}.get(a.status, a.status) }}</td>
+      <td class="small"><span data-ts="{{ a.ended_at or a.created_at }}"></span></td>
+      <td>{% if boards[a.id] %}<details><summary class="small">{{ boards[a.id]|length }} jogador(es)</summary>
+        <table class="compact" data-plain><tbody>{% for d in boards[a.id] %}<tr><td>{{ d.player_name }}</td><td class="num">{{ d.damage }}</td><td class="muted">{{ d.loot or '—' }}</td></tr>{% endfor %}</tbody></table>
+      </details>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Nada ainda.</p>{% endif %}
+</article>
+{% endblock %}

@@ -93,6 +93,14 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
 - Criatura e boss do dia (Jogo ao vivo › Criatura do dia): o jogo sorteia ao ligar, pelas tabelas `boosted_creature` e
   `boosted_boss`, e mantém a linha quando a data é o dia de hoje. O painel escolhe gravando a linha com o dia de hoje (vale no
   próximo início do jogo); "fixar" faz o laço de minuto regravar todo dia. Bosses: só Archfoe, como no sorteio.
+- Pedra Metin (Jogo ao vivo › Pedra Metin): a pedra é o monstro "Metin Stone" (`data-otservbr-global/monster/others/metin_stone.lua`,
+  vida alta, parada, sem ataque). Tipos (`cockpit_metin_types`: vida, ondas e loot, uma por linha em texto simples, não JSON —
+  ver `metin.py`) e lugares salvos (`cockpit_metin_spots`) são só do painel; ao soltar (`metin_spawn`), a ponte lê o tipo do
+  banco, cria o monstro e guarda a configuração num registro em memória (`MetinState`, `data-otservbr-global/scripts/
+  creaturescripts/monster/metin_stone.lua`). Esse script chama as ondas conforme a vida cai e, na morte, dá o loot pra quem
+  bateu (`monster:getDamageMap()`) e grava tudo em `cockpit_metin_active`/`cockpit_metin_damage` pro painel mostrar o placar
+  de dano e o histórico. Dá pra soltar na hora ou pela Agenda (ação `metin_spawn`, tipo + lugar). Um reinício apaga o estado
+  em memória; a pedra ainda viva vira "expirada" no histórico.
 - Manual (Painel › Manual, aberto a toda a equipe): comandos dos jogadores e do Mestre, lidos dos `TalkAction` do datapack
   (comando sem texto em `manual.py` aparece como "sem descrição"), e um guia de cada tela do painel.
 - Server save diário (Mundo): liga ou desliga o reinício diário, horário em Brasília (gravado em UTC, o relógio do contêiner

@@ -44,6 +44,8 @@ table.compact tbody tr.tbl-hide, table.compact tbody tr.tbl-page { display: none
 .tbl-pager { margin: .4rem 0; align-items: center; }
 .tbl-pager[hidden] { display: none; }
 .tbl-pager .tbl-page-info { min-width: 9rem; text-align: center; }
+.progress { background: #2a2a2a; border-radius: 4px; height: .5rem; margin: .3rem 0; overflow: hidden; max-width: 320px; }
+.progress-bar { background: #b8443c; height: 100%; transition: width .3s; }
 .tag { border: 1px solid #8a7440; border-radius: 4px; padding: 0 .3rem; color: #c9a85c; }
 .tag.err { border-color: #e0605a; color: #e0605a; }
 .login { max-width: 380px; margin: 10vh auto; }

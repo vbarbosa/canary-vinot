@@ -31,6 +31,7 @@ JOB_ACTIONS = {
     "heal": "Curar todo mundo",
     "close_server": "Fechar o servidor",
     "open_server": "Abrir o servidor",
+    "metin_spawn": "Soltar uma pedra Metin",
 }
 
 

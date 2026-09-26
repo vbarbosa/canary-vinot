@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, manual, market, shop, places, raids, ranking, realty, sheet, wheel, world
+from . import events, guilds, manual, market, metin, shop, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -95,7 +95,7 @@ def current_user(request: Request):
 MENU = [
     ("painel", "🏠", "Painel", [("/", "🌅", "Visão geral"), ("/ranking", "🏆", "Ranking"), ("/historico", "📜", "Histórico"), ("/manual", "📖", "Manual")]),
     ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
-                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/agenda", "⏰", "Agenda")]),
+                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/agenda", "⏰", "Agenda")]),
     ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Jogadores"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
     ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
@@ -348,7 +348,7 @@ ACTION_LABELS = {
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
-    "house_rent": "💰 aluguel",
+    "house_rent": "💰 aluguel", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
 }
 
 
@@ -549,6 +549,13 @@ def dispatch(actor, name, alvo, text, form, me=""):
         db.enqueue(actor, "start_raid", text=r["name"])
         return True, f"Soltando a raid {r['label']} ({r['where']})."
 
+    if name == "metin_spawn":
+        spot = db.one("SELECT x, y, z FROM cockpit_metin_spots WHERE id = %s", clamp(form.get("arg2"), 0, 10**9))
+        if not spot:
+            return False, "Escolha um lugar salvo na tela Pedra Metin."
+        aid, err = metin.spawn(actor, clamp(form.get("arg1"), 0, 10**9), spot["x"], spot["y"], spot["z"])
+        return (False, err) if err else (True, f"Pedra a caminho (#{aid}).")
+
     if name == "give_training":
         targets = resolve_targets(alvo)
         for t in targets:
@@ -628,6 +635,7 @@ def schedules_page(request, user, msg=None):
     return page(request, "schedules.html", user, jobs=jobs, kits=kits, job_actions=scheduler.JOB_ACTIONS,
                 raids=raids.all_raids(), raid_labels={r["name"]: r["label"] for r in raids.all_raids()},
                 presets=db.all("SELECT id, name FROM cockpit_event_presets ORDER BY name"),
+                metin_types=metin.types(), metin_spots=metin.spots(),
                 weekdays=scheduler.WEEKDAYS, msg=msg, kit_names={k["id"]: k["name"] for k in kits}, names=gamedata.item_names())
 
 
@@ -656,6 +664,9 @@ async def schedule_create(request: Request):
         return toast("Item desconhecido.", ok=False)
     if action == "event" and not db.one("SELECT id FROM cockpit_event_presets WHERE id = %s", arg1):
         return toast("Escolha um evento pronto (crie na tela Eventos).", ok=False)
+    if action == "metin_spawn" and not (db.one("SELECT id FROM cockpit_metin_types WHERE id = %s", arg1)
+                                         and db.one("SELECT id FROM cockpit_metin_spots WHERE id = %s", arg2)):
+        return toast("Escolha um tipo de pedra e um lugar salvo (crie na tela Pedra Metin).", ok=False)
     job = {"kind": kind, "every_min": clamp(f.get("minutos"), 5, 10080), "at_time": str(f.get("hora", "")),
            "weekdays": "".join(sorted({d for d in f.getlist("dias") if d in "0123456" and len(d) == 1})), "last_run": 0}
     if kind != "interval" and not TIME_RE.match(job["at_time"]):
@@ -1871,6 +1882,90 @@ async def boosted_save(request: Request, kind: str):
         return toast(err, ok=False)
     db.audit(user["account"], "boosted", kind, name + (" (fixo)" if f.get("fixar") else ""))
     return Response(headers={"HX-Redirect": "/boosted"})
+
+
+# ---------------------------------------------------------------- pedra metin
+
+
+@app.get("/metin", response_class=HTMLResponse)
+def metin_page(request: Request):
+    user = require(request)
+    active = metin.active()
+    boards = {a["id"]: metin.damage_board(a["id"]) for a in active}
+    history = metin.history()
+    boards.update({a["id"]: metin.damage_board(a["id"]) for a in history})
+    return page(request, "metin.html", user, types=metin.types(), spots=metin.spots(), active=active, history=history, boards=boards)
+
+
+@app.post("/metin/tipo", response_class=HTMLResponse)
+async def metin_type_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    tid = str(f.get("id", "")).strip()
+    err = metin.save_type(f, int(tid) if tid.isdigit() else None)
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "metin_tipo", f.get("name", ""), "")
+    return Response(headers={"HX-Redirect": "/metin"})
+
+
+@app.post("/metin/tipo/{tid}/apagar", response_class=HTMLResponse)
+def metin_type_delete(request: Request, tid: int):
+    user = require(request, post=True)
+    metin.delete_type(tid)
+    db.audit(user["account"], "metin_tipo_apagar", str(tid))
+    return Response(headers={"HX-Redirect": "/metin"})
+
+
+@app.post("/metin/lugar", response_class=HTMLResponse)
+async def metin_spot_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    err = metin.save_spot(f)
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "metin_lugar", f.get("name", ""), "")
+    return Response(headers={"HX-Redirect": "/metin"})
+
+
+@app.post("/metin/lugar/{sid}/apagar", response_class=HTMLResponse)
+def metin_spot_delete(request: Request, sid: int):
+    user = require(request, post=True)
+    metin.delete_spot(sid)
+    return Response(headers={"HX-Redirect": "/metin"})
+
+
+@app.post("/metin/soltar", response_class=HTMLResponse)
+async def metin_spawn(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    tid = str(f.get("type_id", ""))
+    if not tid.isdigit():
+        return toast("Escolha um tipo de pedra.", ok=False)
+    spot_id = str(f.get("spot_id", ""))
+    if spot_id.isdigit():
+        spot = db.one("SELECT x, y, z FROM cockpit_metin_spots WHERE id = %s", spot_id)
+        if not spot:
+            return toast("Esse lugar não existe mais.", ok=False)
+        x, y, z = spot["x"], spot["y"], spot["z"]
+    else:
+        try:
+            x, y, z = int(f.get("x")), int(f.get("y")), int(f.get("z"))
+        except (TypeError, ValueError):
+            return toast("Escolha um lugar salvo ou preencha x, y, z.", ok=False)
+    aid, err = metin.spawn(user["account"], int(tid), x, y, z)
+    if err:
+        return toast(err, ok=False)
+    return Response(headers={"HX-Redirect": "/metin"})
+
+
+@app.post("/metin/{aid}/remover", response_class=HTMLResponse)
+def metin_remove(request: Request, aid: int):
+    user = require(request, post=True)
+    err = metin.remove(user["account"], aid)
+    if err:
+        return toast(err, ok=False)
+    return Response(headers={"HX-Redirect": "/metin"})
 
 
 # ---------------------------------------------------------------- market

@@ -269,6 +269,49 @@ SCHEMA += [
         PRIMARY KEY (`id`),
         KEY `cockpit_house_log_house` (`house_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_metin_types` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(64) NOT NULL,
+        `health` INT UNSIGNED NOT NULL DEFAULT 5000,
+        `waves` VARCHAR(1000) NOT NULL DEFAULT '',
+        `loot` VARCHAR(1000) NOT NULL DEFAULT '',
+        `created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_metin_spots` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(64) NOT NULL,
+        `x` INT NOT NULL,
+        `y` INT NOT NULL,
+        `z` TINYINT NOT NULL,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_metin_active` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `type_id` INT UNSIGNED NOT NULL,
+        `type_name` VARCHAR(64) NOT NULL DEFAULT '',
+        `x` INT NOT NULL,
+        `y` INT NOT NULL,
+        `z` TINYINT NOT NULL,
+        `health_max` INT UNSIGNED NOT NULL DEFAULT 0,
+        `health_now` INT UNSIGNED NOT NULL DEFAULT 0,
+        `status` VARCHAR(12) NOT NULL DEFAULT 'alive',
+        `created_by` VARCHAR(255) NOT NULL DEFAULT '',
+        `created_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        `ended_at` INT UNSIGNED NULL,
+        PRIMARY KEY (`id`),
+        KEY `cockpit_metin_active_status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_metin_damage` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `active_id` INT UNSIGNED NOT NULL,
+        `player_id` INT UNSIGNED NOT NULL DEFAULT 0,
+        `player_name` VARCHAR(255) NOT NULL DEFAULT '',
+        `damage` INT UNSIGNED NOT NULL DEFAULT 0,
+        `loot` VARCHAR(500) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`),
+        KEY `cockpit_metin_damage_active` (`active_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 
