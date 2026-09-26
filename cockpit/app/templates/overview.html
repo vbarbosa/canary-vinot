@@ -56,6 +56,11 @@
         <button hx-post="/acao" hx-vals='{"action":"clean_map"}' hx-target="#toast" hx-confirm="Limpar os itens jogados no chão do mapa todo?"><span>🧹</span>Limpar chão</button>
         <button hx-post="/acao" hx-vals='{"action":"open_server"}' hx-target="#toast"><span>🔓</span>Abrir</button>
         <button class="danger" hx-post="/acao" hx-vals='{"action":"close_server"}' hx-target="#toast" hx-confirm="Fechar o servidor? Quem não é staff é desconectado e não consegue entrar."><span>🔒</span>Fechar</button>
+        {% if user.owner %}
+        <button class="danger" hx-post="/acao" hx-vals='{"action":"restart_server"}' hx-target="#toast"
+                hx-confirm="Reiniciar o processo do servidor agora? Salva tudo antes, mas desconecta todo mundo por alguns segundos.">
+          <span>🔁</span>Reiniciar servidor</button>
+        {% endif %}
       </div>
       <p class="small muted row">Presente para a turma: <a href="/kits" class="more">editar kits →</a></p>
       <div class="row wrap">

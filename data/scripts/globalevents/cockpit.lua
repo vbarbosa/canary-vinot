@@ -423,6 +423,11 @@ globalActions.close_server = function()
 	return true, "servidor fechado para jogadores"
 end
 
+globalActions.restart_server = function()
+	Game.setGameState(GAME_STATE_SHUTDOWN)
+	return true, "reiniciando (salva tudo e desconecta todo mundo)"
+end
+
 globalActions.open_server = function()
 	Game.setGameState(GAME_STATE_NORMAL)
 	return true, "servidor aberto"
