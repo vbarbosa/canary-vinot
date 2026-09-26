@@ -15,6 +15,27 @@
 
     <div class="drop big" data-alvo="{{ p.id }}">Solte itens ou kits aqui para dar a {{ p.name }}</div>
 
+    {% if p.group_id < 6 %}
+    <details>
+      <summary>Nome, grupo e dados</summary>
+      <div class="row wrap">
+        <form hx-post="/jogador/{{ p.id }}/renomear" hx-target="#toast" class="row"><input name="nome" placeholder="Novo nome" required><button class="secondary outline small">Renomear</button></form>
+        <label class="row small">Grupo
+          <select name="grupo" hx-post="/jogador/{{ p.id }}/grupo" hx-target="#toast" hx-trigger="change" hx-confirm="Mudar o grupo de {{ p.name }}?">
+            {% for gid, gname in groups %}<option value="{{ gid }}" {{ 'selected' if gid == p.group_id }}>{{ gname }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      <form hx-post="/jogador/{{ p.id }}/editar" hx-target="#toast" class="row wrap char-edit">
+        <select name="sexo"><option value="1" {{ 'selected' if p.sex == 1 }}>Masculino</option><option value="0" {{ 'selected' if p.sex == 0 }}>Feminino</option></select>
+        <select name="vocacao">{% for id, name in vocations_list %}<option value="{{ id }}" {{ 'selected' if id == p.vocation }}>{{ name }}</option>{% endfor %}</select>
+        <select name="cidade">{% for t in towns %}<option value="{{ t.id }}" {{ 'selected' if t.id == p.town_id }}>{{ t.name }}</option>{% endfor %}</select>
+        <button class="secondary outline small">Salvar sexo, vocação e cidade</button>
+      </form>
+      <p class="muted small">Precisa estar offline para renomear ou editar.</p>
+    </details>
+    {% endif %}
+
     <details open>
       <summary>Level e skills</summary>
       <form class="row wrap" hx-post="/acao" hx-target="#toast">

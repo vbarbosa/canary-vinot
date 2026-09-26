@@ -452,6 +452,7 @@ def studio(request: Request, pid: int):
     return page(
         request, "studio.html", user, p=p, skills=gamedata.SKILLS, outfits=gamedata.outfits().get(p["sex"], []),
         mounts=gamedata.mounts(), effects=gamedata.EFFECTS, palette=PALETTE, kits=kits, cats=gamedata.CATEGORIES,
+        groups=GROUPS, towns=towns(), vocations_list=list(gamedata.vocations().items())[:5],
     )
 
 
