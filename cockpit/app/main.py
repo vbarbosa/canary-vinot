@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import events, guilds, manual, market, metin, shop, places, raids, ranking, realty, sheet, wheel, world
+from . import dungeons, events, guilds, manual, market, metin, shop, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -95,7 +95,7 @@ def current_user(request: Request):
 MENU = [
     ("painel", "🏠", "Painel", [("/", "🌅", "Visão geral"), ("/ranking", "🏆", "Ranking"), ("/historico", "📜", "Histórico"), ("/manual", "📖", "Manual")]),
     ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
-                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/agenda", "⏰", "Agenda")]),
+                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/dungeons", "🏯", "Dungeons"), ("/agenda", "⏰", "Agenda")]),
     ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Jogadores"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
     ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
@@ -349,6 +349,7 @@ ACTION_LABELS = {
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
+    "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown",
 }
 
 
@@ -1966,6 +1967,45 @@ def metin_remove(request: Request, aid: int):
     if err:
         return toast(err, ok=False)
     return Response(headers={"HX-Redirect": "/metin"})
+
+
+# ---------------------------------------------------------------- dungeons
+
+
+@app.get("/dungeons", response_class=HTMLResponse)
+def dungeons_page(request: Request, q: str = ""):
+    user = require(request)
+    q = q.strip().lower()
+    rows = [r for r in dungeons.rows() if not q or q in r["name"].lower()]
+    return page(request, "dungeons.html", user, rows=rows, q=q, total=len(dungeons.rows()))
+
+
+@app.post("/dungeons/{name}/salvar", response_class=HTMLResponse)
+async def dungeons_save(request: Request, name: str):
+    user = require(request, post=True)
+    f = await request.form()
+    err = dungeons.save_override(name, f)
+    if err:
+        return toast(err, ok=False)
+    db.enqueue(user["account"], "dungeon_auto", text=name)
+    return Response(headers={"HX-Redirect": "/dungeons"})
+
+
+@app.post("/dungeons/{name}/liberar", response_class=HTMLResponse)
+def dungeons_free(request: Request, name: str):
+    user = require(request, post=True)
+    db.enqueue(user["account"], "dungeon_free", text=name)
+    return toast("Pedido enviado. A sala é liberada no próximo minuto.")
+
+
+@app.post("/dungeons/{name}/cooldown", response_class=HTMLResponse)
+def dungeons_cooldown_reset(request: Request, name: str, jogador: str = Form(...)):
+    user = require(request, post=True)
+    jogador = jogador.strip()
+    if not jogador:
+        return toast("Diga o nome do jogador.", ok=False)
+    db.enqueue(user["account"], "dungeon_cooldown_reset", target=jogador, text=name)
+    return toast(f"Pedido enviado. Vale só se {jogador} estiver online agora ou no próximo login.")
 
 
 # ---------------------------------------------------------------- market

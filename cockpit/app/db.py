@@ -312,6 +312,22 @@ SCHEMA += [
         PRIMARY KEY (`id`),
         KEY `cockpit_metin_damage_active` (`active_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_dungeon_auto` (
+        `name` VARCHAR(64) NOT NULL,
+        `disabled` TINYINT NOT NULL DEFAULT 0,
+        `time_to_defeat` INT NULL,
+        `time_to_fight_again` INT NULL,
+        `extra_item_id` INT NULL,
+        `extra_item_qty` INT NOT NULL DEFAULT 1,
+        `extra_chance` DECIMAL(5,2) NOT NULL DEFAULT 100,
+        PRIMARY KEY (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS `cockpit_dungeon_status` (
+        `name` VARCHAR(64) NOT NULL,
+        `players_inside` INT UNSIGNED NOT NULL DEFAULT 0,
+        `updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 

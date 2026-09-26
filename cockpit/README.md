@@ -101,6 +101,15 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   bateu (`monster:getDamageMap()`) e grava tudo em `cockpit_metin_active`/`cockpit_metin_damage` pro painel mostrar o placar
   de dano e o histórico. Dá pra soltar na hora ou pela Agenda (ação `metin_spawn`, tipo + lugar). Um reinício apaga o estado
   em memória; a pedra ainda viva vira "expirada" no histórico.
+- Dungeons (Jogo ao vivo › Dungeons): painel em cima das ~55 salas de boss com alavanca que já existem no mapa
+  (`BossLever`, `data/libs/functions/boss_lever.lua`), sem mexer no mapa. A lista de bosses é lida direto dos scripts que
+  registram cada alavanca (`dungeons.py` varre `data-otservbr-global/**/*.lua` por `boss = { name = ... }`). Ajustes do
+  painel (desativar, tempo limite, tempo pra lutar de novo, prêmio extra) ficam em `cockpit_dungeon_auto` e a ponte aplica
+  em cima dos campos do registro `BossLever[nome]` (`applyDungeonAuto`, no mesmo padrão do `raid_auto`); o prêmio extra é
+  dado no hook de morte compartilhado por todo boss-lever (`data/scripts/creaturescripts/monster/boss_lever_death.lua`).
+  Quem está dentro agora vem de um retrato a cada minuto (`cockpit_dungeon_status`, zone:countPlayers()); liberar uma sala
+  travada e zerar o cooldown de um jogador são comandos da fila de sempre. Como o estado de quem está dentro só existe
+  na memória do jogo, um reinício zera na hora até o próximo retrato.
 - Manual (Painel › Manual, aberto a toda a equipe): comandos dos jogadores e do Mestre, lidos dos `TalkAction` do datapack
   (comando sem texto em `manual.py` aparece como "sem descrição"), e um guia de cada tela do painel.
 - Server save diário (Mundo): liga ou desliga o reinício diário, horário em Brasília (gravado em UTC, o relógio do contêiner

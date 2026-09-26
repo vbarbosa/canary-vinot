@@ -83,6 +83,22 @@ local tablesSql = {
 		PRIMARY KEY (`id`),
 		KEY `cockpit_metin_damage_active` (`active_id`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_dungeon_auto` (
+		`name` VARCHAR(64) NOT NULL,
+		`disabled` TINYINT NOT NULL DEFAULT 0,
+		`time_to_defeat` INT NULL,
+		`time_to_fight_again` INT NULL,
+		`extra_item_id` INT NULL,
+		`extra_item_qty` INT NOT NULL DEFAULT 1,
+		`extra_chance` DECIMAL(5,2) NOT NULL DEFAULT 100,
+		PRIMARY KEY (`name`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
+	[[CREATE TABLE IF NOT EXISTS `cockpit_dungeon_status` (
+		`name` VARCHAR(64) NOT NULL,
+		`players_inside` INT UNSIGNED NOT NULL DEFAULT 0,
+		`updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
+		PRIMARY KEY (`name`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4]],
 }
 
 -- Actions that only make sense while the target is online. Anything else waits
@@ -270,6 +286,15 @@ actions.kick = function(player)
 	end
 	player:remove()
 	return true, "kickado"
+end
+
+-- Dungeon do grupo (painel > Dungeons): zera o cooldown de um boss-lever pra um jogador. text = nome do boss.
+actions.dungeon_cooldown_reset = function(player, cmd)
+	if not BossLever[cmd.text] then
+		return false, "dungeon desconhecida"
+	end
+	player:setBossCooldown(cmd.text, 0)
+	return true, "cooldown zerado"
 end
 
 actions.heal = function(player)
@@ -941,6 +966,71 @@ globalActions.raid_auto = function()
 	return true, applyRaidAuto() .. " raid(s) com ajuste do painel"
 end
 
+-- Dungeon do grupo (painel > Dungeons): panel controls on top of the existing boss-lever rooms
+-- (data/libs/functions/boss_lever.lua), no new map. Overrides come from `cockpit_dungeon_auto`.
+local function applyDungeonAuto()
+	local n = 0
+	local resultId = db.storeQuery("SELECT `name`, `disabled`, IFNULL(`time_to_defeat`, -1) AS `time_to_defeat`, "
+		.. "IFNULL(`time_to_fight_again`, -1) AS `time_to_fight_again` FROM `cockpit_dungeon_auto`")
+	if resultId then
+		repeat
+			local name = Result.getString(resultId, "name")
+			local lever = BossLever[name]
+			if lever then
+				lever.disabled = Result.getNumber(resultId, "disabled") == 1
+				local ttd = Result.getNumber(resultId, "time_to_defeat")
+				local ttf = Result.getNumber(resultId, "time_to_fight_again")
+				if ttd >= 0 then
+					lever.timeToDefeat = ttd
+				end
+				if ttf >= 0 then
+					lever.timeToFightAgain = ttf
+				end
+				n = n + 1
+			end
+		until not Result.next(resultId)
+		Result.free(resultId)
+	end
+	return n
+end
+
+globalActions.dungeon_auto = function()
+	return true, applyDungeonAuto() .. " dungeon(s) com ajuste do painel"
+end
+
+-- text = boss name. Clears the boss room's zone so a stuck group can enter again.
+globalActions.dungeon_free = function(cmd)
+	local lever = BossLever[cmd.text]
+	if not lever then
+		return false, "dungeon desconhecida"
+	end
+	local zone = lever:getZone()
+	zone:refresh()
+	zone:removePlayers()
+	if lever.timeoutEvent then
+		stopEvent(lever.timeoutEvent)
+		lever.timeoutEvent = nil
+	end
+	return true, "sala liberada"
+end
+
+local function writeDungeonStatus()
+	for name, lever in pairs(BossLever) do
+		if type(lever) == "table" and lever.getZone then
+			local ok, count = pcall(function()
+				return lever:getZone():countPlayers()
+			end)
+			if ok then
+				db.query(string.format(
+					"INSERT INTO `cockpit_dungeon_status` (`name`, `players_inside`, `updated_at`) VALUES (%s, %d, %d) "
+						.. "ON DUPLICATE KEY UPDATE `players_inside` = VALUES(`players_inside`), `updated_at` = VALUES(`updated_at`)",
+					db.escapeString(name), count, os.time()
+				))
+			end
+		end
+	end
+end
+
 -- Pedra Metin (cockpit/app/metin.py). arg1 = type id, arg2/3/4 = x/y/z, text = the cockpit_metin_active row id.
 -- MetinState (a global table, populated here) is read by data-otservbr-global/scripts/creaturescripts/monster/metin_stone.lua
 -- on think (waves) and on death (loot + damage), and is the only place the stone's config lives once it's spawned.
@@ -1013,6 +1103,7 @@ function startup.onStartup()
 		applyTexts(saved)
 	end
 	applyRaidAuto()
+	applyDungeonAuto()
 	startedAt = os.time()
 	writeMetrics()
 	logger.info("[cockpit] bridge ready")
@@ -1025,6 +1116,7 @@ local metricsEvent = GlobalEvent("CockpitMetrics")
 
 function metricsEvent.onThink()
 	writeMetrics()
+	writeDungeonStatus()
 	return true
 end
 

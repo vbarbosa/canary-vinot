@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dungeons{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🏯 Dungeons</h3>
+  <p class="muted">As {{ total }} salas de boss com alavanca que já existem no mapa (o servidor é o mapa real de Tibia).
+    Aqui dá pra ver quem tá dentro, liberar uma sala travada, zerar o cooldown de um jogador e ajustar tempo limite,
+    tempo pra lutar de novo e um prêmio extra por cima do loot normal do boss.</p>
+</div>
+
+<article class="panel">
+  <table class="compact">
+    <thead><tr><th>Boss</th><th class="num">Nível</th><th class="num">Dentro agora</th><th>Cooldown</th><th>Ajustes</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><strong>{{ r.name }}</strong>{% if r.x %}<br><span class="muted mono small">{{ r.x }}, {{ r.y }}, {{ r.z }}</span>{% endif %}{% if r.disabled %}<br><span class="small">🔒 desativada</span>{% endif %}</td>
+      <td class="num">{{ r.required_level or '—' }}</td>
+      <td class="num">
+        {{ r.players_inside }}
+        {% if r.players_inside %}<br><button class="outline small danger fit" hx-post="/dungeons/{{ r.name }}/liberar" hx-target="#toast" hx-confirm="Tirar todo mundo da sala do {{ r.name }} agora?">Liberar sala</button>{% endif %}
+        {% if r.updated_at %}<br><small class="muted">atualizado <span data-ts="{{ r.updated_at }}"></span></small>{% endif %}
+      </td>
+      <td>
+        <form hx-post="/dungeons/{{ r.name }}/cooldown" hx-target="#toast" class="row wrap">
+          <input name="jogador" placeholder="jogador" class="w8" required>
+          <button class="outline small">Zerar</button>
+        </form>
+      </td>
+      <td>
+        <details>
+          <summary class="small">⚙ ajustar</summary>
+          <form hx-post="/dungeons/{{ r.name }}/salvar" hx-target="#toast" class="rules">
+            <label class="row"><input type="checkbox" name="desativada" {{ 'checked' if r.disabled }}> desativar a alavanca por enquanto</label>
+            <label>Tempo limite pra derrotar (segundos)<input name="tempo_limite" type="number" min="30" max="7200" value="{{ r.time_to_defeat or '' }}" placeholder="padrão do servidor"></label>
+            <label>Tempo pra lutar de novo (segundos)<input name="tempo_espera" type="number" min="0" value="{{ r.time_to_fight_again or '' }}" placeholder="padrão do servidor"></label>
+            <label>Prêmio extra: ID do item<input name="premio_item" type="number" min="100" value="{{ r.extra_item_id or '' }}" placeholder="nenhum"></label>
+            <label>Quantidade<input name="premio_qtd" type="number" min="1" value="{{ r.extra_item_qty }}"></label>
+            <label>Chance %<input name="premio_chance" type="number" min="0" max="100" step="0.1" value="{{ r.extra_chance }}"></label>
+            <button>Salvar</button>
+          </form>
+        </details>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endblock %}
