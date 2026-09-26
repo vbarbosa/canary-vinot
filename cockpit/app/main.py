@@ -1985,11 +1985,10 @@ def metin_remove(request: Request, aid: int):
 
 
 @app.get("/dungeons", response_class=HTMLResponse)
-def dungeons_page(request: Request, q: str = ""):
+def dungeons_page(request: Request):
     user = require(request)
-    q = q.strip().lower()
-    rows = [r for r in dungeons.rows() if not q or q in r["name"].lower()]
-    return page(request, "dungeons.html", user, rows=rows, q=q, total=len(dungeons.rows()))
+    rows = dungeons.rows()
+    return page(request, "dungeons.html", user, rows=rows, total=len(rows))
 
 
 @app.post("/dungeons/{name}/salvar", response_class=HTMLResponse)
