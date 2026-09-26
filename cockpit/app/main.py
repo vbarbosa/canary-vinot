@@ -1388,15 +1388,15 @@ def _place_list(q, tipo, limit=CREATURE_PAGE):
     if tipo == "criatura":
         rows, total = places.creatures(q, limit)
         return {"list_tpl": "_creatures.html", "rows": rows, "total": total, "limit": limit, "step": CREATURE_PAGE}
-    rows, total = places.search(q, tipo)
-    return {"list_tpl": "_places.html", "rows": rows, "total": total}
+    rows, total = places.search(q, tipo, limit)
+    return {"list_tpl": "_places.html", "rows": rows, "total": total, "limit": limit, "step": CREATURE_PAGE}
 
 
 @app.get("/teleporte/lugares", response_class=HTMLResponse)
 def teleport_places(request: Request, q: str = "", tipo: str = "", limit: int = CREATURE_PAGE):
     user = require(request)
     ctx = _place_list(q, tipo, limit)
-    return page(request, ctx["list_tpl"], user, q=q, kinds=places.KINDS, **ctx)
+    return page(request, ctx["list_tpl"], user, q=q, tipo=tipo, kinds=places.KINDS, **ctx)
 
 
 @app.get("/teleporte/criatura", response_class=HTMLResponse)
