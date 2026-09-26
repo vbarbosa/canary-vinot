@@ -4,21 +4,8 @@
 <div class="grid2">
   <section>
     <h3>Contas</h3>
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar conta ou e-mail…" hx-get="/contas" hx-trigger="input changed delay:300ms" hx-target="#acc-rows" hx-select="#acc-rows > *">
-    <table class="compact" data-plain>
-      <thead><tr><th>Conta</th><th>Personagens</th><th>Coins</th><th>Premium</th><th></th></tr></thead>
-      <tbody id="acc-rows">
-      {% for a in rows %}
-        <tr>
-          <td><a href="/conta/{{ a.id }}">{{ a.name }}</a><div class="muted small">{{ a.email }}</div></td>
-          <td class="small">{{ a.names or '—' }}</td>
-          <td>{{ a.coins }}{% if a.coins_transferable %} <span class="muted small">+{{ a.coins_transferable }} transf.</span>{% endif %}</td>
-          <td>{% set d = ((a.lastday - now() + 86399) // 86400) if a.lastday and a.lastday > now() else 0 %}{{ d ~ ' dias' if d else '—' }}</td>
-          <td class="right"><button class="outline small danger" hx-post="/conta/{{ a.id }}/apagar" hx-target="#toast" hx-confirm="Apagar a conta {{ a.name }} e todos os personagens dela? Não tem volta.">Apagar</button></td>
-        </tr>
-      {% else %}<tr><td colspan="5" class="muted">Nenhuma conta.</td></tr>{% endfor %}
-      </tbody>
-    </table>
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar conta ou e-mail…" hx-get="/contas" hx-trigger="input changed delay:300ms" hx-target="#accounts-list" hx-swap="outerHTML">
+    {% include "_accounts_list.html" %}
   </section>
   <section>
     <article>

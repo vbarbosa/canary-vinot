@@ -3,9 +3,6 @@
 {% block content %}
 <h3>Personagens</h3>
 <p><a href="/contas" role="button" class="outline small">+ Criar personagem</a></p>
-<input type="search" name="q" value="{{ q }}" placeholder="Buscar personagem…" hx-get="/jogadores" hx-trigger="input changed delay:300ms" hx-target="#rows">
-<table class="compact" data-plain>
-  <thead><tr><th>Nome</th><th>Level</th><th>Vocação</th><th>Conta</th><th></th></tr></thead>
-  <tbody id="rows">{% include "_players_rows.html" %}</tbody>
-</table>
+<input type="search" name="q" value="{{ q }}" placeholder="Buscar personagem…" hx-get="/jogadores" hx-trigger="input changed delay:300ms" hx-target="#players-list" hx-swap="outerHTML">
+{% include "_players_list.html" %}
 {% endblock %}

@@ -365,19 +365,22 @@ def part_feed(request: Request, alvo: str = "", n: int = 20):
 
 
 @app.get("/jogadores", response_class=HTMLResponse)
-def players(request: Request, q: str = ""):
+def players(request: Request, q: str = "", limit: int = 100):
     user = require(request)
+    limit = clamp(limit, 100, 5000)
+    like = f"%{q}%"
+    total = db.one("SELECT COUNT(*) AS n FROM players p WHERE p.name LIKE %s", like)["n"]
     rows = db.all(
         "SELECT p.id, p.name, p.level, p.vocation, p.group_id, a.name AS account, a.email, "
         "o.player_id IS NOT NULL AS online, g.player_id IS NOT NULL AS in_group, "
         "(SELECT 1 FROM account_bans b WHERE b.account_id = p.account_id) AS banned "
         "FROM players p JOIN accounts a ON a.id = p.account_id "
         "LEFT JOIN cockpit_online o ON o.player_id = p.id LEFT JOIN cockpit_group g ON g.player_id = p.id "
-        "WHERE p.name LIKE %s ORDER BY online DESC, p.level DESC LIMIT 100",
-        f"%{q}%",
+        "WHERE p.name LIKE %s ORDER BY online DESC, p.level DESC LIMIT %s",
+        like, limit,
     )
-    name = "_players_rows.html" if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "rows" else "players.html"
-    return page(request, name, user, rows=rows, q=q)
+    name = "_players_list.html" if request.headers.get("HX-Request") else "players.html"
+    return page(request, name, user, rows=rows, q=q, limit=limit, total=total)
 
 
 @app.post("/jogadores/{pid}/turma", response_class=HTMLResponse)
@@ -779,19 +782,24 @@ def create_character(account_id, name, sex, vocation, town):
 
 
 @app.get("/contas", response_class=HTMLResponse)
-def accounts(request: Request, q: str = ""):
+def accounts(request: Request, q: str = "", limit: int = 100):
     user = require(request)
+    limit = clamp(limit, 100, 5000)
+    like = f"%{q}%"
+    total = db.one("SELECT COUNT(*) AS n FROM accounts a WHERE a.name LIKE %s OR a.email LIKE %s", like, like)["n"]
     rows = db.all(
         "SELECT a.id, a.name, a.email, a.coins, a.coins_transferable, a.premdays, a.lastday, "
         "(SELECT COUNT(*) FROM players p WHERE p.account_id = a.id) AS chars, "
         "(SELECT GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', ') FROM players p WHERE p.account_id = a.id) AS names "
-        "FROM accounts a WHERE a.name LIKE %s OR a.email LIKE %s ORDER BY a.id DESC LIMIT 100",
-        f"%{q}%", f"%{q}%",
+        "FROM accounts a WHERE a.name LIKE %s OR a.email LIKE %s ORDER BY a.id DESC LIMIT %s",
+        like, like, limit,
     )
+    if request.headers.get("HX-Request"):
+        return page(request, "_accounts_list.html", user, rows=rows, q=q, limit=limit, total=total)
     purchases = db.all(
         "SELECT h.*, a.name AS account FROM store_history h JOIN accounts a ON a.id = h.account_id ORDER BY h.id DESC LIMIT 15"
     )
-    return page(request, "accounts.html", user, rows=rows, q=q, towns=towns(), vocations_list=list(gamedata.vocations().items())[:5], purchases=purchases)
+    return page(request, "accounts.html", user, rows=rows, q=q, limit=limit, total=total, towns=towns(), vocations_list=list(gamedata.vocations().items())[:5], purchases=purchases)
 
 
 @app.post("/contas", response_class=HTMLResponse)
