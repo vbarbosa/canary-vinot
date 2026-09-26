@@ -111,9 +111,11 @@ class Dump:
         with open(path, "w", encoding="utf-8") as f:
             f.write('<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" version="0.11" xml:lang="pt-br">\n')
             for title, text in self.pages.items():
+                css = title.endswith(".css")
+                model, fmt = ("css", "text/css") if css else ("wikitext", "text/x-wiki")
                 f.write(f"<page><title>{escape(title)}</title><revision><timestamp>{ts}</timestamp>"
                         f"<contributor><username>VinOT Bot</username></contributor><comment>Gerado dos arquivos do jogo</comment>"
-                        f"<model>wikitext</model><format>text/x-wiki</format>"
+                        f"<model>{model}</model><format>{fmt}</format>"
                         f'<text xml:space="preserve">{escape(text)}</text></revision></page>\n')
             f.write("</mediawiki>\n")
 
