@@ -306,6 +306,14 @@ SIDEBAR = """* navigation
 ** Categoria:Criaturas|Criaturas
 ** Categoria:Bosses|Bosses
 ** Categoria:Itens|Itens
+** Categoria:Magias|Magias
+** Categoria:NPCs|NPCs
+** Categoria:Quests|Quests
+** Mapa|Mapa
+** Categoria:Cidades|Cidades
+** Montarias|Montarias
+** Outfits masculinos|Outfits
+** Onde vender|Onde vender
 ** randompage-url|Página aleatória
 * Armas
 ** Categoria:Espadas|Espadas
@@ -349,6 +357,18 @@ placeholder=Buscar criatura ou item…
 <div>
 == Itens ==
 {items_rows}
+</div>
+<div>
+== Magias ==
+[[:Categoria:Magias de Sorcerer|Sorcerer]] · [[:Categoria:Magias de Druid|Druid]] · [[:Categoria:Magias de Paladin|Paladin]] · [[:Categoria:Magias de Knight|Knight]] · [[:Categoria:Magias de Monk|Monk]] · [[:Categoria:Runas (magias)|Runas]]
+</div>
+<div>
+== Mundo ==
+[[Mapa]] · [[:Categoria:Cidades|Cidades]] · [[:Categoria:NPCs|NPCs]] · [[Onde vender]] · [[:Categoria:Quests|Quests]]
+</div>
+<div>
+== Visual ==
+[[Montarias]] · [[Outfits masculinos]] · [[Outfits femininos]]
 </div>
 </div>
 """
