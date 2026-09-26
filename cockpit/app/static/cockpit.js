@@ -61,7 +61,87 @@
   });
   document.addEventListener("DOMContentLoaded", renderKit);
 
+  // Tables: click a header to sort, a filter box above (unless data-plain) and a pager below when there are
+  // more rows than fit one page. Purely client-side, so it survives htmx swaps: sort/filter re-read the live
+  // rows each time instead of caching them, and a swapped table is simply re-enhanced (guarded by data-enhanced).
+  const PAGE_SIZE = 20;
+
+  function cellValue(td) {
+    return (td ? td.textContent : "").trim();
+  }
+  function asNumber(text) {
+    const n = parseFloat(text.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+    return isNaN(n) ? null : n;
+  }
+  function dataRows(table) {
+    // Excludes the placeholder "nothing here" row (a single <td colspan> spanning the table).
+    return [...table.tBodies[0].rows].filter(r => !(r.cells.length === 1 && r.cells[0].hasAttribute("colspan")));
+  }
+  function applyPager(table) {
+    const rows = dataRows(table);
+    const visible = rows.filter(r => !r.classList.contains("tbl-hide"));
+    const pager = table._pager;
+    if (!pager) return;
+    const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+    table._page = Math.min(table._page || 1, totalPages);
+    visible.forEach((r, i) => r.classList.toggle("tbl-page", i < (table._page - 1) * PAGE_SIZE || i >= table._page * PAGE_SIZE));
+    pager.el.hidden = visible.length <= PAGE_SIZE;
+    pager.info.textContent = "Página " + table._page + " de " + totalPages + " (" + visible.length + ")";
+    pager.prev.disabled = table._page <= 1;
+    pager.next.disabled = table._page >= totalPages;
+  }
+  function applyFilter(table, term) {
+    term = term.trim().toLowerCase();
+    dataRows(table).forEach(r => r.classList.toggle("tbl-hide", term && !r.textContent.toLowerCase().includes(term)));
+    table._page = 1;
+    applyPager(table);
+  }
+  function sortTable(table, col, th) {
+    const rows = dataRows(table);
+    const asc = th.dataset.dir !== "asc";
+    [...table.tHead.rows[0].cells].forEach(c => { delete c.dataset.dir; c.classList.remove("sort-asc", "sort-desc"); });
+    th.dataset.dir = asc ? "asc" : "desc";
+    th.classList.add(asc ? "sort-asc" : "sort-desc");
+    const values = rows.map(r => cellValue(r.cells[col]));
+    const numeric = values.every(v => !v || asNumber(v) !== null);
+    rows.sort((a, b) => {
+      const av = cellValue(a.cells[col]), bv = cellValue(b.cells[col]);
+      if (numeric) return (asc ? 1 : -1) * ((asNumber(av) || 0) - (asNumber(bv) || 0));
+      return (asc ? 1 : -1) * av.localeCompare(bv, "pt-BR");
+    });
+    rows.forEach(r => table.tBodies[0].appendChild(r));
+    table._page = 1;
+    applyPager(table);
+  }
+  function enhanceTable(table) {
+    if (table.dataset.enhanced || !table.tHead || !table.tBodies[0]) return;
+    table.dataset.enhanced = "1";
+    [...table.tHead.rows[0].cells].forEach((th, i) => {
+      if (th.querySelector("button,input,select,a") || th.dataset.nosort !== undefined) return;
+      th.classList.add("sortable");
+      th.title = "Clique para ordenar";
+      th.addEventListener("click", () => sortTable(table, i, th));
+    });
+    if (table.dataset.plain !== undefined) return;
+    const tools = document.createElement("div");
+    tools.className = "row wrap small tbl-tools";
+    tools.innerHTML = '<input type="search" class="tbl-filter" placeholder="Filtrar nesta tabela…">';
+    table.parentNode.insertBefore(tools, table);
+    tools.querySelector("input").addEventListener("input", e => applyFilter(table, e.target.value));
+
+    const pager = document.createElement("div");
+    pager.className = "row wrap small tbl-pager";
+    pager.innerHTML = '<button type="button" class="outline small" data-prev>‹ Anterior</button>'
+      + '<span class="muted tbl-page-info"></span><button type="button" class="outline small" data-next>Próxima ›</button>';
+    table.parentNode.insertBefore(pager, table.nextSibling);
+    table._pager = { el: pager, info: pager.querySelector(".tbl-page-info"), prev: pager.querySelector("[data-prev]"), next: pager.querySelector("[data-next]") };
+    pager.querySelector("[data-prev]").addEventListener("click", () => { table._page--; applyPager(table); });
+    pager.querySelector("[data-next]").addEventListener("click", () => { table._page++; applyPager(table); });
+    applyPager(table);
+  }
+
   function init(root) {
+    (root.matches && root.matches("table.compact") ? [root] : [...root.querySelectorAll("table.compact")]).forEach(enhanceTable);
     root.querySelectorAll("[data-source]").forEach(el => {
       if (el._sortable) return;
       el._sortable = Sortable.create(el, { group: { name: "gift", pull: "clone", put: false }, sort: false, animation: 120, delay: 80, delayOnTouchOnly: true });
@@ -307,6 +387,13 @@
   document.addEventListener("htmx:load", e => init(e.detail.elt));
   document.addEventListener("htmx:afterSwap", e => {
     if (e.detail.target.id === "toast") setTimeout(() => (e.detail.target.innerHTML = ""), 4000);
+    // Rows were swapped inside an already-enhanced table (e.g. a server-side search): re-apply the
+    // current filter text and pager over the fresh rows instead of leaving stale page/hide state.
+    const table = e.detail.target.closest("table.compact");
+    if (table && table.dataset.enhanced) {
+      const box = table.parentNode.querySelector(".tbl-filter");
+      applyFilter(table, box ? box.value : "");
+    }
   });
   document.addEventListener("DOMContentLoaded", () => init(document));
 })();

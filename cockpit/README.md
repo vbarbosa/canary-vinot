@@ -18,6 +18,10 @@ A spec completa está no documento "Spec: Painel Administrativo VinOT (Cockpit)"
   Tibia coins também vão direto no banco, porque o servidor relê o saldo a cada uso.
 - Métricas: CPU, memória, disco e uptime vêm do `/proc` da VM; jogadores, monstros e NPCs
   vêm da tabela `cockpit_metrics`, que a ponte Lua grava a cada minuto (guarda 7 dias).
+- Toda `<table class="compact">` ganha sozinha, via `cockpit.js`, ordenação por coluna (clique no
+  cabeçalho), um filtro de texto acima e paginação de 20 em 20; nenhuma tela precisa fazer nada.
+  Uma tabela que já tem sua própria busca no servidor (Jogadores, Contas, Guilds) marca
+  `data-plain` na `<table>` pra não ganhar o filtro duplicado, mas continua ordenável.
 - Logs: o painel lê só os arquivos dentro das pastas de `COCKPIT_LOG_DIRS`
   (padrão: `logs/` do servidor e `data/logs/` dos comandos de GM), em modo somente leitura.
 - Agenda: tarefas que o painel roda sozinho (salvar, anúncio, limpar o chão, presentes, abrir e

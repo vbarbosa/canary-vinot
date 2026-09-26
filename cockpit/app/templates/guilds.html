@@ -8,7 +8,7 @@
 <div class="with-catalog tp">
   <section>
     <input type="search" name="q" value="{{ q }}" placeholder="Buscar guild…" hx-get="/guilds" hx-trigger="input changed delay:300ms" hx-target="#guild-rows" hx-select="#guild-rows > *">
-    <table class="compact">
+    <table class="compact" data-plain>
       <thead><tr><th>Guild</th><th>Líder</th><th>Membros</th><th>Banco</th><th>Guerras</th></tr></thead>
       <tbody id="guild-rows">
       {% for g in rows %}

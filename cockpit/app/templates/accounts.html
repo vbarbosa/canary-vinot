@@ -5,7 +5,7 @@
   <section>
     <h3>Contas</h3>
     <input type="search" name="q" value="{{ q }}" placeholder="Buscar conta ou e-mail…" hx-get="/contas" hx-trigger="input changed delay:300ms" hx-target="#acc-rows" hx-select="#acc-rows > *">
-    <table class="compact">
+    <table class="compact" data-plain>
       <thead><tr><th>Conta</th><th>Personagens</th><th>Coins</th><th>Premium</th></tr></thead>
       <tbody id="acc-rows">
       {% for a in rows %}
