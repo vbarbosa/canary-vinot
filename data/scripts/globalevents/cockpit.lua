@@ -244,11 +244,38 @@ actions.heal = function(player)
 	return true, "curado"
 end
 
+-- Ground with no blocking flag, so the player lands somewhere they can actually walk out of.
+local function walkable(pos)
+	local tile = Tile(pos)
+	return tile and tile:getGround() and not tile:hasFlag(TILESTATE_BLOCKSOLID) and not tile:hasFlag(TILESTATE_TELEPORT)
+end
+
+-- Exact spot first (spawn points are usually fine); otherwise the closest walkable tile nearby,
+-- ring by ring, so a teleport never drops the player where they cannot move.
+local function nearestWalkable(pos, maxR)
+	if walkable(pos) then
+		return pos
+	end
+	for r = 1, maxR do
+		for dx = -r, r do
+			for dy = -r, r do
+				if math.max(math.abs(dx), math.abs(dy)) == r then
+					local p = Position(pos.x + dx, pos.y + dy, pos.z)
+					if walkable(p) then
+						return p
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
 -- arg1, arg2, arg3 = x, y, z
 actions.teleport = function(player, cmd)
-	local pos = Position(cmd.arg1, cmd.arg2, cmd.arg3)
-	if not Tile(pos) then
-		return false, "posicao invalida"
+	local pos = nearestWalkable(Position(cmd.arg1, cmd.arg2, cmd.arg3), 6)
+	if not pos then
+		return false, "sem lugar andavel por perto"
 	end
 	player:getPosition():sendMagicEffect(CONST_ME_POFF)
 	player:teleportTo(pos)

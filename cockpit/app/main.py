@@ -1366,19 +1366,22 @@ def teleport_who(request: Request, busca: str = ""):
     return page(request, "_who.html", user, rows=rows, busca=busca)
 
 
-def _place_list(q, tipo):
+CREATURE_PAGE = 60
+
+
+def _place_list(q, tipo, limit=CREATURE_PAGE):
     """Context for the list under the search box: creatures when that chip is on, places otherwise."""
     if tipo == "criatura":
-        rows, total = places.creatures(q)
-        return {"list_tpl": "_creatures.html", "rows": rows, "total": total}
+        rows, total = places.creatures(q, limit)
+        return {"list_tpl": "_creatures.html", "rows": rows, "total": total, "limit": limit, "step": CREATURE_PAGE}
     rows, total = places.search(q, tipo)
     return {"list_tpl": "_places.html", "rows": rows, "total": total}
 
 
 @app.get("/teleporte/lugares", response_class=HTMLResponse)
-def teleport_places(request: Request, q: str = "", tipo: str = ""):
+def teleport_places(request: Request, q: str = "", tipo: str = "", limit: int = CREATURE_PAGE):
     user = require(request)
-    ctx = _place_list(q, tipo)
+    ctx = _place_list(q, tipo, limit)
     return page(request, ctx["list_tpl"], user, q=q, kinds=places.KINDS, **ctx)
 
 

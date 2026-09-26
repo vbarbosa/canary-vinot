@@ -1,4 +1,4 @@
-<p class="muted small">{{ total }} criatura(s){% if total > rows|length %}, mostrando {{ rows|length }}. Refine a busca para ver outras{% endif %}. Escolha uma para ver onde ela aparece.</p>
+<p class="muted small">{{ total }} criatura(s){% if total > rows|length %}, mostrando {{ rows|length }}{% endif %}. Escolha uma para ver onde ela aparece.</p>
 <div class="places">
   {% for c in rows %}
   <article class="creature" tabindex="0" hx-get="/teleporte/criatura?nome={{ c.name|urlencode }}&q={{ q|urlencode }}" hx-target="#places" hx-trigger="click, keyup[key=='Enter']">
@@ -11,3 +11,8 @@
   </article>
   {% else %}<p class="muted">Nenhuma criatura com “{{ q }}”.</p>{% endfor %}
 </div>
+{% if total > rows|length %}
+<button type="button" class="outline small" hx-get="/teleporte/lugares?tipo=criatura&q={{ q|urlencode }}&limit={{ limit + step }}" hx-target="#places">
+  Carregar mais ({{ total - rows|length }} restam)
+</button>
+{% endif %}

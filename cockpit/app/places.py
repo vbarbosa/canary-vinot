@@ -111,7 +111,7 @@ def spawns():
 
 
 def creatures(q="", limit=60):
-    """Monsters whose name matches, most common first: [{name, total, areas, x, y, z}]."""
+    """Monsters whose name matches, most common first: [{name, total, areas, x, y, z}] and the grand total."""
     q = q.strip().lower()
     rows = [{"name": name, "total": sum(a["n"] for a in areas), "areas": len(areas), **{k: areas[0][k] for k in "xyz"}}
             for name, areas in spawns().items() if not q or q in name.lower()]
