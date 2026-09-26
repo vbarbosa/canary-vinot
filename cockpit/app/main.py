@@ -348,7 +348,7 @@ ACTION_LABELS = {
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
     "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
-    "house_rent": "💰 aluguel", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
+    "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
 }
 
