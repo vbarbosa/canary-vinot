@@ -285,11 +285,28 @@ local function walkable(pos)
 	return tile and tile:getGround() and not tile:hasFlag(TILESTATE_BLOCKSOLID) and not tile:hasFlag(TILESTATE_TELEPORT)
 end
 
+-- How many of the 8 neighbours are also walkable: a lone walkable tile surrounded by walls
+-- (a sealed pocket you can't step out of) scores 0, a normal room floor scores several.
+local function walkableNeighbours(pos)
+	local n = 0
+	for dx = -1, 1 do
+		for dy = -1, 1 do
+			if (dx ~= 0 or dy ~= 0) and walkable(Position(pos.x + dx, pos.y + dy, pos.z)) then
+				n = n + 1
+			end
+		end
+	end
+	return n
+end
+
 -- Exact spot first (spawn points are usually fine); otherwise the closest walkable tile nearby,
--- ring by ring, so a teleport never drops the player where they cannot move.
+-- ring by ring, so a teleport never drops the player where they cannot move. Prefers a tile with
+-- walkable neighbours (an actual floor) over a lone walkable tile boxed in by walls, so the
+-- player doesn't land somewhere with no way out.
 local function nearestWalkable(pos, maxR)
-	if walkable(pos) then
-		return pos
+	local fallback = walkable(pos) and pos or nil
+	if fallback and walkableNeighbours(pos) >= 2 then
+		return fallback
 	end
 	for r = 1, maxR do
 		for dx = -r, r do
@@ -297,13 +314,16 @@ local function nearestWalkable(pos, maxR)
 				if math.max(math.abs(dx), math.abs(dy)) == r then
 					local p = Position(pos.x + dx, pos.y + dy, pos.z)
 					if walkable(p) then
-						return p
+						if walkableNeighbours(p) >= 2 then
+							return p
+						end
+						fallback = fallback or p
 					end
 				end
 			end
 		end
 	end
-	return nil
+	return fallback
 end
 
 -- arg1, arg2, arg3 = x, y, z
