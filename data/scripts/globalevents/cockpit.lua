@@ -970,8 +970,7 @@ end
 -- (data/libs/functions/boss_lever.lua), no new map. Overrides come from `cockpit_dungeon_auto`.
 local function applyDungeonAuto()
 	local n = 0
-	local resultId = db.storeQuery("SELECT `name`, `disabled`, IFNULL(`time_to_defeat`, -1) AS `time_to_defeat`, "
-		.. "IFNULL(`time_to_fight_again`, -1) AS `time_to_fight_again` FROM `cockpit_dungeon_auto`")
+	local resultId = db.storeQuery("SELECT `name`, `disabled`, IFNULL(`time_to_defeat`, -1) AS `time_to_defeat`, " .. "IFNULL(`time_to_fight_again`, -1) AS `time_to_fight_again` FROM `cockpit_dungeon_auto`")
 	if resultId then
 		repeat
 			local name = Result.getString(resultId, "name")
@@ -1035,11 +1034,7 @@ local function writeDungeonStatus()
 				return lever:getZone():countPlayers()
 			end)
 			if ok then
-				db.query(string.format(
-					"INSERT INTO `cockpit_dungeon_status` (`name`, `players_inside`, `updated_at`) VALUES (%s, %d, %d) "
-						.. "ON DUPLICATE KEY UPDATE `players_inside` = VALUES(`players_inside`), `updated_at` = VALUES(`updated_at`)",
-					db.escapeString(name), count, os.time()
-				))
+				db.query(string.format("INSERT INTO `cockpit_dungeon_status` (`name`, `players_inside`, `updated_at`) VALUES (%s, %d, %d) " .. "ON DUPLICATE KEY UPDATE `players_inside` = VALUES(`players_inside`), `updated_at` = VALUES(`updated_at`)", db.escapeString(name), count, os.time()))
 			end
 		end
 	end
@@ -1088,10 +1083,7 @@ globalActions.metin_remove = function(cmd)
 			if creature then
 				creature:remove()
 			end
-			db.query(string.format(
-				"UPDATE `cockpit_metin_active` SET `status` = 'removed', `ended_at` = %d WHERE `id` = %d AND `status` = 'alive'",
-				os.time(), cmd.arg1
-			))
+			db.query(string.format("UPDATE `cockpit_metin_active` SET `status` = 'removed', `ended_at` = %d WHERE `id` = %d AND `status` = 'alive'", os.time(), cmd.arg1))
 			return true, "pedra removida"
 		end
 	end

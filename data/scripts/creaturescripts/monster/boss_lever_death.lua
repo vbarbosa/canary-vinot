@@ -32,8 +32,7 @@ function onBossDeath.onDeath(creature)
 	end
 	-- Prêmio extra do painel (Cockpit > Dungeons > cockpit_dungeon_auto), opcional, por cima do loot normal.
 	local extraId, extraQty, extraChance
-	local resultId = db.storeQuery("SELECT `extra_item_id`, `extra_item_qty`, `extra_chance` FROM `cockpit_dungeon_auto` "
-		.. "WHERE `name` = " .. db.escapeString(name) .. " AND `extra_item_id` IS NOT NULL")
+	local resultId = db.storeQuery("SELECT `extra_item_id`, `extra_item_qty`, `extra_chance` FROM `cockpit_dungeon_auto` " .. "WHERE `name` = " .. db.escapeString(name) .. " AND `extra_item_id` IS NOT NULL")
 	if resultId then
 		extraId = Result.getNumber(resultId, "extra_item_id")
 		extraQty = Result.getNumber(resultId, "extra_item_qty")

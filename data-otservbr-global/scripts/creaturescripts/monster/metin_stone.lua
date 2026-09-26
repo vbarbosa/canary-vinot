@@ -10,7 +10,9 @@ function MetinParseWaves(text)
 	for at, name, amount in string.gmatch(text or "", "(%d+),([^,;]+),(%d+)") do
 		out[#out + 1] = { at = tonumber(at), name = name, amount = tonumber(amount) }
 	end
-	table.sort(out, function(a, b) return a.at > b.at end)
+	table.sort(out, function(a, b)
+		return a.at > b.at
+	end)
 	return out
 end
 
@@ -90,16 +92,9 @@ function metinDeath.onDeath(creature)
 				end
 			end
 		end
-		db.query(string.format(
-			"INSERT INTO `cockpit_metin_damage` (`active_id`, `player_id`, `player_name`, `damage`, `loot`) VALUES (%d, %d, %s, %d, %s)",
-			state.activeId, player and player:getGuid() or 0, db.escapeString(player and player:getName() or "desconhecido"),
-			entry.total, db.escapeString(table.concat(given, ", "))
-		))
+		db.query(string.format("INSERT INTO `cockpit_metin_damage` (`active_id`, `player_id`, `player_name`, `damage`, `loot`) VALUES (%d, %d, %s, %d, %s)", state.activeId, player and player:getGuid() or 0, db.escapeString(player and player:getName() or "desconhecido"), entry.total, db.escapeString(table.concat(given, ", "))))
 	end
-	db.query(string.format(
-		"UPDATE `cockpit_metin_active` SET `status` = 'destroyed', `health_now` = 0, `ended_at` = %d WHERE `id` = %d",
-		os.time(), state.activeId
-	))
+	db.query(string.format("UPDATE `cockpit_metin_active` SET `status` = 'destroyed', `health_now` = 0, `ended_at` = %d WHERE `id` = %d", os.time(), state.activeId))
 	creature:getPosition():sendMagicEffect(CONST_ME_EXPLOSIONHIT)
 	Game.broadcastMessage("A pedra Metin foi destruida!", MESSAGE_EVENT_ADVANCE)
 	return true
