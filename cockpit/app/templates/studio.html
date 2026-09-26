@@ -108,6 +108,11 @@
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_training","alvo":"{{ p.id }}"}' hx-target="#toast">🏋 Kit de treino</button>
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"place_dummy","alvo":"{{ p.id }}"}' hx-target="#toast"
                 title="Cria um exercise dummy na frente do jogador. Fora de casa, some quando o servidor reinicia.">🎯 Dummy na frente</button>
+        <form class="row" hx-post="/acao" hx-target="#toast" title="Funciona offline: ele recebe ao entrar.">
+          <input type="hidden" name="action" value="give_spins"><input type="hidden" name="alvo" value="{{ p.id }}">
+          <input name="arg1" type="number" min="1" max="100" value="1" class="w6">
+          <button class="outline small">🎡 Dar giros</button>
+        </form>
         {% if p.group_id < 6 %}
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"kick","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Kickar {{ p.name }}?">Kick</button>
         <form class="row wrap ban-form" hx-post="/jogadores/{{ p.id }}/ban" hx-target="#toast" hx-confirm="Banir a conta de {{ p.name }}?">
