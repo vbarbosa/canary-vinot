@@ -1,0 +1,18 @@
+<tr id="order-{{ o.id }}" class="{{ 'off' if o.status != 'pending' }}">
+  <td><strong class="mono">{{ o.code }}</strong><br><small class="muted"><span data-ts="{{ o.created_at }}"></span></small></td>
+  <td><a href="/conta/{{ o.account_id }}">{{ o.email }}</a>{% if o.player_name %}<br><small class="muted">{{ o.player_name }}</small>{% endif %}</td>
+  <td class="num"><strong>{{ o.coins }}</strong></td>
+  <td class="num">{{ brl(o.amount_cents) }}</td>
+  {% if o.status == 'pending' %}
+  <td><div class="row">
+    <button class="small" hx-post="/pedidos/{{ o.id }}/confirmar" hx-target="#order-{{ o.id }}" hx-swap="outerHTML"
+      hx-confirm="O Pix de {{ brl(o.amount_cents) }} com o código {{ o.code }} caiu? Confirmar entrega {{ o.coins }} coins para {{ o.email }}.">Confirmar pagamento</button>
+    <button class="outline small danger" hx-post="/pedidos/{{ o.id }}/cancelar" hx-target="#order-{{ o.id }}" hx-swap="outerHTML"
+      hx-prompt="Cancelar o pedido {{ o.code }}. Motivo (o jogador vê no portal):">Cancelar</button>
+  </div></td>
+  {% else %}
+  <td class="small">{{ '✅' if o.status == 'paid' else '🚫' }} {{ status.get(o.status, o.status) }}
+    {% if o.handled_by %}<br><span class="muted">por {{ o.handled_by }}{% if o.paid_at %} · <span data-ts="{{ o.paid_at }}"></span>{% endif %}</span>{% endif %}
+    {% if o.note %}<br><span class="muted">{{ o.note }}</span>{% endif %}</td>
+  {% endif %}
+</tr>

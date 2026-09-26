@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Eventos{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🎪 Eventos</h3>
+  <p class="muted">Mini-games para a turma. Escolha a arena, quem joga e o prêmio. Um evento pronto pode ser agendado na Agenda.</p>
+</div>
+
+{% for e in running %}
+<article class="panel live-event">
+  <div class="row wrap">
+    <strong>{{ kinds[e.kind][0] if e.kind in kinds else e.kind }} {{ 'rolando agora' if e.status == 'running' else 'na fila para começar' }}</strong>
+    <span class="muted small">{{ e.players }}</span>
+    <button class="outline small danger right" hx-post="/eventos/parar" hx-vals='{{ {"tipo": e.kind}|tojson }}' hx-target="#toast"
+            hx-confirm="Encerrar agora? Quem ainda estiver de pé ganha o prêmio.">🛑 Encerrar</button>
+  </div>
+</article>
+{% endfor %}
+
+{% if signup %}
+<article class="panel live-event signup">
+  <div class="row wrap">
+    <strong>📣 Inscrições abertas: {{ signup.name }}</strong>
+    <span class="muted small">começa <span data-ts="{{ signup.closes_at }}" data-fmt="time"></span> · {{ signed|length }} inscrito(s)</span>
+    <span class="row small right">
+      <button class="small" hx-post="/eventos/inscricao/{{ signup.id }}/comecar" hx-target="#toast">▶ Começar agora</button>
+      <button class="outline small danger" hx-post="/eventos/inscricao/{{ signup.id }}/cancelar" hx-confirm="Cancelar as inscrições?">Cancelar</button>
+    </span>
+  </div>
+  <p class="small">{% for s in signed %}<span class="tag {{ '' if s.online else 'off' }}" title="{{ 'online' if s.online else 'offline, fica de fora' }}">{{ s.name }}</span> {% else %}<span class="muted">Ninguém ainda. No jogo: <code>!evento</code> para entrar, <code>!evento sair</code> para sair.</span>{% endfor %}</p>
+</article>
+{% endif %}
+
+<div class="kinds">
+  {% for k, (label, help, ready) in kinds.items() %}
+  <a href="/eventos?tipo={{ k }}" class="kind {{ 'ready' if ready else 'soon' }} {{ 'on' if k == tipo }}"{% if k == tipo %} aria-current="page"{% endif %}>
+    <strong>{{ label }}</strong><small class="muted">{{ help }}</small>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="with-catalog tp">
+  <section>
+    <article class="panel">
+      <header><h4>{{ '✏ Editando: ' ~ edit.name if edit else kinds[tipo][0] }}</h4></header>
+      <form hx-post="/eventos/comecar" hx-target="#toast" id="event-form" class="event-form">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
+        <input type="hidden" name="preset_id" value="{{ edit.id if edit else '' }}">
+        {% if needs_arena %}
+        <label>Arena (centro)
+          <select name="arena" required>
+            <option value="">Escolha…</option>
+            {% for a in arenas %}<option value="{{ a.x }},{{ a.y }},{{ a.z }}" {{ 'selected' if edit and (edit.x, edit.y, edit.z) == (a.x, a.y, a.z) }}>{{ a.label }}</option>{% endfor %}
+          </select>
+        </label>
+        {% if online %}
+        <select id="arena-from"><option value="">…ou usar a posição atual de</option>
+          {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
+        </select>
+        {% endif %}
+        <p class="small muted">Dica: salve a arena no Teleporte (⭐ Salvos) para ela aparecer aqui.
+          {% if tipo in ('ctf', 'battlefield') %}O time vermelho começa no lado oeste e o azul no leste do raio.{% endif %}</p>
+        {% endif %}
+        <div class="rate-grid">
+          {% if needs_arena %}<label>Raio (sqm)<input name="raio" type="number" min="4" max="30" value="{{ edit.radius if edit else d.radius }}"></label>{% endif %}
+          <label>Duração máx. (min)<input name="minutos" type="number" min="1" max="60" value="{{ edit.minutes if edit else d.minutes }}"></label>
+          {% for k, (label, lo, hi, default, help) in fields.items() %}
+          <label title="{{ help }}">{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ edit.x_extra[k] if edit else default }}">{% if help %}<small class="muted">{{ help }}</small>{% endif %}</label>
+          {% endfor %}
+          <label>Prêmio: kit
+            <select name="kit"><option value="0">nenhum</option>{% for k in kits %}<option value="{{ k.id }}" {{ 'selected' if edit and edit.kit_id == k.id }}>{{ k.name }}</option>{% endfor %}</select>
+          </label>
+          <label>Prêmio: gold no banco<input name="gold" type="number" min="0" value="{{ edit.gold if edit else d.gold }}"></label>
+          <label class="switch-row"><input type="checkbox" role="switch" name="trofeu" value="1" {{ 'checked' if edit and edit.x_extra.trophy }}>
+            <span>🏆 Troféu do Vinot<br><small class="muted">Taça com o nome do evento e a data.</small></span></label>
+        </div>
+
+        <p class="small muted" style="margin:.6rem 0 .3rem">Quem joga agora:</p>
+        {% if online %}
+        <div class="row wrap small">
+          <button type="button" class="outline small" data-pick="all">Online</button>
+          <button type="button" class="outline small" data-pick="group">A turma</button>
+          <button type="button" class="outline small" data-pick="none">Ninguém</button>
+        </div>
+        <ul class="pick-list">
+          {% for o in who %}<li><label><input type="checkbox" name="pid" value="{{ o.id }}" data-group="{{ 1 if o.in_group else 0 }}" data-online="1" checked>
+            <strong>{{ o.name }}</strong>{% if o.in_group %} <span class="tag">turma</span>{% endif %} <span class="muted small">nível {{ o.level }}</span></label></li>{% endfor %}
+        </ul>
+        {% else %}<p class="muted small">Ninguém online agora. Dá para salvar como evento pronto e agendar.</p>{% endif %}
+        <button {{ 'disabled' if not online }}>▶ Começar agora</button>
+
+        <details class="save-preset">
+          <summary>💾 Salvar como evento pronto (para agendar)</summary>
+          <div class="row wrap">
+            <input name="nome" placeholder="Nome (ex.: Zombie de sexta)" maxlength="64" value="{{ edit.name if edit else '' }}">
+            <select name="alvo" class="w12"><option value="turma" {{ 'selected' if edit and edit.alvo == 'turma' }}>com a turma online</option>
+              <option value="todos" {{ 'selected' if edit and edit.alvo == 'todos' }}>com todo mundo online</option>
+              <option value="inscricao" {{ 'selected' if edit and edit.alvo == 'inscricao' }}>com inscrição (!evento)</option></select>
+            <label class="inline small" title="Só vale com inscrição">inscrição aberta por
+              <input name="inscricao_min" type="number" min="1" max="60" value="{{ edit.signup_min if edit else 5 }}" class="w8"> min</label>
+            <button type="button" class="outline" hx-post="/eventos/salvar" hx-include="#event-form" hx-target="#toast">{{ 'Salvar alterações' if edit else 'Salvar' }}</button>
+            {% if edit %}<a href="/eventos?tipo={{ tipo }}" class="small">cancelar edição</a>{% endif %}
+          </div>
+          <p class="small muted">Com inscrição, "Começar" (ou a Agenda) abre as inscrições e avisa no jogo; quem disser <code>!evento</code> entra
+            e o evento começa sozinho quando o tempo acaba, com os inscritos que estiverem online.</p>
+        </details>
+      </form>
+    </article>
+    {% if tipo == 'quiz' %}
+    <article class="panel" id="quiz">
+      <header class="row"><h4>📚 Banco de perguntas</h4><span class="muted small right">{{ quiz|selectattr('active')|list|length }} ativas de {{ quiz|length }}</span></header>
+      <p class="small muted">Várias respostas certas separadas por | (ex.: Druid|Druida). Acento e maiúscula não importam na hora de responder.</p>
+      <form hx-post="/eventos/quiz" hx-target="#toast" class="quiz-row">
+        <input name="pergunta" placeholder="Nova pergunta" maxlength="255">
+        <input name="respostas" placeholder="Respostas certas (a|b)" maxlength="255">
+        <input name="tema" placeholder="Tema" maxlength="32" class="w12">
+        <button class="small">Adicionar</button>
+      </form>
+      <ul class="ledger quiz-list">
+        {% for q in quiz %}
+        <li class="{{ '' if q.active else 'off' }}">
+          <form hx-post="/eventos/quiz" hx-target="#toast" class="quiz-row">
+            <input type="hidden" name="qid" value="{{ q.id }}">
+            <input name="pergunta" value="{{ q.question }}" maxlength="255">
+            <input name="respostas" value="{{ q.answers }}" maxlength="255">
+            <input name="tema" value="{{ q.topic }}" maxlength="32" class="w12">
+            <span class="row small">
+              <button class="outline small">Salvar</button>
+              <button class="outline small" name="ligar" value="1">{{ 'Pausar' if q.active else 'Ativar' }}</button>
+              <button class="outline small danger" name="apagar" value="1" hx-confirm="Apagar essa pergunta?">Apagar</button>
+            </span>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header class="row"><h4>📋 Eventos prontos</h4><a href="/agenda" class="more">agendar →</a></header>
+      <ul class="ledger">
+        {% for p in presets %}
+        <li><span><strong>{{ p.name }}</strong></span>
+          <small class="muted">{{ kinds[p.kind][0] if p.kind in kinds else p.kind }} · {{ p.minutes }} min{% if p.kind != 'quiz' %} · raio {{ p.radius }}{% endif %} · {{ {'turma': 'turma', 'todos': 'todos', 'inscricao': 'inscrição ' ~ p.signup_min ~ ' min'}.get(p.alvo, p.alvo) }}{% if p.gold %} · {{ p.gold }} gold{% endif %}</small>
+          <span class="row small">
+            <button class="small" hx-post="/eventos/{{ p.id }}/rodar" hx-target="#toast">{{ '📣 Abrir inscrição' if p.alvo == 'inscricao' else '▶ Começar' }}</button>
+            <a href="/eventos?preset={{ p.id }}" class="outline small" role="button">Editar</a>
+            <button class="outline small danger" hx-post="/eventos/{{ p.id }}/apagar" hx-confirm="Apagar {{ p.name }}?">Apagar</button>
+          </span></li>
+        {% else %}<li class="muted small">Nenhum ainda. Monte ao lado e salve.</li>{% endfor %}
+      </ul>
+    </article>
+    <article class="panel">
+      <header><h4>🏅 Últimos eventos</h4></header>
+      <ul class="ledger">
+        {% for e in history %}
+        <li><span>{{ e.name }} {% if e.winners %}· 🏆 <strong>{{ e.winners }}</strong>{% endif %}</span>
+          <small class="muted">{{ {'queued': '⏳ na fila', 'running': '▶ rolando', 'done': '✅', 'error': '⚠'}.get(e.status, e.status) }} {{ e.details }} · <span data-ts="{{ e.started_at }}"></span></small></li>
+        {% else %}<li class="muted small">Nenhum evento ainda.</li>{% endfor %}
+      </ul>
+    </article>
+  </aside>
+</div>
+{% endblock %}

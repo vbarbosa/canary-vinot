@@ -1,0 +1,8 @@
+{% if rows %}
+<ul class="who-found">
+  {% for o in rows %}
+  <li><button type="button" class="outline small" data-add-who='{{ {"id": o.id, "name": o.name, "level": o.level, "online": o.online}|tojson }}'>
+    + <span class="dot {{ 'on' if o.online }}"></span> {{ o.name }} <span class="muted">nível {{ o.level }}</span></button></li>
+  {% endfor %}
+</ul>
+{% elif busca|length >= 2 %}<p class="muted small">Ninguém com “{{ busca }}”.</p>{% endif %}

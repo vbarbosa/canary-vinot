@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Contas{% endblock %}
+{% block content %}
+<div class="grid2">
+  <section>
+    <h3>Contas</h3>
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar conta ou e-mail…" hx-get="/contas" hx-trigger="input changed delay:300ms" hx-target="#accounts-list" hx-swap="outerHTML">
+    {% include "_accounts_list.html" %}
+  </section>
+  <section>
+    <article>
+      <h4>Nova conta para um amigo</h4>
+      <form hx-post="/contas" hx-target="#toast">
+        <div class="row wrap">
+          <input name="nome" placeholder="Nome da conta (ex.: joao)" required>
+          <input name="email" type="email" placeholder="E-mail (é o login no jogo)" required>
+        </div>
+        <input name="senha" type="text" placeholder="Senha (mínimo 6)" required minlength="6">
+        <p class="muted small">Personagem inicial (opcional): nasce no level 8.</p>
+        <input name="personagem" placeholder="Nome do personagem">
+        {% include "_new_char_fields.html" %}
+        <button>Criar conta</button>
+      </form>
+    </article>
+    <h4>Loja: últimas compras</h4>
+    <table class="compact small">
+      <thead><tr><th>Quando</th><th>Conta</th><th>O quê</th><th>Coins</th></tr></thead>
+      <tbody>
+      {% for h in purchases %}
+        <tr><td data-ts="{{ h.time }}" class="muted"></td><td><a href="/conta/{{ h.account_id }}">{{ h.account }}</a></td><td>{{ h.description }}</td><td>{{ h.coin_amount }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">Ninguém comprou nada ainda.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

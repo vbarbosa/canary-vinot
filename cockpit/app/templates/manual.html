@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Manual{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>📖 Manual</h3>
+  <p class="muted">Os comandos do jogo e como usar cada tela do painel. A lista de comandos vem dos scripts do servidor, então comando novo aparece aqui sozinho.</p>
+</div>
+<div class="kind-tabs">
+  <a href="/manual?aba=jogo" {{ 'aria-current=page' if aba == 'jogo' }}>🎮 Comandos dos jogadores</a>
+  <a href="/manual?aba=mestre" {{ 'aria-current=page' if aba == 'mestre' }}>👑 Comandos do Mestre</a>
+  <a href="/manual?aba=painel" {{ 'aria-current=page' if aba == 'painel' }}>🧭 Como usar o painel</a>
+</div>
+<input type="search" id="manual-q" placeholder="Buscar comando ou assunto…" class="manual-search">
+
+{% if aba == 'jogo' %}
+<p class="small muted">Digite no chat do jogo (canal Default). Parâmetros depois de um espaço.</p>
+{% for t in topics %}
+<article class="panel manual-block">
+  <header><h4>{{ t }}</h4></header>
+  <dl class="manual-list">
+    {% for c in players if c.topic == t %}
+    <div class="manual-item"><dt><code>{{ c.usage }}</code></dt><dd class="{{ 'muted' if c.text == 'sem descrição' }}">{{ c.text }}</dd></div>
+    {% endfor %}
+  </dl>
+</article>
+{% endfor %}
+{% elif aba == 'mestre' %}
+<p class="small muted">Só para personagens de staff (God, Gamemaster). A maioria das ações também tem botão no painel.</p>
+<article class="panel manual-block">
+  <header><h4>Os mais usados</h4></header>
+  <dl class="manual-list">
+    {% for c in staff if c.text %}
+    <div class="manual-item"><dt><code>{{ c.usage }}</code> {% if c.group == 'god' %}<span class="tag">God</span>{% endif %}</dt><dd>{{ c.text }}</dd></div>
+    {% endfor %}
+  </dl>
+</article>
+<article class="panel manual-block">
+  <header><h4>Todos os outros</h4></header>
+  <p class="manual-chips">{% for c in staff if not c.text %}<code class="manual-item" title="{{ c.group }}">{{ c.word }}</code> {% endfor %}</p>
+</article>
+{% else %}
+{% for section, screens in panel %}
+<article class="panel manual-block">
+  <header><h4>{{ section }}</h4></header>
+  <dl class="manual-list">
+    {% for path, title, text in screens if path is can_open(user) %}
+    <div class="manual-item"><dt><a href="{{ path }}">{{ title }}</a></dt><dd>{{ text }}</dd></div>
+    {% endfor %}
+  </dl>
+</article>
+{% endfor %}
+{% endif %}
+<script>
+  document.getElementById("manual-q").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll(".manual-item").forEach(el => { el.hidden = q && !el.textContent.toLowerCase().includes(q); });
+    document.querySelectorAll(".manual-block").forEach(b => { b.hidden = q && !b.querySelector(".manual-item:not([hidden])"); });
+  });
+</script>
+{% endblock %}

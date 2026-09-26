@@ -226,7 +226,7 @@ familiarTime = 30
 partyAutoShareExperience = true
 -- partyShareRangeMultiplier: the range of the party share experience, default 3/2 (1.5)
 partyShareRangeMultiplier = 1.5
-partyShareLootBoosts = false
+partyShareLootBoosts = true
 partyShareLootBoostsDimishingFactor = 0.7
 
 -- Tibiadrome concoctions
@@ -259,12 +259,12 @@ onlyPremiumAccount = false
 stashMoving = false
 stashItemCount = 5000
 depotChest = 4
-autoLoot = false
+autoLoot = true
 autoBank = false
 toggleGoldPouchAllowAnything = false
 toggleGoldPouchQuickLootOnly = false
 toggleServerIsRetroPVP = false
-toggleTravelsFree = false
+toggleTravelsFree = true
 buyAolCommandFee = 0
 buyBlessCommandFee = 0
 teleportPlayerToVocationRoom = true
@@ -288,11 +288,11 @@ teleportSummons = false
 allowReload = false
 
 -- Stamina in Trainers
-staminaTrainer = false
+staminaTrainer = true
 staminaTrainerDelay = 5
 staminaTrainerGain = 1
 -- Stamina in PZ
-staminaPz = false
+staminaPz = true
 staminaOrangeDelay = 1
 staminaGreenDelay = 5
 staminaPzGain = 1
@@ -320,7 +320,7 @@ toggleImbuementNonAggressiveFightOnly = false
 -- NOTE: Only quests that are in the "freequests.lua" script table will work
 -- toggleFreeQuest = enable/disable the system
 -- freeQuestStage = if you add more quests to the table, change this value to run freeQuest again
-toggleFreeQuest = false
+toggleFreeQuest = true
 freeQuestStage = 1
 
 -- Deaths
@@ -476,7 +476,7 @@ sortLootByChance = false
 -- NOTE: rateExp, rateSkill and rateMagic is used when 'rateUseStages = false' - or a fallback only
 -- To configure rates see file data/stages.lua
 -- lowLevelBonusExp works up to level 50
-rateUseStages = false
+rateUseStages = true
 lowLevelBonusExp = 50
 rateExp = 1
 rateSkill = 1
@@ -583,3 +583,10 @@ metricsPrometheusAddress = "0.0.0.0:9464"
 --- OStream
 metricsEnableOstream = false
 metricsOstreamInterval = 1000
+
+-- cockpit: world settings (written by the Cockpit panel; these win over the values above)
+local cockpitWorld = io.open("cockpit-world.lua")
+if cockpitWorld then
+	cockpitWorld:close()
+	dofile("cockpit-world.lua")
+end

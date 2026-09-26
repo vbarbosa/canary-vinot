@@ -1,0 +1,17 @@
+{% for r in rows %}
+<tr>
+  <td>{% if r.online %}<span class="on">●</span>{% endif %} <a href="/jogador/{{ r.id }}">{{ r.name }}</a>{% if r.group_id >= 4 %} <small class="tag">staff</small>{% endif %}{% if r.banned %} <small class="tag err">banido</small>{% endif %}</td>
+  <td>{{ r.level }}</td>
+  <td>{{ vocations.get(r.vocation, '') }}</td>
+  <td class="muted">{{ r.account }}</td>
+  <td class="row right">
+    <button class="{{ '' if r.in_group else 'outline' }} secondary small" hx-post="/jogadores/{{ r.id }}/turma" hx-swap="outerHTML">{{ 'Na turma' if r.in_group else 'Pôr na turma' }}</button>
+    {% if r.online %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"kick","alvo":"{{ r.id }}"}' hx-target="#toast" hx-confirm="Kickar {{ r.name }}?">Kick</button>{% endif %}
+    {% if r.group_id < 6 %}
+      {% if r.banned %}<button class="outline small" hx-post="/jogadores/{{ r.id }}/desban" hx-target="#toast">Desbanir</button>
+      {% else %}<button class="outline small danger" hx-post="/jogadores/{{ r.id }}/ban" hx-vals='{"dias":"7"}' hx-target="#toast" hx-confirm="Banir a conta de {{ r.name }} por 7 dias?">Banir 7d</button>{% endif %}
+      <button class="outline small danger" hx-post="/jogador/{{ r.id }}/apagar" hx-target="#toast" hx-confirm="Apagar {{ r.name }} para sempre? Itens, level e tudo mais somem.">Apagar</button>
+    {% endif %}
+  </td>
+</tr>
+{% else %}<tr><td colspan="5" class="muted">Nenhum personagem encontrado.</td></tr>{% endfor %}

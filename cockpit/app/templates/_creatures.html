@@ -1,0 +1,18 @@
+<p class="muted small">{{ total }} criatura(s){% if total > rows|length %}, mostrando {{ rows|length }}{% endif %}. Escolha uma para ver onde ela aparece.</p>
+<div class="places">
+  {% for c in rows %}
+  <article class="creature" tabindex="0" hx-get="/teleporte/criatura?nome={{ c.name|urlencode }}&q={{ q|urlencode }}" hx-target="#places" hx-trigger="click, keyup[key=='Enter']">
+    <img src="/mapa/{{ c.x }}/{{ c.y }}/{{ c.z }}.png" alt="Onde mais aparece {{ c.name }}" loading="lazy">
+    <div class="place-body">
+      <strong>{{ c.name }}</strong>
+      <small class="muted">{{ c.total }} no mapa · {{ c.areas }} lugar(es)</small>
+      <small class="accent">Ver onde tem ›</small>
+    </div>
+  </article>
+  {% else %}<p class="muted">Nenhuma criatura com “{{ q }}”.</p>{% endfor %}
+</div>
+{% if total > rows|length %}
+<button type="button" class="outline small" hx-get="/teleporte/lugares?tipo=criatura&q={{ q|urlencode }}&limit={{ limit + step }}" hx-target="#places">
+  Carregar mais ({{ total - rows|length }} restam)
+</button>
+{% endif %}

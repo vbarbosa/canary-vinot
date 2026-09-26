@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Agenda{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>Agenda</h3>
+  <p class="muted">Tarefas que o painel faz sozinho no horário marcado, mesmo com você longe. Horário de Brasília.</p>
+</div>
+
+<div class="grid2 agenda">
+  <section>
+    {% for j in jobs %}
+    <article class="job {{ 'off' if not j.enabled }}">
+      <header class="row">
+        <span class="job-icon">{{ {'save': '💾', 'broadcast': '📣', 'clean_map': '🧹', 'start_raid': '👹', 'event': '🎪', 'give_kit': '🎁', 'give_item': '🎁', 'give_training': '🏋', 'heal': '💚', 'close_server': '🔒', 'open_server': '🔓'}.get(j.action, '⏱') }}</span>
+        <div><strong>{{ j.name }}</strong><br><small class="muted">{{ j.when }}</small></div>
+        <label class="right"><input type="checkbox" role="switch" {{ 'checked' if j.enabled }} hx-post="/agenda/{{ j.id }}/ligar" hx-trigger="change"> {{ 'ligada' if j.enabled else 'desligada' }}</label>
+      </header>
+      <p class="small">
+        {{ job_actions[j.action] }}{% if j.action == 'give_kit' %}: {{ kit_names.get(j.arg1, 'kit apagado') }}{% elif j.action == 'give_item' %}: {{ j.arg2 }}x {{ names.get(j.arg1, j.arg1) }}{% endif %}
+        {% if j.action in ('give_kit', 'give_item', 'give_training') %} para {{ 'a turma' if j.alvo == 'turma' else 'quem estiver online' }}{% endif %}
+        {% if j.action == 'event' %}: {{ (presets|selectattr('id', 'equalto', j.arg1)|map(attribute='name')|first) or 'evento apagado' }}{% elif j.action == 'start_raid' %}: {{ raid_labels.get(j.text, j.text) }}
+        {% elif j.action == 'metin_spawn' %}: {{ (metin_types|selectattr('id', 'equalto', j.arg1)|map(attribute='name')|first) or 'tipo apagado' }} em {{ (metin_spots|selectattr('id', 'equalto', j.arg2)|map(attribute='name')|first) or 'lugar apagado' }}
+        {% elif j.text %}<br><em>“{{ j.text }}”</em>{% endif %}
+      </p>
+      <footer class="row wrap small">
+        <span class="muted">Próxima: {% if j.enabled and j.next_run %}<span data-ts="{{ j.next_run }}"></span>{% else %}—{% endif %}</span>
+        <span class="muted">· Última: {% if j.last_run %}<span data-ts="{{ j.last_run }}"></span> {{ j.last_result }}{% else %}nunca{% endif %}</span>
+        <span class="right row">
+          <button class="outline small" hx-post="/agenda/{{ j.id }}/rodar" hx-target="#toast">Rodar agora</button>
+          <button class="outline small" data-edit-job='{{ {"id": j.id, "nome": j.name, "acao": j.action, "alvo": j.alvo, "arg1": j.arg1, "arg2": j.arg2, "texto": j.text, "tipo": j.kind, "minutos": j.every_min, "hora": j.at_time, "dias": j.weekdays}|tojson }}'>Editar</button>
+          <button class="outline small danger" hx-post="/agenda/{{ j.id }}/apagar" hx-confirm="Apagar a tarefa {{ j.name }}?">Apagar</button>
+        </span>
+      </footer>
+    </article>
+    {% else %}
+    <article class="empty"><p>Nenhuma tarefa ainda. Comece com um dos atalhos ao lado, como salvar o jogo a cada 30 minutos.</p></article>
+    {% endfor %}
+  </section>
+
+  <section>
+    <article>
+      <h4>Atalhos</h4>
+      <div class="row wrap">
+        {% for label, vals in [
+          ('💾 Salvar a cada 30 min', {'acao': 'save', 'tipo': 'interval', 'minutos': 30, 'nome': 'Salvar o jogo'}),
+          ('🧹 Limpar o chão às 4h', {'acao': 'clean_map', 'tipo': 'daily', 'hora': '04:00', 'nome': 'Limpeza da madrugada'}),
+          ('📣 Boa noite às 23h', {'acao': 'broadcast', 'tipo': 'daily', 'hora': '23:00', 'nome': 'Boa noite', 'texto': 'Já é tarde, aventureiros. Salvem seus itens e descansem!'}),
+        ] %}
+        <button class="outline small" hx-post="/agenda" hx-vals='{{ vals|tojson }}' hx-target="#toast">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article>
+      <h4 id="job-title">Nova tarefa</h4>
+      <form hx-post="/agenda" hx-target="#toast" class="job-form" id="job-form">
+        <input type="hidden" name="id" value="">
+        <label>O que fazer
+          <select name="acao" id="job-action" required>
+            {% for k, v in job_actions.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+          </select>
+        </label>
+        <div data-show="event">
+          <select name="arg1" disabled>{% for p in presets %}<option value="{{ p.id }}">{{ p.name }}</option>{% else %}<option value="0">Crie um evento pronto na tela Eventos</option>{% endfor %}</select>
+        </div>
+        <div data-show="start_raid">
+          <select name="texto" disabled>{% for r in raids %}<option value="{{ r.name }}">{{ r.where }} · {{ r.label }}{{ ' (boss)' if r.kind == 'boss' }}</option>{% endfor %}</select>
+        </div>
+        <div data-show="broadcast"><textarea name="texto" rows="2" placeholder="Mensagem que aparece na tela de todos"></textarea></div>
+        <div data-show="give_kit">
+          <select name="arg1">{% for k in kits %}<option value="{{ k.id }}">{{ k.name }}</option>{% else %}<option value="0">Crie um kit na tela Kits primeiro</option>{% endfor %}</select>
+        </div>
+        <div data-show="give_item" class="row">
+          <input name="arg1" type="number" min="100" placeholder="ID do item (veja no catálogo)" disabled>
+          <input name="arg2" type="number" min="1" max="1000" value="1" class="w6" disabled>
+        </div>
+        <div data-show="metin_spawn" class="row">
+          <select name="arg1" disabled>{% for t in metin_types %}<option value="{{ t.id }}">{{ t.name }}</option>{% else %}<option value="0">Crie um tipo na tela Pedra Metin</option>{% endfor %}</select>
+          <select name="arg2" disabled>{% for s in metin_spots %}<option value="{{ s.id }}">{{ s.name }}</option>{% else %}<option value="0">Salve um lugar na tela Pedra Metin</option>{% endfor %}</select>
+        </div>
+        <div data-show="give_kit give_item give_training">
+          <select name="alvo"><option value="turma">para a turma</option><option value="todos">para quem estiver online</option></select>
+        </div>
+        <label>Quando
+          <select name="tipo" id="job-kind">
+            <option value="interval">de tempos em tempos</option>
+            <option value="daily">todo dia</option>
+            <option value="weekly">em dias da semana</option>
+          </select>
+        </label>
+        <div data-kind="interval"><label>A cada <input name="minutos" type="number" min="5" max="10080" value="30" class="w6"> minutos</label></div>
+        <div data-kind="daily weekly"><label>Às <input name="hora" type="time" value="20:00" class="w8"></label></div>
+        <div data-kind="weekly" class="row wrap days">
+          {% for d in weekdays %}<label><input type="checkbox" name="dias" value="{{ loop.index0 }}"> {{ d }}</label>{% endfor %}
+        </div>
+        <input name="nome" placeholder="Nome (opcional, ex.: Presente de sexta)">
+        <div class="row">
+          <button id="job-save">Agendar</button>
+          <button type="button" class="outline secondary" id="job-cancel" hidden>Cancelar edição</button>
+        </div>
+      </form>
+    </article>
+  </section>
+</div>
+{% endblock %}

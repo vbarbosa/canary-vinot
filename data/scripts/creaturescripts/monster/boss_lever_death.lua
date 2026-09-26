@@ -30,8 +30,21 @@ function onBossDeath.onDeath(creature)
 			zn:removePlayers()
 		end, bossLever.timeAfterKill * 1000, zone)
 	end
+	-- Prêmio extra do painel (Cockpit > Dungeons > cockpit_dungeon_auto), opcional, por cima do loot normal.
+	local extraId, extraQty, extraChance
+	local resultId = db.storeQuery("SELECT `extra_item_id`, `extra_item_qty`, `extra_chance` FROM `cockpit_dungeon_auto` " .. "WHERE `name` = " .. db.escapeString(name) .. " AND `extra_item_id` IS NOT NULL")
+	if resultId then
+		extraId = Result.getNumber(resultId, "extra_item_id")
+		extraQty = Result.getNumber(resultId, "extra_item_qty")
+		extraChance = tonumber(Result.getString(resultId, "extra_chance"))
+		Result.free(resultId)
+	end
+
 	onDeathForDamagingPlayers(creature, function(creature, player)
 		player:takeScreenshot(SCREENSHOT_TYPE_BOSSDEFEATED)
+		if extraId and math.random() * 100 <= extraChance then
+			player:addItem(extraId, extraQty or 1)
+		end
 	end)
 	return true
 end

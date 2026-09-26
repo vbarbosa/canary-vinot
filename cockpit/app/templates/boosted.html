@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Criatura do dia{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>⭐ Criatura e boss do dia</h3>
+  <p class="muted">Todo dia o jogo sorteia uma criatura (mais XP e loot) e um boss em destaque. Aqui você escolhe no lugar do sorteio.
+    A escolha vale a partir do próximo início do jogo (server save diário ou reinício); o jogo não troca no meio do dia.</p>
+</div>
+<div class="grid2">
+  {% for kind, title, pool in [('creature', '🐺 Criatura do dia', creatures), ('boss', '👑 Boss do dia', bosses)] %}
+  {% set v = info[kind] %}
+  <article class="panel">
+    <header><h4>{{ title }}</h4></header>
+    <p>Agora no banco: <strong>{{ v.cur.boostname if v.cur and v.cur.boostname != 'default' else 'nenhum ainda' }}</strong>
+      {% if v.today %}<span class="tag">vale hoje</span>{% else %}<span class="muted small">(de outro dia: o jogo sorteia no próximo início)</span>{% endif %}
+      {% if v.pin %}<span class="tag">📌 fixo: {{ v.pin }}</span>{% endif %}</p>
+    <form hx-post="/boosted/{{ kind }}" hx-target="#toast" class="rules">
+      <label>Escolher
+        <input name="nome" list="pool-{{ kind }}" placeholder="Nome ({{ pool|length }} na lista)" value="{{ v.pin }}" required>
+        <datalist id="pool-{{ kind }}">{% for n in pool %}<option value="{{ n }}">{% endfor %}</datalist>
+      </label>
+      <label class="switch-row"><input type="checkbox" role="switch" name="fixar" value="1" {{ 'checked' if v.pin }}>
+        <span>Fixar<br><small class="muted">Continua a mesma todo dia até você mudar. Desligado, vale só hoje e amanhã volta o sorteio.</small></span></label>
+      <div class="row wrap">
+        <button>Salvar</button>
+        <button type="button" class="outline" hx-post="/boosted/{{ kind }}" hx-vals='{"sortear": "1"}' hx-target="#toast"
+                hx-confirm="Deixar o jogo sortear no próximo início?">🎲 Voltar ao sorteio</button>
+      </div>
+    </form>
+    {% if kind == 'boss' %}<p class="small muted">Só bosses da categoria Archfoe entram, como no sorteio do jogo.</p>{% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

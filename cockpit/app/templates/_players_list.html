@@ -1,0 +1,11 @@
+<div id="players-list">
+<table class="compact" data-plain>
+  <thead><tr><th>Nome</th><th>Level</th><th>Vocação</th><th>Conta</th><th></th></tr></thead>
+  <tbody id="rows">{% include "_players_rows.html" %}</tbody>
+</table>
+{% if total > rows|length %}
+<button type="button" class="outline small" hx-get="/jogadores?q={{ q|urlencode }}&limit={{ limit + 100 }}" hx-target="#players-list" hx-swap="outerHTML">
+  Carregar mais ({{ total - rows|length }} restam)
+</button>
+{% endif %}
+</div>

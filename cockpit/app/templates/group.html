@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}A Turma{% endblock %}
+{% block content %}
+<div class="with-catalog">
+  <section>
+    <h3>A Turma</h3>
+    {% if not members %}
+      <p>A turma está vazia. Vá em <a href="/jogadores">Jogadores</a> e clique em "Pôr na turma" nos personagens dos seus amigos.</p>
+    {% else %}
+    <div class="drop big group-drop" data-alvo="turma">Solte aqui para dar para <strong>toda a turma</strong></div>
+    <div id="cards" hx-get="/parts/turma" hx-trigger="every 3s" class="cards">{% include "_group_cards.html" %}</div>
+
+    <h4>Com toda a turma</h4>
+    <div class="row wrap">
+      <button hx-post="/acao" hx-vals='{"action":"summon_to","alvo":"turma"}' hx-target="#toast">Trazer todos até mim</button>
+      <button class="secondary" hx-post="/acao" hx-vals='{"action":"heal","alvo":"turma"}' hx-target="#toast">Curar todos</button>
+      <button class="secondary outline" hx-post="/acao" hx-vals='{"action":"temple","alvo":"turma"}' hx-target="#toast">Mandar pro templo</button>
+    </div>
+    <form class="row wrap" hx-post="/acao" hx-target="#toast">
+      <input type="hidden" name="action" value="set_level"><input type="hidden" name="alvo" value="turma">
+      <label>Todo mundo no level <input type="number" name="arg1" value="50" min="1" max="2000" class="w6"></label>
+      <button class="secondary" hx-confirm="Mudar o level de toda a turma?">Aplicar</button>
+    </form>
+    <form class="row wrap" hx-post="/acao" hx-target="#toast">
+      <input type="hidden" name="action" value="set_outfit"><input type="hidden" name="alvo" value="turma">
+      <label>Outfit temático
+        <select name="arg1">{% for o in outfits.get(1, []) %}<option value="{{ o.looktype }}">{{ o.name }}</option>{% endfor %}</select>
+      </label>
+      <label>Addons <select name="arg2"><option value="0">Nenhum</option><option value="1">1</option><option value="2">2</option><option value="3" selected>Ambos</option></select></label>
+      <button class="secondary">Vestir todos</button>
+    </form>
+    <p class="muted small">O outfit temático usa a lista masculina; quem é personagem feminino recebe o mesmo looktype.</p>
+    <div class="row wrap">
+      {% for id, name in effects[:5] %}<button class="outline small" hx-post="/acao" hx-vals='{"action":"effect","alvo":"turma","arg1":"{{ id }}"}' hx-target="#toast">{{ name }}</button>{% endfor %}
+    </div>
+
+    <h4>Voz do Mestre para a turma</h4>
+    <form hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <input type="hidden" name="alvo" value="turma">
+      <textarea name="text" rows="2" placeholder="Ex.: Vocês ouvem um rugido vindo do norte…" required></textarea>
+      <div class="row">
+        <button name="action" value="narrate_to">Mostrar na tela da turma</button>
+        <button name="action" value="broadcast" class="secondary">Para o servidor todo</button>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+  {% include "_catalog_panel.html" %}
+</div>
+{% endblock %}

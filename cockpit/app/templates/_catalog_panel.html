@@ -1,0 +1,20 @@
+<aside class="catalog">
+  <h4>Catálogo de itens</h4>
+  <p class="muted small">Arraste um item ou kit até um jogador.</p>
+  <form hx-get="/itens" hx-target="#catalog-grid" hx-trigger="input changed delay:300ms from:input[name=q], change from:select, load">
+    <input type="search" name="q" placeholder="Buscar item (nome ou id)…">
+    <div class="row">
+      <select name="cat">
+        <option value="">Tudo</option>
+        {% for c in cats %}<option value="{{ c }}">{{ c|capitalize }}</option>{% endfor %}
+      </select>
+      <label class="qty">Qtd <input id="qty" type="number" value="1" min="1" max="1000"></label>
+    </div>
+  </form>
+  {% if kits %}
+  <div class="grid-items kits" data-source>
+    {% for k in kits %}<div class="item kit" data-kit="{{ k.id }}" title="Kit {{ k.name }}">🎁<span>{{ k.name }}</span></div>{% endfor %}
+  </div>
+  {% endif %}
+  <div id="catalog-grid" class="grid-items" data-source></div>
+</aside>

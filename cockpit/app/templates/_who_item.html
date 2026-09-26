@@ -1,0 +1,4 @@
+<li><label><input type="checkbox" name="pid" value="{{ o.id }}" data-group="{{ 1 if o.in_group else 0 }}" data-online="{{ 1 if o.online else 0 }}" {{ 'checked' if o.name == user.me or checked }}>
+  <span class="dot {{ 'on' if o.online }}" title="{{ 'online' if o.online else 'offline' }}"></span>
+  <strong>{{ o.name }}</strong>{% if o.name == user.me %} <span class="tag">você</span>{% endif %}{% if o.in_group %} <span class="tag">turma</span>{% endif %}
+  <span class="muted small">nível {{ o.level }}{% if not o.online %} · offline{% endif %}</span></label></li>
