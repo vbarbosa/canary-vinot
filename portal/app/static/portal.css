@@ -535,6 +535,7 @@ input[aria-invalid=true] { border-color: var(--red); }
 .lvl-pill { margin-top: 6px; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .82rem; color: var(--pc); background: color-mix(in srgb, var(--pc) 14%, transparent); }
 .rank-tools { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; }
 .rank-tools .chips { margin: 0; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; }
 .rank-tools .chips a { display: inline-flex; align-items: center; gap: 6px; }
 .rank-tools .chips img { width: 20px; height: 20px; object-fit: contain; }
 .rank-tools input[type=search] { width: 240px; padding: 9px 14px; border-radius: 999px; }

@@ -474,10 +474,16 @@ def news_post(request: Request, slug: str):
     return page(request, "post.html", post=post)
 
 
+RANK_PER_PAGE = 50
+RANK_MAX_PAGES = 20
+
+
 @app.get("/ranking", response_class=HTMLResponse)
-def ranking(request: Request, vocacao: str = "", q: str = ""):
+def ranking(request: Request, vocacao: str = "", q: str = "", pagina: int = 1):
     base = {"1": (1, 5), "2": (2, 6), "3": (3, 7), "4": (4, 8)}.get(vocacao)
     q = q.strip()[:29]
+    pagina = max(1, min(pagina, RANK_MAX_PAGES))
+    offset = (pagina - 1) * RANK_PER_PAGE
     where, args = ["group_id = 1", "deletion = 0", "name NOT LIKE %s"], ["% Sample"]
     if base:
         where.append("vocation IN (%s, %s)")
@@ -488,11 +494,13 @@ def ranking(request: Request, vocacao: str = "", q: str = ""):
     try:
         rows = db.all(
             f"SELECT name, level, vocation, experience, lastlogin FROM players WHERE {' AND '.join(where)} "
-            "ORDER BY level DESC, experience DESC, name LIMIT 100", *args,
+            "ORDER BY level DESC, experience DESC, name LIMIT %s OFFSET %s", *args, RANK_PER_PAGE + 1, offset,
         )
     except Exception:
         rows = []
-    return page(request, "ranking.html", top=rows, voc=vocacao if base else "", q=q, vocations=VOCATIONS, filtered=bool(base or q))
+    has_next = len(rows) > RANK_PER_PAGE and pagina < RANK_MAX_PAGES
+    return page(request, "ranking.html", top=rows[:RANK_PER_PAGE], voc=vocacao if base else "", q=q, vocations=VOCATIONS,
+                filtered=bool(base or q), pagina=pagina, offset=offset, has_next=has_next)
 
 
 @app.get("/healthz", response_class=PlainTextResponse)

@@ -8,7 +8,7 @@
     <p class="muted">Os aventureiros mais fortes do VinOT, por level.</p>
   </div></div>
 
-  {% if top and not filtered %}
+  {% if top and not filtered and pagina == 1 %}
   <div class="podium">
     {% for i in [1, 0, 2] if i < top | length %}
     {% set p = top[i] %}
@@ -37,8 +37,8 @@
     <thead><tr><th class="pos">#</th><th>Personagem</th><th class="hide-xs">Vocação</th><th class="right-col">Level</th></tr></thead>
     <tbody>
     {% for p in top %}
-      <tr class="{{ 'top-' ~ loop.index if loop.index <= 3 and not filtered }}">
-        <td class="pos"><span class="rank">{{ loop.index }}</span></td>
+      <tr class="{{ 'top-' ~ loop.index if loop.index <= 3 and not filtered and pagina == 1 }}">
+        <td class="pos"><span class="rank">{{ offset + loop.index }}</span></td>
         <td><span class="who"><span class="avatar"><img src="{{ hero_img(p.vocation) }}" alt="" class="px"></span><span>{{ p.name }}<small class="show-xs">{{ vocation_names.get(p.vocation, '') }}</small></span></span></td>
         <td class="hide-xs muted">{{ vocation_names.get(p.vocation, '') }}</td>
         <td class="right-col"><span class="lvl">{{ p.level }}</span></td>
@@ -47,5 +47,14 @@
     </tbody>
   </table>
   </div>
+
+  {% if pagina > 1 or has_next %}
+  {% set qs = ('&vocacao=' ~ voc if voc else '') ~ ('&q=' ~ (q | urlencode) if q else '') %}
+  <nav class="pager" aria-label="Páginas do ranking">
+    {% if pagina > 1 %}<a class="btn ghost small" href="/ranking?pagina={{ pagina - 1 }}{{ qs }}" rel="prev">← Anterior</a>{% else %}<span></span>{% endif %}
+    <span class="muted">Página {{ pagina }}</span>
+    {% if has_next %}<a class="btn ghost small" href="/ranking?pagina={{ pagina + 1 }}{{ qs }}" rel="next">Próxima →</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
 </section>
 {% endblock %}
