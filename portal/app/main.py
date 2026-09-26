@@ -726,7 +726,7 @@ def store(request: Request):
     return page(
         request, "shop.html", me=me, cfg=cfg, packs=packs, chars=chars, price=shop.brl(int(cfg["price"] * 100)),
         orders=shop.orders(me["id"], 5) if me else [], status=shop.STATUS, brl=shop.brl, flash=pop_flash(request),
-        min_coins=shop.MIN_COINS, max_coins=shop.MAX_COINS,
+        min_coins=cfg["min_coins"], max_coins=shop.MAX_COINS,
     )
 
 
@@ -738,13 +738,14 @@ def store_order(request: Request, coins: str = Form(""), outro: str = Form(""), 
     if bad_csrf(request, csrf):
         flash(request, "A página expirou. Tente de novo.", "err")
         return redirect("/loja")
-    if not shop.config()["open"]:
+    cfg = shop.config()
+    if not cfg["open"]:
         flash(request, "A loja está fechada no momento.", "err")
         return redirect("/loja")
     raw = (outro or coins).strip()
     amount = int(raw) if raw.isdigit() else 0
-    if not shop.MIN_COINS <= amount <= shop.MAX_COINS:
-        flash(request, f"Escolha de {shop.MIN_COINS} a {shop.MAX_COINS} coins.", "err")
+    if not cfg["min_coins"] <= amount <= shop.MAX_COINS:
+        flash(request, f"Escolha de {cfg['min_coins']} a {shop.MAX_COINS} coins.", "err")
         return redirect("/loja")
     names = {r["name"] for r in db.all("SELECT name FROM players WHERE account_id = %s AND deletion = 0", me["id"])}
     player = personagem if personagem in names else ""
