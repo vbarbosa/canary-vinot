@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import dungeons, events, guilds, manual, market, metin, shop, places, raids, ranking, realty, sheet, wheel, world
+from . import dungeons, events, guilds, manual, market, metin, resets, shop, places, raids, ranking, realty, sheet, wheel, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -52,6 +52,7 @@ def startup():
     world.seed()
     events.seed_quiz()
     wheel.seed()
+    resets.seed()
     raids.seed_weekly(scheduler.next_run)
     if os.environ.get("COCKPIT_SCHEDULER", "1") == "1":
         scheduler.start(dispatch)
@@ -95,7 +96,7 @@ def current_user(request: Request):
 MENU = [
     ("painel", "🏠", "Painel", [("/", "🌅", "Visão geral"), ("/ranking", "🏆", "Ranking"), ("/historico", "📜", "Histórico"), ("/manual", "📖", "Manual")]),
     ("jogo", "🎮", "Jogo ao vivo", [("/turma", "🧑‍🤝‍🧑", "A Turma"), ("/teleporte", "🌀", "Teleporte"), ("/raids", "👹", "Raids"), ("/eventos", "🎪", "Eventos"),
-                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/dungeons", "🏯", "Dungeons"), ("/agenda", "⏰", "Agenda")]),
+                                   ("/roleta", "🎡", "Roleta"), ("/boosted", "⭐", "Criatura do dia"), ("/metin", "💎", "Pedra Metin"), ("/dungeons", "🏯", "Dungeons"), ("/reset", "🔄", "Reset"), ("/agenda", "⏰", "Agenda")]),
     ("pessoas", "👥", "Pessoas", [("/jogadores", "🧙", "Personagens"), ("/contas", "🔑", "Contas"), ("/guilds", "🛡", "Guilds")]),
     ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
@@ -2048,6 +2049,26 @@ def dungeons_cooldown_reset(request: Request, name: str, jogador: str = Form(...
         return toast("Diga o nome do jogador.", ok=False)
     db.enqueue(user["account"], "dungeon_cooldown_reset", target=jogador, text=name)
     return toast(f"Pedido enviado. Vale só se {jogador} estiver online agora ou no próximo login.")
+
+
+# ---------------------------------------------------------------- reset de progresso
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_page(request: Request):
+    user = require(request)
+    return page(request, "reset.html", user, s=resets.settings(), rows=resets.top())
+
+
+@app.post("/reset/regras", response_class=HTMLResponse)
+async def reset_save(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    err = resets.save_settings(f)
+    if err:
+        return toast(err, ok=False)
+    db.audit(user["account"], "reset_regras", "")
+    return Response(headers={"HX-Redirect": "/reset"})
 
 
 # ---------------------------------------------------------------- market

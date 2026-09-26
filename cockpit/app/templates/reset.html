@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Reset{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🔄 Reset de progresso</h3>
+  <p class="muted">No jogo, o jogador diz <code>!reset</code>: volta pro level 1 (mantém itens, gold e casas) e ganha
+    um bônus permanente de vida e mana, que soma a cada reset. Vale na hora do !reset, sem precisar reiniciar o servidor.</p>
+</div>
+
+<div class="grid2">
+  <article class="panel">
+    <header><h4>⚙ Regras</h4></header>
+    <form hx-post="/reset/regras" hx-target="#toast" class="row wrap">
+      <label class="row"><input type="checkbox" name="enabled" {{ 'checked' if s.enabled == '1' }}> !reset liberado</label>
+      <label>Nível mínimo pra resetar<input name="min_level" type="number" min="1" max="5000" value="{{ s.min_level }}" class="w8"></label>
+      <label>Limite de resets<input name="max" type="number" min="0" max="1000" value="{{ s.max }}" class="w6" title="0 = sem limite"></label>
+      <label>Bônus de vida por reset<input name="bonus_hp" type="number" min="0" max="10000" value="{{ s.bonus_hp }}" class="w8"></label>
+      <label>Bônus de mana por reset<input name="bonus_mp" type="number" min="0" max="10000" value="{{ s.bonus_mp }}" class="w8"></label>
+      <button>Salvar regras</button>
+    </form>
+    <p class="muted small">Limite 0 = sem limite. O bônus não é perdido nunca; um personagem com 3 resets tem 3× o bônus.</p>
+  </article>
+  <article class="panel">
+    <header><h4>🏆 Quem já resetou</h4></header>
+    <table class="compact">
+      <thead><tr><th>Nome</th><th class="num">Resets</th><th class="num">Level</th><th>Vocação</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr><td>{{ r.name }}</td><td class="num">{{ r.count }}</td><td class="num">{{ r.level }}</td><td>{{ vocations.get(r.vocation, '') }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">Ninguém resetou ainda.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </article>
+</div>
+{% endblock %}

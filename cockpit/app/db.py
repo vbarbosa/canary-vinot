@@ -328,6 +328,13 @@ SCHEMA += [
         `updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
         PRIMARY KEY (`name`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    # Written by data/scripts/globalevents/cockpit_reset.lua when a player uses !reset.
+    """CREATE TABLE IF NOT EXISTS `cockpit_player_resets` (
+        `player_id` INT NOT NULL,
+        `count` INT UNSIGNED NOT NULL DEFAULT 0,
+        `updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`player_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 
