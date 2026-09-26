@@ -1,6 +1,6 @@
 """Tibia Coin shop paid by Pix, checked by hand for now.
 
-The price per coin and the Pix key come from `cockpit_settings` (`shop.*`, set in the Cockpit's
+The price per coin and the Pix key come from `cockpit_settings` (`economy.*`, set in the Cockpit's
 Economia > Loja de coins screen), with env fallbacks for when the Cockpit never saved a row yet.
 A purchase is a row in `portal_orders`; the Cockpit lists the pending ones, the admin checks the
 Pix and credits the coins.
@@ -53,30 +53,22 @@ def config():
         return _cache["v"]
     saved = {}
     try:
-        saved = {r["k"]: r["v"] for r in db.all("SELECT k, v FROM cockpit_settings WHERE k LIKE 'shop.%%'")}
+        saved = {r["k"]: r["v"] for r in db.all("SELECT k, v FROM cockpit_settings WHERE k LIKE 'economy.%%'")}
     except Exception:
         pass  # table missing when the Cockpit never saved a row: env/defaults only
-    cents = saved.get("shop.coin_cents")
-    price = (_price_from_cents(cents) if cents is not None else None) or _price(os.environ.get("PORTAL_COIN_PRICE")) or Decimal("1.00")
-    min_coins = int(saved["shop.min_coins"]) if str(saved.get("shop.min_coins", "")).isdigit() else MIN_COINS
+    price = _price(saved.get("economy.coinPrice")) or _price(os.environ.get("PORTAL_COIN_PRICE")) or Decimal("1.00")
+    min_coins = int(saved["economy.minCoins"]) if str(saved.get("economy.minCoins", "")).isdigit() else MIN_COINS
     cfg = {
         "price": price,
         "min_coins": min_coins,
-        "pix_key": (saved.get("shop.pix_key") or os.environ.get("PORTAL_PIX_KEY", "")).strip(),
-        "pix_name": (saved.get("shop.pix_name") or os.environ.get("PORTAL_PIX_NAME") or "VINOT")[:25],
+        "pix_key": (saved.get("economy.pixKey") or os.environ.get("PORTAL_PIX_KEY", "")).strip(),
+        "pix_name": (saved.get("economy.pixName") or os.environ.get("PORTAL_PIX_NAME") or "VINOT")[:25],
         "pix_city": (os.environ.get("PORTAL_PIX_CITY") or "CURITIBA")[:15],
-        "pix_note": saved.get("shop.pix_note") or "Escreva no Pix o seu e-mail da conta do VinOT e a quantidade de coins.",
+        "pix_note": saved.get("economy.pixNote") or "Escreva no Pix o seu e-mail da conta do VinOT e a quantidade de coins.",
     }
-    cfg["open"] = bool(cfg["pix_key"]) and saved.get("shop.enabled", "1") != "0"
+    cfg["open"] = bool(cfg["pix_key"]) and saved.get("economy.shopOpen", "1") != "0"
     _cache.update(t=now, v=cfg)
     return cfg
-
-
-def _price_from_cents(value):
-    try:
-        return (Decimal(int(value)) / 100).quantize(Decimal("0.01"))
-    except (InvalidOperation, ValueError, TypeError):
-        return None
 
 
 def _price(value):
