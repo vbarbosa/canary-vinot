@@ -1,0 +1,13 @@
+{% if rows %}
+<div class="who">
+  {% for r in rows %}
+  <a class="who-card" href="/jogador/{{ r.id }}">
+    <span class="voc">{{ r.vocation[:1] if r.vocation else '?' }}</span>
+    <span class="who-name"><strong>{{ r.name }}</strong><small class="muted">{{ r.vocation or 'sem vocação' }} · nível {{ r.level }}</small></span>
+    <progress value="{{ r.health }}" max="{{ r.healthmax or 1 }}" title="Vida {{ r.health }}/{{ r.healthmax }}"></progress>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-world"><p>O mundo está quieto. Ninguém online agora.</p>{% if bridge == 'parada' %}<p class="err-text small">A ponte com o jogo parou de responder.</p>{% endif %}</div>
+{% endif %}

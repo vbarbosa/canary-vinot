@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+{% block content %}
+<div class="logs-layout">
+  <aside class="log-files">
+    <input type="search" placeholder="Procurar arquivo…" oninput="document.querySelectorAll('.log-files li').forEach(li => li.hidden = !li.dataset.name.includes(this.value.toLowerCase()))">
+    {% for d in dirs %}
+    <details open>
+      <summary>{{ d.label }} <small class="muted">({{ d.files|length }})</small></summary>
+      {% if not d.exists %}<p class="muted small">Pasta não encontrada.</p>
+      {% elif not d.files %}<p class="muted small">Nenhum arquivo ainda.</p>
+      {% else %}
+      <ul>
+        {% for f in d.files %}
+        <li data-name="{{ f.name|lower }}">
+          <a href="/logs?pasta={{ d.label|urlencode }}&arquivo={{ f.name|urlencode }}"
+             hx-get="/logs/ver?pasta={{ d.label|urlencode }}&arquivo={{ f.name|urlencode }}" hx-target="#viewer" hx-push-url="/logs?pasta={{ d.label|urlencode }}&arquivo={{ f.name|urlencode }}"
+             class="{{ 'active' if sel and sel.pasta == d.label and sel.arquivo == f.name }}">
+            <span class="fname">{{ f.name }}</span>
+            <small class="muted">{{ hb(f.size) }} · {% if f.active %}<b class="live-dot" title="Sendo escrito agora"></b> ativo{% else %}<span data-ago="{{ f.mtime }}"></span>{% endif %}</small>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </details>
+    {% endfor %}
+  </aside>
+  <section id="viewer" class="log-viewer">
+    {% if sel %}{% include "_log_viewer.html" %}{% else %}<p class="muted">Escolha um arquivo na lista.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

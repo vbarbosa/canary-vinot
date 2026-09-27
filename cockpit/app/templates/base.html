@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cockpit{% endblock %} · VinOT</title>
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/pico.min.css">
+  <link rel="stylesheet" href="/static/cockpit.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/Sortable.min.js" defer></script>
+  <script src="/static/cockpit.js" defer></script>
+  <script>try { if (localStorage.getItem("cockpit.side") === "mini") document.documentElement.classList.add("side-mini"); const w = +localStorage.getItem("cockpit.sideW"); if (w >= 180 && w <= 480) document.documentElement.style.setProperty("--side-w", w + "px"); } catch (e) {}</script>
+  {% block head %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{ user.csrf if user else "" }}"}'>
+  {% if user %}
+  {% set path = request.url.path %}
+  {% set menu = menu_all + ([owner_menu] if user.owner else []) %}
+  <header class="topbar">
+    <button class="icon-btn" id="side-toggle" aria-label="Abrir ou recolher o menu" title="Menu">☰</button>
+    <a href="/" class="brand"><img src="/static/logo.svg" alt="VinOT" class="nav-logo"> <span>Cockpit</span></a>
+    <span class="right row small">
+      <span class="muted">{{ user.me }}</span>{% if not user.owner %} <span class="role-tag">co-admin</span>{% endif %}
+      <button class="outline secondary small" hx-post="/logout">Sair</button>
+    </span>
+  </header>
+  <div class="shell">
+    <aside class="side" id="side">
+      <div class="side-tools">
+        <button type="button" class="link-btn" data-sections="open" title="Abrir todas as seções">⊞ abrir tudo</button>
+        <button type="button" class="link-btn" data-sections="close" title="Fechar todas as seções">⊟ fechar tudo</button>
+      </div>
+      <nav>
+        {% for key, icon, title, all_links in menu %}
+        {% set links = all_links | selectattr(0, 'can_open', user) | list %}
+        {% if links %}
+        <details class="side-sec" data-sec="{{ key }}" open>
+          <summary><span class="ic">{{ icon }}</span><span class="lbl">{{ title }}</span></summary>
+          <ul>
+            {% for href, lic, label in links %}
+            {% set active = (href == '/' and path == '/') or (href != '/' and (path == href or path.startswith(href ~ '/') or (href == '/jogadores' and path.startswith('/jogador/')) or (href == '/contas' and path.startswith('/conta/')) or (href == '/guilds' and path.startswith('/guild/')))) %}
+            <li><a href="{{ href }}" class="{{ 'active' if active }}" title="{{ label }}"{% if active %} aria-current="page"{% endif %}><span class="ic">{{ lic }}</span><span class="lbl">{{ label }}</span></a></li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+        {% endfor %}
+      </nav>
+      <button type="button" class="side-collapse" id="side-collapse" title="Recolher o menu"><span class="ic">«</span><span class="lbl">Recolher</span></button>
+    </aside>
+    <div class="side-grip" id="side-grip" title="Arraste para alargar o menu (duplo clique volta ao normal)" role="separator" aria-orientation="vertical"></div>
+    <div class="side-shade" id="side-shade"></div>
+  {% endif %}
+  <main class="container-fluid">{% block content %}{% endblock %}</main>
+  {% if user %}</div>{% endif %}
+  <div id="toast" aria-live="polite"></div>
+</body>
+</html>

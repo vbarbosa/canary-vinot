@@ -53,8 +53,31 @@ services:
       database:
         condition: service_healthy
 
+  cockpit:
+    build:
+      context: ../cockpit
+    restart: unless-stopped
+    env_file:
+      - '.env'
+    environment:
+      MYSQL_HOST: database
+    networks:
+      - canary-net
+    ports:
+      # Only on the Tailscale address: the panel is never exposed to the internet.
+      - '${COCKPIT_BIND:-127.0.0.1}:8090:8090'
+    volumes:
+      - '../data:/srv/canary/data:ro'
+      - '../data-otservbr-global:/srv/canary/data-otservbr-global:ro'
+      - '../logs:/srv/canary/logs:ro'
+      - 'cockpit-icons:/srv/cockpit/icons'
+    depends_on:
+      database:
+        condition: service_healthy
+
 volumes:
   db-volume:
+  cockpit-icons:
 
 networks:
   canary-net:

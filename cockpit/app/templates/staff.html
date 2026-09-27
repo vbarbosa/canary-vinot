@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Equipe{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>👮 Equipe</h3>
+  <p class="muted">Co-administradores: amigos que entram no painel com a conta do jogo e veem só as áreas que você liberar.
+    Só você (God) vê esta tela, dá God e mexe nas contas da equipe.</p>
+</div>
+
+<div class="with-catalog tp">
+  <section>
+    {% for r in rows %}
+    <article class="panel staff {{ '' if r.active else 'paused' }}">
+      <header class="row wrap">
+        <h4>{{ r.name }}</h4><span class="muted small">{{ r.email }}</span>
+        {% if not r.active %}<span class="tag">pausado</span>{% endif %}
+        <span class="right muted small">{% if r.last_login %}último login <span data-ts="{{ r.last_login }}"></span>{% else %}nunca entrou{% endif %}</span>
+      </header>
+      <p class="small">
+        {% for c in r.chars %}<a href="/jogador/{{ c.id }}">{{ c.name }}</a> <span class="muted">({{ group_names.get(c.group_id, 'God') }})</span>{{ ', ' if not loop.last }}
+        {% else %}<span class="muted">Sem personagem.</span> <a href="/conta/{{ r.account_id }}">criar</a>{% endfor %}
+      </p>
+      <form hx-post="/equipe/{{ r.account_id }}/secoes" hx-target="#toast" class="sec-picks">
+        {% for k, (label, help, _) in sections.items() %}
+        <label title="{{ help }}"><input type="checkbox" name="secao" value="{{ k }}" {{ 'checked' if k in r.sections }}> {{ label }}<small class="muted">{{ help }}</small></label>
+        {% endfor %}
+        <button class="small">Salvar acesso</button>
+      </form>
+      <div class="row wrap small">
+        <form hx-post="/equipe/{{ r.account_id }}/grupo" hx-target="#toast" class="row">
+          <select name="grupo" class="w12">{% for id, name in groups %}<option value="{{ id }}" {{ 'selected' if r.chars and r.chars[0].group_id == id }}>No jogo: {{ name }}</option>{% endfor %}</select>
+          <button class="outline small">Aplicar</button>
+        </form>
+        <span class="right row">
+          <button class="outline small" hx-post="/equipe/{{ r.account_id }}/ligar">{{ '⏸ Pausar' if r.active else '▶ Reativar' }}</button>
+          <button class="outline small danger" hx-post="/equipe/{{ r.account_id }}/remover" hx-vals='{"rebaixar": "1"}'
+                  hx-confirm="Tirar {{ r.name }} da equipe? Os personagens voltam a ser Jogador.">Remover</button>
+        </span>
+      </div>
+    </article>
+    {% else %}
+    <article class="panel"><p class="muted">Ninguém na equipe ainda. Adicione um amigo ao lado.</p></article>
+    {% endfor %}
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>➕ Adicionar co-administrador</h4></header>
+      <form hx-post="/equipe" hx-target="#toast" class="staff-add">
+        <div class="row wrap small">
+          <label><input type="radio" name="modo" value="existente" checked> Conta que já existe</label>
+          <label><input type="radio" name="modo" value="nova"> Conta nova</label>
+        </div>
+        <div class="only-existente">
+          <input name="conta" placeholder="E-mail ou nome da conta do amigo">
+        </div>
+        <div class="only-nova">
+          <input name="nome" placeholder="Nome da conta (ex.: joao)">
+          <input name="email" type="email" placeholder="E-mail (é o login no jogo e no painel)">
+          <input name="senha" type="text" placeholder="Senha (mínimo 6)" minlength="6">
+          <input name="personagem" placeholder="Personagem (opcional)">
+          {% include "_new_char_fields.html" %}
+        </div>
+        <p class="small muted" style="margin:.4rem 0 .2rem">O que ele pode usar no painel:</p>
+        <div class="sec-picks">
+          {% for k, (label, help, _) in sections.items() %}
+          <label><input type="checkbox" name="secao" value="{{ k }}" {{ 'checked' if k in ('painel', 'jogo') }}> {{ label }}<small class="muted">{{ help }}</small></label>
+          {% endfor %}
+        </div>
+        <label>Poder dentro do jogo
+          <select name="grupo">{% for id, name in groups %}<option value="{{ id }}" {{ 'selected' if id == 4 }}>{{ name }}</option>{% endfor %}</select>
+        </label>
+        <button>Adicionar à equipe</button>
+      </form>
+      <p class="small muted">Ele entra em {{ request.url.scheme }}://{{ request.url.netloc }} com o e-mail e a senha da conta (precisa estar no Tailscale). Tirar ou pausar vale na hora.</p>
+    </article>
+  </aside>
+</div>
+{% endblock %}

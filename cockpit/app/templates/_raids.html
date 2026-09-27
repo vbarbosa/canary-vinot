@@ -1,0 +1,18 @@
+<p class="muted small">{{ rows|length }} raid(s).</p>
+<div class="places">
+  {% for r in rows %}
+  <article class="house raid">
+    <img src="/mapa/{{ r.x }}/{{ r.y }}/{{ r.z }}.png" alt="Onde acontece {{ r.label }}" loading="lazy">
+    {% if r.kind == 'boss' %}<span class="badge">Boss</span>{% endif %}
+    <div class="place-body">
+      <strong>{{ r.label }}</strong>
+      <small class="muted">{{ r.where }}{% if r.amount %} · {{ r.amount }} monstro(s){% endif %}</small>
+      <small class="muted">{{ r.monsters|map('title')|join(', ') }}</small>
+      <span class="row small">
+        <button class="small" hx-post="/raids/soltar" hx-vals='{{ {"nome": r.name}|tojson }}' hx-target="#toast" hx-confirm="Soltar a raid {{ r.label }} agora?">👹 Soltar</button>
+        <a class="outline small" role="button" href="/teleporte?q={{ r.monsters[0]|default('')|urlencode }}&tipo=criatura" title="Ver onde esse monstro fica">🌀</a>
+      </span>
+    </div>
+  </article>
+  {% else %}<p class="muted">Nenhuma raid com esse filtro.</p>{% endfor %}
+</div>

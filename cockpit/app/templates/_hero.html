@@ -1,0 +1,14 @@
+{% set up = game and game.ok %}
+<div class="pill {{ 'up' if up else 'down' }}"><b class="live-dot"></b> {{ 'Servidor online' if up else 'Servidor fora do ar' }}</div>
+<div class="hero-nums">
+  <a href="/turma"><strong>{{ online }}</strong><small>online</small></a>
+  <a href="/metricas"><strong>{{ peak }}</strong><small>pico 24h</small></a>
+  <a href="/jogadores"><strong>{{ counts.players }}</strong><small>personagens</small></a>
+  <a href="/contas"><strong>{{ counts.accounts }}</strong><small>contas</small></a>
+</div>
+<p class="small muted">
+  {% if last and last.started_at %}No ar há {{ hd(now() - last.started_at) }}{% else %}Tempo no ar: sem dados{% endif %}
+  · CPU {{ host.cpu }}% · ponte <span class="{{ 'ok-text' if bridge == 'ok' else 'err-text' if bridge == 'parada' else '' }}">{{ bridge }}</span>
+  {% if game and game.ms is not none %}· {{ game.ms }} ms{% endif %}
+  {% if login and not login.ok %}· <span class="err-text">login fora do ar</span>{% endif %}
+</p>

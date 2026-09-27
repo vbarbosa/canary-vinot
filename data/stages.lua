@@ -4,30 +4,26 @@
 experienceStages = {
 	{
 		minlevel = 1,
-		maxlevel = 8,
-		multiplier = 7,
-	},
-	{
-		minlevel = 9,
-		maxlevel = 20,
-		multiplier = 6,
-	},
-	{
-		minlevel = 21,
 		maxlevel = 50,
-		multiplier = 5,
+		multiplier = 10,
 	},
 	{
 		minlevel = 51,
 		maxlevel = 100,
-		multiplier = 4,
+		multiplier = 6,
 	},
 	{
 		minlevel = 101,
+		maxlevel = 150,
+		multiplier = 4,
+	},
+	{
+		minlevel = 151,
 		multiplier = 2,
 	},
 }
 
+-- VinOT: the Cockpit panel (tela Mundo) replaces these three tables at startup and when you apply changes.
 skillsStages = {
 	{
 		minlevel = 10,

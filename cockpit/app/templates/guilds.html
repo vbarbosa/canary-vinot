@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Guilds{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🛡 Guilds</h3>
+  <p class="muted">O que o site do servidor faria: criar guild, membros, cargos, líder, banco, mensagem e guerras.</p>
+</div>
+<div class="with-catalog tp">
+  <section>
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar guild…" hx-get="/guilds" hx-trigger="input changed delay:300ms" hx-target="#guild-rows" hx-select="#guild-rows > *">
+    <table class="compact" data-plain>
+      <thead><tr><th>Guild</th><th>Líder</th><th>Membros</th><th>Banco</th><th>Guerras</th></tr></thead>
+      <tbody id="guild-rows">
+      {% for g in rows %}
+        <tr>
+          <td><a href="/guild/{{ g.id }}"><strong>{{ g.name }}</strong></a><div class="muted small">desde <span data-ts="{{ g.creationdata }}" data-fmt="date"></span></div></td>
+          <td>{% if g.leader %}<a href="/jogador/{{ g.leader_id }}">{{ g.leader }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{{ g.members }}{% if g.online %} <span class="ok-text small">· {{ g.online }} online</span>{% endif %}</td>
+          <td>{{ '{:,}'.format(g.balance).replace(',', '.') }}</td>
+          <td>{{ g.wars or '—' }}</td>
+        </tr>
+      {% else %}<tr><td colspan="5" class="muted">Nenhuma guild ainda. Crie a primeira ao lado.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>➕ Nova guild</h4></header>
+      <form hx-post="/guilds" hx-target="#toast">
+        <input name="nome" placeholder="Nome da guild" required maxlength="30">
+        <input type="search" name="q" placeholder="Líder: buscar jogador…" hx-get="/guilds/livres" hx-trigger="input changed delay:300ms"
+               hx-target="#leader-pick" class="who-search">
+        <ul class="pick-list" id="leader-pick"><li class="muted small">Digite pelo menos 2 letras. Aparecem só jogadores sem guild.</li></ul>
+        <button>Criar guild</button>
+      </form>
+    </article>
+  </aside>
+</div>
+{% endblock %}

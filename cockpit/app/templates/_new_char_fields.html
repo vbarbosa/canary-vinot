@@ -1,0 +1,5 @@
+<div class="row wrap">
+  <label>Sexo <select name="sexo"><option value="1">Masculino</option><option value="0">Feminino</option></select></label>
+  <label>Vocação <select name="vocacao">{% for id, name in vocations_list %}<option value="{{ id }}" {{ 'selected' if id == 4 }}>{{ name }}</option>{% endfor %}</select></label>
+  <label>Cidade <select name="cidade">{% for t in towns %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></label>
+</div>

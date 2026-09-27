@@ -1,0 +1,11 @@
+<ul class="feed">
+{% for r in rows %}
+  <li class="{{ r.status }}">
+    <span class="dot"></span>
+    <strong>{{ labels.get(r.action, r.action) }}</strong>
+    {% if r.target %}→ {{ r.target }}{% endif %}
+    {% if r.action == 'give_item' %}<img src="/icone/{{ r.arg1 }}.png" alt="" class="mini"> {{ r.arg2 }}x {{ names.get(r.arg1, r.arg1) }}{% endif %}
+    <span class="muted">{% if r.status == 'pending' %}aguardando{% else %}{{ r.result }}{% endif %}</span>
+  </li>
+{% else %}<li class="muted">Nada ainda.</li>{% endfor %}
+</ul>

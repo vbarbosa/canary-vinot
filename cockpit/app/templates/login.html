@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<article class="login">
+  <h2>⚔ Cockpit VinOT</h2>
+  <p>Entre com a mesma conta God que você usa no jogo.</p>
+  {% if error %}<p class="err-text">{{ error }}</p>{% endif %}
+  <form method="post" action="/login">
+    <input name="email" placeholder="E-mail ou nome da conta" autocomplete="username" required>
+    <input name="password" type="password" placeholder="Senha" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+  </form>
+</article>
+{% endblock %}
