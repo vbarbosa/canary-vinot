@@ -77,6 +77,26 @@
     </div>
   </article>
 
+  <article class="panel">
+    <header><h4>🏹 Prey e Task Hunting</h4></header>
+    <p class="small muted">Sistemas oficiais do Tibia, do jeito que os servidores OT bem avaliados usam. Liga/desliga cada um e o 3º slot grátis estão em "Liga e desliga".</p>
+    <div class="rate-grid">
+      {% for k, (label, help, lo, hi, _) in hunting.items() %}
+      <label>{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ s[k] }}"><small class="muted">{{ help }}</small></label>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <header><h4>🎗 Bônus VIP (doador)</h4></header>
+    <p class="small muted">Sistema separado do premium normal, pra quem apoia o servidor. "Sistema VIP" e "Autoloot só pra VIP" estão em "Liga e desliga".</p>
+    <div class="rate-grid">
+      {% for k, (label, help, lo, hi, _) in vip_bonus.items() %}
+      <label>{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ s[k] }}"><small class="muted">{{ help }}</small></label>
+      {% endfor %}
+    </div>
+  </article>
+
   <div class="grid3 stages">
     {% for k, (label, _) in stages.items() %}
     <article class="panel">

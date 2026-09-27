@@ -639,7 +639,7 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids", "preySystemEnabled", "preyFreeThirdSlot", "taskHuntingSystemEnabled", "taskHuntingFreeThirdSlot", "vipSystemEnabled", "vipAutoLootVipOnly" }
 local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
@@ -656,6 +656,19 @@ local WORLD_NUMBERS = {
 	staminaPzGain = { 1, 60 },
 	staminaTrainerDelay = { 1, 60 },
 	staminaTrainerGain = { 1, 60 },
+	preyBonusTime = { 600, 86400 },
+	preyFreeRerollTime = { 3600, 604800 },
+	preyRerollPricePerLevel = { 0, 10000 },
+	preySelectListPrice = { 0, 10000 },
+	preyBonusRerollPrice = { 0, 10000 },
+	taskHuntingLimitedTasksExhaust = { 600, 604800 },
+	taskHuntingRerollPricePerLevel = { 0, 10000 },
+	taskHuntingSelectListPrice = { 0, 10000 },
+	taskHuntingBonusRerollPrice = { 0, 10000 },
+	taskHuntingFreeRerollTime = { 3600, 604800 },
+	vipBonusExp = { 0, 100 },
+	vipBonusLoot = { 0, 100 },
+	vipBonusSkill = { 0, 100 },
 }
 
 local function readWorld()
