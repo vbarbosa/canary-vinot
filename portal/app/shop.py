@@ -1,9 +1,9 @@
-"""Tibia Coin shop paid by Pix, checked by hand for now.
+"""Tibia Coin and premium shop paid by Pix, checked by hand for now.
 
-The price per coin and the Pix key come from `cockpit_settings` (`economy.*`, set in the Cockpit's
-Economia > Loja de coins screen), with env fallbacks for when the Cockpit never saved a row yet.
-A purchase is a row in `portal_orders`; the Cockpit lists the pending ones, the admin checks the
-Pix and credits the coins.
+The prices and the Pix key come from `cockpit_settings` (`economy.*`, set in the Cockpit's
+Economia > Loja de coins e premium screen), with env fallbacks for when the Cockpit never saved a row yet.
+A purchase is a row in `portal_orders`, either `kind='coins'` or `kind='premium'`; the Cockpit lists the
+pending ones, the admin checks the Pix and credits the coins or grants the premium days.
 """
 
 import os
@@ -15,6 +15,8 @@ from . import db
 
 PACKS = (25, 50, 100, 250, 500, 1000)
 MIN_COINS, MAX_COINS = 10, 5000
+PREMIUM_PACKS = (7, 30, 90, 180)
+MIN_DAYS, MAX_DAYS = 1, 365
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 SCHEMA = """
@@ -25,6 +27,8 @@ CREATE TABLE IF NOT EXISTS portal_orders (
   email VARCHAR(255) NOT NULL,
   player_name VARCHAR(255) NOT NULL DEFAULT '',
   coins INT UNSIGNED NOT NULL,
+  kind VARCHAR(10) NOT NULL DEFAULT 'coins',
+  days SMALLINT UNSIGNED NULL,
   amount_cents INT UNSIGNED NOT NULL,
   status VARCHAR(12) NOT NULL DEFAULT 'pending',
   created_at INT UNSIGNED NOT NULL,
@@ -37,7 +41,7 @@ CREATE TABLE IF NOT EXISTS portal_orders (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
-STATUS = {"pending": "Aguardando o Pix", "paid": "Coins entregues", "cancelled": "Cancelado"}
+STATUS = {"pending": "Aguardando o Pix", "paid": "Entregue", "cancelled": "Cancelado"}
 
 _cache = {"t": 0, "v": None}
 
@@ -57,9 +61,11 @@ def config():
     except Exception:
         pass  # table missing when the Cockpit never saved a row: env/defaults only
     price = _price(saved.get("economy.coinPrice")) or _price(os.environ.get("PORTAL_COIN_PRICE")) or Decimal("1.00")
+    premium_price = _price(saved.get("economy.premiumDayPrice")) or _price(os.environ.get("PORTAL_PREMIUM_DAY_PRICE")) or Decimal("2.00")
     min_coins = int(saved["economy.minCoins"]) if str(saved.get("economy.minCoins", "")).isdigit() else MIN_COINS
     cfg = {
         "price": price,
+        "premium_price": premium_price,
         "min_coins": min_coins,
         "pix_key": (saved.get("economy.pixKey") or os.environ.get("PORTAL_PIX_KEY", "")).strip(),
         "pix_name": (saved.get("economy.pixName") or os.environ.get("PORTAL_PIX_NAME") or "VINOT")[:25],
@@ -102,6 +108,25 @@ def create(acc, player, coins, ip):
         "INSERT INTO portal_orders (code, account_id, email, player_name, coins, amount_cents, created_at, ip) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
         code, acc["id"], acc["email"], player, coins, cents, int(time.time()), ip,
+    )
+    return code
+
+
+def premium_total_cents(days, price):
+    return int((Decimal(days) * price * 100).quantize(Decimal("1"), ROUND_HALF_UP))
+
+
+def create_premium(acc, player, days, ip):
+    cfg = config()
+    cents = premium_total_cents(days, cfg["premium_price"])
+    for _ in range(5):
+        code = new_code()
+        if not db.one("SELECT 1 AS x FROM portal_orders WHERE code = %s", code):
+            break
+    db.run(
+        "INSERT INTO portal_orders (code, account_id, email, player_name, coins, kind, days, amount_cents, created_at, ip) "
+        "VALUES (%s, %s, %s, %s, 0, 'premium', %s, %s, %s, %s)",
+        code, acc["id"], acc["email"], player, days, cents, int(time.time()), ip,
     )
     return code
 

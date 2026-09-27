@@ -814,10 +814,12 @@ def store(request: Request):
     cfg = shop.config()
     chars = db.all("SELECT name FROM players WHERE account_id = %s AND deletion = 0 ORDER BY level DESC", me["id"]) if me else []
     packs = [{"coins": c, "total": shop.brl(shop.total_cents(c, cfg["price"]))} for c in shop.PACKS]
+    premium_packs = [{"days": d, "total": shop.brl(shop.premium_total_cents(d, cfg["premium_price"]))} for d in shop.PREMIUM_PACKS]
     return page(
-        request, "shop.html", me=me, cfg=cfg, packs=packs, chars=chars, price=shop.brl(int(cfg["price"] * 100)),
+        request, "shop.html", me=me, cfg=cfg, packs=packs, premium_packs=premium_packs, chars=chars,
+        price=shop.brl(int(cfg["price"] * 100)), premium_price=shop.brl(int(cfg["premium_price"] * 100)),
         orders=shop.orders(me["id"], 5) if me else [], status=shop.STATUS, brl=shop.brl, flash=pop_flash(request),
-        min_coins=cfg["min_coins"], max_coins=shop.MAX_COINS,
+        min_coins=cfg["min_coins"], max_coins=shop.MAX_COINS, min_days=shop.MIN_DAYS, max_days=shop.MAX_DAYS,
     )
 
 
@@ -848,6 +850,36 @@ def store_order(request: Request, coins: str = Form(""), outro: str = Form(""), 
         return redirect("/loja")
     order_acc.hit(str(me["id"]))
     code = shop.create(me, player, amount, sec.client_ip(request))
+    return redirect(f"/loja/pedido/{code}")
+
+
+@app.post("/loja/premium", response_class=HTMLResponse)
+def store_premium_order(request: Request, dias: str = Form(""), outro: str = Form(""), personagem: str = Form(""), csrf: str = Form("")):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    if bad_csrf(request, csrf):
+        flash(request, "A página expirou. Tente de novo.", "err")
+        return redirect("/loja")
+    cfg = shop.config()
+    if not cfg["open"]:
+        flash(request, "A loja está fechada no momento.", "err")
+        return redirect("/loja")
+    raw = (outro or dias).strip()
+    amount = int(raw) if raw.isdigit() else 0
+    if not shop.MIN_DAYS <= amount <= shop.MAX_DAYS:
+        flash(request, f"Escolha de {shop.MIN_DAYS} a {shop.MAX_DAYS} dias.", "err")
+        return redirect("/loja")
+    names = {r["name"] for r in db.all("SELECT name FROM players WHERE account_id = %s AND deletion = 0", me["id"])}
+    player = personagem if personagem in names else ""
+    if shop.pending_count(me["id"]) >= 3:
+        flash(request, "Você já tem 3 pedidos esperando o Pix. Pague ou cancele um deles antes.", "err")
+        return redirect("/loja")
+    if order_acc.blocked(str(me["id"])):
+        flash(request, "Muitos pedidos seguidos. Espere um pouco.", "err")
+        return redirect("/loja")
+    order_acc.hit(str(me["id"]))
+    code = shop.create_premium(me, player, amount, sec.client_ip(request))
     return redirect(f"/loja/pedido/{code}")
 
 

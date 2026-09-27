@@ -6,7 +6,7 @@
   <a href="/loja" class="more back">Voltar pra loja</a>
   <div class="card pad order">
     <div class="order-head">
-      <div><span class="eyebrow">Pedido {{ o.code }}</span><h1>{{ o.coins }} Tibia Coins</h1></div>
+      <div><span class="eyebrow">Pedido {{ o.code }}</span><h1>{{ (o.days ~ ' dias de Premium') if o.kind == 'premium' else (o.coins ~ ' Tibia Coins') }}</h1></div>
       <span class="st st-{{ o.status }}">{{ status[o.status] }}</span>
     </div>
     <dl class="order-facts">
@@ -30,13 +30,13 @@
         <div class="flash warn">Se usar a chave, coloque na descrição do Pix: <b>{{ o.code }}{% if o.player_name %} {{ o.player_name }}{% endif %}</b>. É assim que a gente sabe de quem é o pagamento.</div>
       </div>
     </div>
-    <p class="note">Ainda não temos pagamento automático: a equipe confere o Pix à mão e credita as coins. Quando cair, este pedido muda pra "Coins entregues".</p>
+    <p class="note">Ainda não temos pagamento automático: a equipe confere o Pix à mão e credita as coins ou o premium. Quando cair, este pedido muda pra "Entregue".</p>
     <form method="post" action="/loja/pedido/{{ o.code }}/cancelar" class="row">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button class="link-btn danger" type="submit">Cancelar este pedido</button>
     </form>
     {% elif o.status == 'paid' %}
-    <p>As coins já estão na sua conta. Bom jogo!</p>
+    <p>{{ 'O premium já está na sua conta.' if o.kind == 'premium' else 'As coins já estão na sua conta.' }} Bom jogo!</p>
     {% elif o.status == 'cancelled' %}
     <p class="muted">Este pedido foi cancelado{% if o.note %} ({{ o.note }}){% endif %}.</p>
     {% endif %}
