@@ -5,6 +5,19 @@
   <h3>🌍 Mundo</h3>
   <p class="muted">As regras do servidor: PvP, nome e boas-vindas, autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
 </div>
+{% if map_pending %}
+<article class="panel">
+  <header><h4>🗺 Novo mapa disponível</h4></header>
+  <p class="small warn">Mapa editado no Remere's, enviado por git (commit {{ map_pending.sha }}) <span data-ts="{{ map_pending.at }}"></span>. Só entra em vigor no próximo reinício do jogo.</p>
+  {% if user.owner %}
+  <button class="danger" hx-post="/acao" hx-vals='{"action":"load_new_map"}' hx-target="#toast"
+          hx-confirm="Reiniciar agora para carregar o mapa novo? Salva tudo antes, mas desconecta todo mundo por alguns segundos.">
+    <span>🔁</span>Carregar novo mapa</button>
+  {% else %}
+  <p class="small muted">Só o dono do painel pode reiniciar para carregar.</p>
+  {% endif %}
+</article>
+{% endif %}
 {% if last %}
 <p class="small {{ 'muted' if last.status == 'done' else 'warn' }}">
   {% if last.status == 'pending' %}⏳ Esperando o jogo aplicar (o jogo está ligado?).

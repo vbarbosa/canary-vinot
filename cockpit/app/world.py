@@ -257,6 +257,24 @@ def last_result():
     return db.one("SELECT status, result, done_at, created_at FROM cockpit_commands WHERE action = 'apply_world' ORDER BY id DESC LIMIT 1")
 
 
+# ---------------------------------------------------------------- map pending (Remere's -> git -> deploy)
+# cockpit/deploy/auto-deploy.sh writes map.pending_* into cockpit_settings when a pull touches the
+# custom map (world/custom/*.otbm and its house/monster/npc/zone XMLs). The panel shows it here until
+# someone clicks "carregar novo mapa" (load_new_map action in main.py), which restarts the game and
+# clears the flag; the custom map is only (re)loaded when the game process starts.
+
+
+def map_pending():
+    saved = {r["k"][4:]: r["v"] for r in db.all("SELECT k, v FROM cockpit_settings WHERE k LIKE 'map.%%'")}
+    if not saved.get("pending_sha"):
+        return None
+    return {"sha": saved["pending_sha"][:7], "at": int(saved.get("pending_at") or 0), "files": saved.get("pending_files", "")}
+
+
+def clear_map_pending():
+    db.run("DELETE FROM cockpit_settings WHERE k LIKE 'map.pending_%%'")
+
+
 # ---------------------------------------------------------------- daily server save
 # The game's global_server_save.lua: warns N minutes before, then (optionally) cleans the floor and shuts the game down,
 # which saves everything; docker brings it back up. The time is the game container's clock (UTC); the panel shows Brasília.
