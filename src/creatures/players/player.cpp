@@ -4832,7 +4832,11 @@ bool Player::onKilledMonster(const std::shared_ptr<Monster> &monster) {
 }
 
 void Player::gainExperience(uint64_t gainExp, std::shared_ptr<Creature> target) {
-	if (hasFlag(PlayerFlags_t::NotGainExperience) || gainExp == 0 || staminaMinutes == 0) {
+	if (hasFlag(PlayerFlags_t::NotGainExperience) || gainExp == 0) {
+		return;
+	}
+
+	if (staminaMinutes == 0 && g_configManager().getBoolean(STAMINA_CUTS_XP, __FUNCTION__)) {
 		return;
 	}
 

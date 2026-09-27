@@ -64,6 +64,17 @@
     </article>
   </div>
 
+  <article class="panel">
+    <header><h4>🔋 Stamina</h4></header>
+    <p class="small muted">Igual ao Tibia oficial (padrão dos servidores OT bem avaliados), mas dá pra ajustar tudo aqui.
+      "Stamina zerada corta XP" está em Liga e desliga.</p>
+    <div class="rate-grid">
+      {% for k, (label, help, lo, hi, _) in stamina.items() %}
+      <label>{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ s[k] }}"><small class="muted">{{ help }}</small></label>
+      {% endfor %}
+    </div>
+  </article>
+
   <div class="grid3 stages">
     {% for k, (label, _) in stages.items() %}
     <article class="panel">

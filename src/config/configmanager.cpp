@@ -128,6 +128,7 @@ bool ConfigManager::load() {
 	loadBoolConfig(L, SHOW_LOOTS_IN_BESTIARY, "showLootsInBestiary", false);
 	loadBoolConfig(L, SKULLED_DEATH_LOSE_STORE_ITEM, "skulledDeathLoseStoreItem", false);
 	loadBoolConfig(L, SORT_LOOT_BY_CHANCE, "sortLootByChance", false);
+	loadBoolConfig(L, STAMINA_CUTS_XP, "staminaCutsXp", true);
 	loadBoolConfig(L, STAMINA_PZ, "staminaPz", false);
 	loadBoolConfig(L, STAMINA_SYSTEM, "staminaSystem", true);
 	loadBoolConfig(L, STAMINA_TRAINER, "staminaTrainer", false);
@@ -309,7 +310,13 @@ bool ConfigManager::load() {
 	loadIntConfig(L, REWARD_CHEST_MAX_COLLECT_ITEMS, "rewardChestMaxCollectItems", 200);
 	loadIntConfig(L, SAVE_INTERVAL_TIME, "saveIntervalTime", 1);
 	loadIntConfig(L, STAIRHOP_DELAY, "stairJumpExhaustion", 2000);
+	loadIntConfig(L, STAMINA_DRAIN_RATE_PERCENT, "staminaDrainRatePercent", 100);
+	loadIntConfig(L, STAMINA_GREEN_BONUS_PERCENT, "staminaGreenBonusPercent", 150);
 	loadIntConfig(L, STAMINA_GREEN_DELAY, "staminaGreenDelay", 5);
+	loadIntConfig(L, STAMINA_GREEN_MINUTES, "staminaGreenMinutes", 2340);
+	loadIntConfig(L, STAMINA_LOW_BONUS_PERCENT, "staminaLowBonusPercent", 50);
+	loadIntConfig(L, STAMINA_LOW_MINUTES, "staminaLowMinutes", 840);
+	loadIntConfig(L, STAMINA_MAX_MINUTES, "staminaMaxMinutes", 2520);
 	loadIntConfig(L, STAMINA_ORANGE_DELAY, "staminaOrangeDelay", 1);
 	loadIntConfig(L, STAMINA_PZ_GAIN, "staminaPzGain", 1);
 	loadIntConfig(L, STAMINA_TRAINER_DELAY, "staminaTrainerDelay", 5);

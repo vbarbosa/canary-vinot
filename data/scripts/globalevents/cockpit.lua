@@ -639,10 +639,24 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids" }
 local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
+-- key -> { min, max } for plain integer world settings written as-is (clamped)
+local WORLD_NUMBERS = {
+	staminaMaxMinutes = { 60, 6000 },
+	staminaGreenMinutes = { 0, 6000 },
+	staminaGreenBonusPercent = { 100, 300 },
+	staminaLowMinutes = { 0, 6000 },
+	staminaLowBonusPercent = { 10, 100 },
+	staminaDrainRatePercent = { 10, 500 },
+	staminaGreenDelay = { 1, 60 },
+	staminaOrangeDelay = { 1, 60 },
+	staminaPzGain = { 1, 60 },
+	staminaTrainerDelay = { 1, 60 },
+	staminaTrainerGain = { 1, 60 },
+}
 
 local function readWorld()
 	local saved = {}
@@ -784,6 +798,12 @@ globalActions.apply_world = function()
 		local v = tonumber(saved[key])
 		if v then
 			lines[#lines + 1] = key .. " = " .. math.max(1, math.min(100, math.floor(v)))
+		end
+	end
+	for key, bounds in pairs(WORLD_NUMBERS) do
+		local v = tonumber(saved[key])
+		if v then
+			lines[#lines + 1] = key .. " = " .. math.max(bounds[1], math.min(bounds[2], math.floor(v)))
 		end
 	end
 	if WORLD_TYPES[saved.worldType or ""] then

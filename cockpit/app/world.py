@@ -17,11 +17,27 @@ SWITCHES = {
     "autoLoot": ("bool", "Autoloot", "O loot vai direto para a mochila, sem abrir o corpo.", True),
     "staminaPz": ("bool", "Stamina na cidade", "Quem fica em área protegida recupera stamina.", True),
     "staminaTrainer": ("bool", "Stamina no treino", "Quem treina em dummy também recupera stamina.", True),
+    "staminaCutsXp": ("bool", "Stamina zerada corta XP", "Como no Tibia oficial: com a stamina em zero, o personagem para de ganhar experiência (continua jogando normal).", True),
     "toggleTravelsFree": ("bool", "Viagens grátis", "Barcos, tapetes e outras viagens de NPC não cobram.", True),
     "toggleFreeQuest": ("bool", "Acessos de quest liberados", "Libera os acessos e portas das quests principais sem precisar fazer tudo antes.", True),
     "partyShareLootBoosts": ("bool", "Loot boost dividido na party", "Boosts de loot (prey, charms) valem para a party toda.", True),
     "rateUseStages": ("bool", "Rates por nível", "Usa as tabelas de estágios abaixo. Desligado, vale a rate fixa.", True),
     "toggleServerIsRetroPVP": ("bool", "Retro PvP", "PvP das antigas: sem proteção de party e sem modo seguro avançado.", False),
+}
+# Stamina: mesmo padrão do Tibia oficial (referência usada pelos servidores OT bem avaliados),
+# com tudo parametrizável. Faixas: verde (bônus), normal, vermelha (penalidade), preta (0 = corta XP se staminaCutsXp).
+STAMINA = {
+    "staminaMaxMinutes": ("Stamina máxima (minutos)", "Teto da stamina. Padrão Tibia: 2520 (42h).", 60, 6000, 2520),
+    "staminaGreenMinutes": ("Início da faixa verde (minutos)", "Acima disso, quem é premium ganha o bônus de XP. Padrão Tibia: 2340 (39h).", 0, 6000, 2340),
+    "staminaGreenBonusPercent": ("Bônus da faixa verde (%)", "100 = XP normal. Padrão Tibia: 150 (1,5x), só para premium.", 100, 300, 150),
+    "staminaLowMinutes": ("Fim da faixa vermelha (minutos)", "Nessa stamina ou abaixo, o XP fica reduzido. Padrão Tibia: 840 (14h).", 0, 6000, 840),
+    "staminaLowBonusPercent": ("XP na faixa vermelha (%)", "100 = XP normal. Padrão Tibia: 50 (metade).", 10, 100, 50),
+    "staminaDrainRatePercent": ("Velocidade de gasto (%)", "100 = gasta 1 minuto de stamina por minuto jogado (padrão Tibia). Mais alto gasta mais rápido.", 10, 500, 100),
+    "staminaGreenDelay": ("Recarga na cidade, faixa verde (min a cada X min)", "De quanto em quanto tempo recupera estando na faixa verde e em área protegida.", 1, 60, 5),
+    "staminaOrangeDelay": ("Recarga na cidade, faixa normal (min a cada X min)", "De quanto em quanto tempo recupera nas outras faixas e em área protegida.", 1, 60, 1),
+    "staminaPzGain": ("Quanto recupera por vez na cidade", "Minutos de stamina ganhos a cada recarga em área protegida.", 1, 60, 1),
+    "staminaTrainerDelay": ("Recarga no treino (min a cada X min)", "De quanto em quanto tempo recupera treinando no dummy.", 1, 60, 5),
+    "staminaTrainerGain": ("Quanto recupera por vez no treino", "Minutos de stamina ganhos a cada recarga no dummy.", 1, 60, 1),
 }
 WORLD_TYPES = {"no-pvp": "Sem PvP (ninguém ataca ninguém)", "pvp": "PvP normal (com skull e punição)",
                "pvp-enforced": "PvP livre (sem skull, vale tudo)"}
@@ -88,6 +104,8 @@ def load():
     s["worldType"] = saved.get("worldType") if saved.get("worldType") in WORLD_TYPES else "pvp"
     for k, (*_, default) in NUMBERS.items():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in STAMINA.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     for k, (_, default) in STAGES.items():
         s[k] = parse_stages(saved.get(k, default)) or parse_stages(default)
     for k, (*_, default) in TEXTS.items():
@@ -115,6 +133,13 @@ def save(values):
         if not v.isdigit() or not lo <= int(v) <= hi:
             return f"{label}: use um número de {lo} a {hi}."
         rows[k] = v
+    for k, (label, _, lo, hi, _) in STAMINA.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
+    if not int(rows["staminaLowMinutes"]) < int(rows["staminaGreenMinutes"]) < int(rows["staminaMaxMinutes"]):
+        return "Stamina: a faixa vermelha tem que ser menor que a verde, e a verde menor que a máxima."
     for k, (label, _, limit, _) in TEXTS.items():
         rows[k] = plain_text(values.get(k, ""), limit)
     if not rows["serverName"]:
@@ -149,7 +174,8 @@ def seed(actor="cockpit"):
             apply(actor)
         return
     s = load()
-    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, "worldType": s["worldType"],
+    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, **{k: s[k] for k in STAMINA},
+          "worldType": s["worldType"],
           **{k: s[k] for k in TEXTS}, "signPos": "",
           **{k: format_stages(s[k]) for k in STAGES}})
     apply(actor)
