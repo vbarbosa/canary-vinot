@@ -45,6 +45,11 @@ NUMBERS = {
     "protectionLevel": ("Proteção até o nível", "Abaixo desse nível ninguém pode ser atacado por jogador.", 1, 1000, 7),
     "pzLockedSeconds": ("Tempo de PZ lock (s)", "Quanto tempo fica sem entrar em área protegida depois de atacar alguém.", 0, 3600, 60),
 }
+# Perda de XP/skill ao morrer. -1 usa a fórmula oficial do Tibia (a mesma referência dos OTs bem avaliados:
+# quanto mais alto o nível, menor o % perdido); 0 desliga a perda; bênçãos e promoção reduzem ainda mais em qualquer caso.
+DEATH_LOSE_MIN, DEATH_LOSE_MAX, DEATH_LOSE_DEFAULT = -1, 100, -1
+DEATH_LOSE_LABEL = "Perda de XP/skill ao morrer (%)"
+DEATH_LOSE_HELP = "-1 = fórmula oficial do Tibia (recomendado). 0 = sem perda nenhuma. Bênçãos e promoção reduzem ainda mais."
 # Text shown to players. Accents become plain letters (the game client does not always show them) and quotes go.
 TEXTS = {
     "serverName": ("Nome do servidor", "Aparece no jogo e no status. Na lista de personagens quem manda é o login (veja a nota).", 30, "VinOT"),
@@ -106,6 +111,8 @@ def load():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     for k, (*_, default) in STAMINA.items():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    dv = saved.get("deathLosePercent", "")
+    s["deathLosePercent"] = int(dv) if dv.lstrip("-").isdigit() else DEATH_LOSE_DEFAULT
     for k, (_, default) in STAGES.items():
         s[k] = parse_stages(saved.get(k, default)) or parse_stages(default)
     for k, (*_, default) in TEXTS.items():
@@ -140,6 +147,10 @@ def save(values):
         rows[k] = v
     if not int(rows["staminaLowMinutes"]) < int(rows["staminaGreenMinutes"]) < int(rows["staminaMaxMinutes"]):
         return "Stamina: a faixa vermelha tem que ser menor que a verde, e a verde menor que a máxima."
+    dv = str(values.get("deathLosePercent", "")).strip()
+    if not dv.lstrip("-").isdigit() or not DEATH_LOSE_MIN <= int(dv) <= DEATH_LOSE_MAX:
+        return f"{DEATH_LOSE_LABEL}: use um número de {DEATH_LOSE_MIN} a {DEATH_LOSE_MAX}."
+    rows["deathLosePercent"] = dv
     for k, (label, _, limit, _) in TEXTS.items():
         rows[k] = plain_text(values.get(k, ""), limit)
     if not rows["serverName"]:
@@ -175,7 +186,7 @@ def seed(actor="cockpit"):
         return
     s = load()
     save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, **{k: s[k] for k in STAMINA},
-          "worldType": s["worldType"],
+          "deathLosePercent": s["deathLosePercent"], "worldType": s["worldType"],
           **{k: s[k] for k in TEXTS}, "signPos": "",
           **{k: format_stages(s[k]) for k in STAGES}})
     apply(actor)

@@ -813,6 +813,10 @@ globalActions.apply_world = function()
 	if level then
 		lines[#lines + 1] = "protectionLevel = " .. math.max(1, math.min(1000, math.floor(level)))
 	end
+	local deathLose = tonumber(saved.deathLosePercent)
+	if deathLose then
+		lines[#lines + 1] = "deathLosePercent = " .. math.max(-1, math.min(100, math.floor(deathLose)))
+	end
 	local pz = tonumber(saved.pzLockedSeconds)
 	if pz then
 		lines[#lines + 1] = "pzLocked = " .. math.max(0, math.min(3600, math.floor(pz))) * 1000
