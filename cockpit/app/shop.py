@@ -1,13 +1,16 @@
-"""Loja de Tibia coins: price in reais and the Pix key, set in Economia; the Pix orders the portal creates.
+"""Loja de Tibia coins e de premium: preço em reais e a chave Pix, definidos em Economia; os pedidos vêm do portal.
 
 The public portal (portal/app/shop.py) reads these `cockpit_settings` keys every 10 s:
-  economy.shopOpen   "1" or "0"  the portal shows the shop (it also stays closed while there is no Pix key)
-  economy.coinPrice  "1.00"      price of ONE Tibia coin in reais (1.00 = the 1 para 1 start)
-  economy.pixKey     text        static Pix key; the buyer pays by hand and the staff checks it here
-  economy.pixName    text        receiver name for the Pix code (max 25), optional
+  economy.shopOpen       "1" or "0"  the portal shows the shop (it also stays closed while there is no Pix key)
+  economy.coinPrice      "1.00"      price of ONE Tibia coin in reais (1.00 = the 1 para 1 start)
+  economy.premiumDayPrice "2.00"     price of ONE premium day in reais
+  economy.pixKey         text        static Pix key; the buyer pays by hand and the staff checks it here
+  economy.pixName        text        receiver name for the Pix code (max 25), optional
 
-A purchase is a row in `portal_orders` (created by the portal). Confirming it credits the coins exactly like
-/conta/{aid}/coins does and marks it paid; only pending orders change, so a double click never pays twice.
+A purchase is a row in `portal_orders` (created by the portal), either `kind='coins'` (uses `coins`) or
+`kind='premium'` (uses `days`). Confirming it credits the coins or grants the premium days exactly like
+/conta/{aid}/coins and /conta/{aid}/premium do, and marks it paid; only pending orders change, so a double
+click never pays twice.
 """
 
 import time
@@ -15,7 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from . import db
 
-DEFAULTS = {"shopOpen": "1", "coinPrice": "1.00", "pixKey": "", "pixName": ""}
+DEFAULTS = {"shopOpen": "1", "coinPrice": "1.00", "premiumDayPrice": "2.00", "pixKey": "", "pixName": ""}
 # first version of this screen stored shop.*; moved once to the names the portal reads
 LEGACY = {"shop.enabled": "shopOpen", "shop.pix_key": "pixKey", "shop.pix_name": "pixName"}
 
@@ -27,6 +30,8 @@ CREATE TABLE IF NOT EXISTS portal_orders (
   email VARCHAR(255) NOT NULL,
   player_name VARCHAR(255) NOT NULL DEFAULT '',
   coins INT UNSIGNED NOT NULL,
+  kind VARCHAR(10) NOT NULL DEFAULT 'coins',
+  days SMALLINT UNSIGNED NULL,
   amount_cents INT UNSIGNED NOT NULL,
   status VARCHAR(12) NOT NULL DEFAULT 'pending',
   created_at INT UNSIGNED NOT NULL,
@@ -38,7 +43,7 @@ CREATE TABLE IF NOT EXISTS portal_orders (
   KEY status_idx (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
-STATUS = {"pending": "Aguardando o Pix", "paid": "Coins entregues", "cancelled": "Cancelado"}
+STATUS = {"pending": "Aguardando o Pix", "paid": "Entregue", "cancelled": "Cancelado"}
 
 
 def _put(k, v):
@@ -63,6 +68,7 @@ def settings():
     s = dict(DEFAULTS)
     s.update({r["k"][8:]: r["v"] for r in db.all("SELECT k, v FROM cockpit_settings WHERE k LIKE 'economy.%%'")})
     s["price"] = _price(s["coinPrice"]) or Decimal("1.00")
+    s["premium_price"] = _price(s["premiumDayPrice"]) or Decimal("2.00")
     s["open"] = s["shopOpen"] != "0" and bool(s["pixKey"])
     return s
 
@@ -79,12 +85,16 @@ def save(f):
     price = _price(f.get("coinPrice", ""))
     if not price:
         return "Preço de 1 coin: de R$ 0,01 a R$ 1.000."
+    premium_price = _price(f.get("premiumDayPrice", ""))
+    if not premium_price:
+        return "Preço de 1 dia de premium: de R$ 0,01 a R$ 1.000."
     key = " ".join(str(f.get("pixKey", "")).split())[:120]
     is_open = bool(f.get("shopOpen"))
     if is_open and not key:
         return "Com a loja aberta, informe a chave Pix."
     _put("shopOpen", "1" if is_open else "0")
     _put("coinPrice", str(price))
+    _put("premiumDayPrice", str(premium_price))
     _put("pixKey", key)
     _put("pixName", " ".join(str(f.get("pixName", "")).split())[:25])
     return ""
@@ -117,8 +127,22 @@ def get(oid):
     return db.one("SELECT * FROM portal_orders WHERE id = %s", oid)
 
 
+def grant_premium_days(aid, days, admin, reason=""):
+    """Add (or remove) premium days keeping the time already left, like Account::addPremiumDays. Returns the new total or None."""
+    acc = db.one("SELECT lastday FROM accounts WHERE id = %s", aid)
+    if not acc:
+        return None
+    now = int(time.time())
+    left = max(0, acc["lastday"] - now) if acc["lastday"] else 0
+    days = max(-3650, min(3650, int(days)))
+    total = max(0, left + days * 86400)
+    db.run("UPDATE accounts SET premdays = %s, lastday = %s WHERE id = %s", total // 86400, now + total if total else 0, aid)
+    db.audit(admin, "premium", str(aid), f"{days} dias" + (f" ({reason})" if reason else ""))
+    return total // 86400
+
+
 def confirm(oid, admin):
-    """Pay a pending order: mark it first (only one click wins), then credit the coins. Returns the order or None."""
+    """Pay a pending order: mark it first (only one click wins), then credit the coins or grant the premium days. Returns the order or None."""
     o = get(oid)
     if not o or not db.one("SELECT 1 AS x FROM accounts WHERE id = %s", o["account_id"]):
         return None
@@ -126,9 +150,12 @@ def confirm(oid, admin):
                       "WHERE id = %s AND status = 'pending'", admin[:64], oid):
         return None
     o = get(oid)
-    db.run("UPDATE accounts SET coins = coins + %s WHERE id = %s", o["coins"], o["account_id"])
-    db.run("INSERT INTO coins_transactions (account_id, type, coin_type, amount, description) VALUES (%s, 1, 1, %s, %s)",
-           o["account_id"], o["coins"], f"Pix {o['code']} (Cockpit: {admin})"[:255])
+    if o["kind"] == "premium":
+        grant_premium_days(o["account_id"], o["days"], admin, reason=f"Pix {o['code']}")
+    else:
+        db.run("UPDATE accounts SET coins = coins + %s WHERE id = %s", o["coins"], o["account_id"])
+        db.run("INSERT INTO coins_transactions (account_id, type, coin_type, amount, description) VALUES (%s, 1, 1, %s, %s)",
+               o["account_id"], o["coins"], f"Pix {o['code']} (Cockpit: {admin})"[:255])
     return o
 
 
