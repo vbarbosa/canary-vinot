@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Roleta{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🎡 Roleta da sorte</h3>
+  <p class="muted">No jogo, o jogador diz <code>!roleta</code>. Todo dia ele ganha giros grátis; depois disso, cada giro custa gold do banco.
+    Os prêmios e as chances valem já no próximo giro.</p>
+</div>
+
+<div class="with-catalog tp">
+  <section>
+    <article class="panel">
+      <header><h4>🎁 Prêmios</h4><small class="muted">Chance = peso ÷ soma dos pesos ativos.</small></header>
+      <div class="wheel-wrap"><table class="compact wheel-table">
+        <thead><tr><th>Prêmio</th><th>Tipo e valor</th><th>Peso</th><th>Chance</th><th></th></tr></thead>
+        <tbody>
+        {% for p in prizes %}
+        <tr class="{{ '' if p.active else 'off' }}">
+          <td colspan="3">
+            <form hx-post="/roleta/premio" hx-target="#toast" class="prize-row">
+              <input type="hidden" name="pid" value="{{ p.id }}">
+              <input name="label" value="{{ p.label }}" maxlength="64">
+              <select name="kind">{% for k, v in kinds.items() %}<option value="{{ k }}" {{ 'selected' if p.kind == k }}>{{ v }}</option>{% endfor %}</select>
+              <input name="item" value="{{ p.item_id or '' }}" placeholder="item (nº ou nome)" title="{{ p.item_name }}">
+              <input name="amount" type="number" min="0" value="{{ p.amount }}" title="quantidade">
+              <input name="weight" type="number" min="0" max="10000" value="{{ p.weight }}" title="peso">
+              <button class="outline small">Salvar</button>
+            </form>
+            {% if p.item_name %}<small class="muted">{{ p.item_name }}</small>{% endif %}
+          </td>
+          <td><strong>{{ p.chance }}%</strong></td>
+          <td class="small"><div class="row">
+            <button class="outline small" hx-post="/roleta/ligar" hx-vals='{"pid": "{{ p.id }}"}'>{{ 'Pausar' if p.active else 'Ativar' }}</button>
+            <button class="outline small danger" hx-post="/roleta/apagar" hx-vals='{"pid": "{{ p.id }}"}' hx-confirm="Apagar {{ p.label }}?">Apagar</button>
+          </div></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <form hx-post="/roleta/premio" hx-target="#toast" class="prize-row new-prize">
+        <input name="label" placeholder="Novo prêmio" maxlength="64" required>
+        <select name="kind">{% for k, v in kinds.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+        <input name="item" placeholder="item (nº ou nome)">
+        <input name="amount" type="number" min="0" value="1" title="quantidade">
+        <input name="weight" type="number" min="0" max="10000" value="10" title="peso">
+        <button class="small">Adicionar</button>
+      </form>
+      <p class="small muted">Item: número ou nome exato em inglês (ex.: great health potion). Gold e experiência: o valor vai em quantidade.</p>
+    </article>
+
+    <article class="panel">
+      <header><h4>📜 Últimos giros</h4></header>
+      <ul class="ledger">
+        {% for l in log %}
+        <li><span><strong>{{ l.player }}</strong> ganhou {{ l.label }}</span><small class="muted">{{ l.paid }} · <span data-ts="{{ l.at }}"></span></small></li>
+        {% else %}<li class="muted small">Ninguém girou ainda.</li>{% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>⚙ Regras</h4></header>
+      <form hx-post="/roleta/regras" hx-target="#toast">
+        <label class="switch-row"><input type="checkbox" role="switch" name="enabled" value="1" {{ 'checked' if s.enabled == '1' }}>
+          <span><strong>Roleta aberta</strong></span></label>
+        <div class="rate-grid">
+          <label>Giros grátis por dia<input name="free" type="number" min="0" max="50" value="{{ s.free }}"></label>
+          <label>Preço do giro (gold)<input name="cost" type="number" min="0" value="{{ s.cost }}"><small class="muted">0 = sem giro pago</small></label>
+        </div>
+        <label>Lugar da roleta (x,y,z)<input name="place" value="{{ s.place }}" placeholder="vazio = gira de qualquer lugar"></label>
+        <label>Distância máxima (sqm)<input name="radius" type="number" min="1" max="20" value="{{ s.radius }}"></label>
+        <button>Salvar regras</button>
+      </form>
+    </article>
+    <article class="panel">
+      <header><h4>🎟 Dar giros</h4></header>
+      <form hx-post="/roleta/giros" hx-target="#toast">
+        <select name="alvo">
+          <option value="turma">A turma</option><option value="todos">Todo mundo online</option>
+          {% for o in online %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}
+        </select>
+        <div class="row"><input name="arg1" type="number" min="1" max="100" value="1" class="w8"><button class="small">Dar giros</button></div>
+      </form>
+      <p class="small muted">Quem está offline recebe ao entrar. Para um jogador específico, também dá pela ficha dele.</p>
+    </article>
+    <article class="panel">
+      <header><h4>📊 Últimos 7 dias</h4></header>
+      <p class="small">{{ stats.spins or 0 }} giros de {{ stats.players or 0 }} jogador(es) · {{ '{:,}'.format(stats.gold_in or 0).replace(',', '.') }} gold arrecadado</p>
+    </article>
+  </aside>
+</div>
+{% endblock %}

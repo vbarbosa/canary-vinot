@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Raids automáticas{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>👹 Raids automáticas</h3>
+  <p class="muted">O que o jogo solta sozinho, sem ninguém clicar. Três fontes: as raids novas, que rolam uma chance a cada minuto;
+    as raids antigas do raids.xml; e a agenda semanal, que agora mora na Agenda do painel.</p>
+</div>
+<div class="kind-tabs"><a href="/raids">👹 Soltar agora</a><a href="/raids/auto" aria-current="page">⏱ Automáticas</a></div>
+
+<div class="with-catalog tp">
+  <section>
+    <article class="panel">
+      <header><h4>🎲 Raids novas (chance a cada minuto)</h4>
+        <small class="muted">A cada minuto o jogo tira a sorte. Só vale com gente ativa suficiente e respeitando o intervalo mínimo.
+          Campo vazio = o valor do jogo. Referência: 1% por minuto ≈ uma vez a cada hora e meia; 0,05% ≈ uma vez a cada um ou dois dias de gente online.</small></header>
+      <div class="wheel-wrap"><table class="compact auto-raids">
+        <thead><tr><th>Raid</th><th>Quando pode</th><th>Chance por minuto</th><th>Mín. jogadores</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+        <tr class="{{ '' if r.enabled else 'off' }}">
+          <td><strong>{{ r.label }}</strong>{% if r.kind == 'boss' %} <span class="tag">boss</span>{% endif %}<br>
+            <small class="muted">{{ r.where }}{% if r.last %} · última <span data-ts="{{ r.last }}"></span>{% endif %}</small></td>
+          <td class="small">{{ r.auto.days }}{% if r.auto.gap %}<br><span class="muted">no máx. 1 a cada {{ r.auto.gap }}</span>{% endif %}</td>
+          <td colspan="3">
+            <form hx-post="/raids/auto" hx-target="#toast" class="auto-raid-row">
+              <input type="hidden" name="nome" value="{{ r.name }}">
+              <input name="chance" type="number" min="0" max="100" step="0.001" value="{{ '%g'|format(r.chance) if r.chance is not none else '' }}" placeholder="{{ r.auto.chance_text }}" title="Chance por minuto (%). Jogo: {{ r.auto.chance_text }}">
+              <input name="min_players" type="number" min="0" max="500" value="{{ r.min_players if r.min_players is not none else '' }}" placeholder="{{ r.auto.minActivePlayers or 0 }}" title="Jogadores ativos. Jogo: {{ r.auto.minActivePlayers }}">
+              <label class="inline small"><input type="checkbox" role="switch" name="ligada" value="1" {{ 'checked' if r.enabled }}> ligada</label>
+              <button class="outline small">Salvar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    </article>
+
+    <article class="panel">
+      <header class="row"><h4>📜 Raids antigas (raids.xml)</h4><span class="muted small right">{{ legacy|length }} raids</span></header>
+      <p class="small">O motor solta uma de cada vez, na ordem do arquivo: quando uma acaba e passa a margem dela, começa a próxima,
+        mesmo com o servidor vazio. Cada uma sai uma vez por reinício (menos as marcadas para repetir). Não dá para escolher uma a uma, só ligar ou desligar todas.</p>
+      <form hx-post="/raids/auto" class="row wrap">
+        {% if legacy_on %}
+        <span class="tag">ligadas</span>
+        <button class="outline small danger" name="legacy" value="0" hx-confirm="Desligar as raids antigas? Para ligar de novo precisa reiniciar o jogo.">Desligar todas</button>
+        {% else %}
+        <span class="tag err">desligadas</span>
+        <button class="outline small" name="legacy" value="1">Ligar de novo</button>
+        <small class="muted">Volta a valer depois de reiniciar o jogo.</small>
+        {% endif %}
+      </form>
+      <details><summary class="small">Ver a lista</summary>
+        <ul class="ledger small">{% for r in legacy %}<li><span>{{ r.label }} <span class="muted">· {{ r.where }}</span></span><small class="muted">margem {{ r.auto.margin }} min{{ ' · repete' if r.auto.repeat }}</small></li>{% endfor %}</ul>
+      </details>
+    </article>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header class="row"><h4>📅 Agenda semanal</h4><a href="/agenda" class="more">editar →</a></header>
+      <ul class="ledger">
+        {% for j in weekly %}
+        <li class="{{ '' if j.enabled else 'off' }}"><span><strong>{{ labels.get(j.text, j.text) }}</strong></span>
+          <small class="muted">{{ describe(j) }}{{ '' if j.enabled else ' · desligada' }}</small></li>
+        {% else %}<li class="muted small">Nenhuma raid na Agenda.</li>{% endfor %}
+      </ul>
+      <p class="small muted">Eram os horários fixos do jogo (raids_schedule.lua), que chamavam raids por nomes que não existem mais.
+        Vieram para a Agenda com os nomes certos; Titanica e Halloween Hare ficaram de fora porque não existem no mapa.</p>
+    </article>
+  </aside>
+</div>
+{% endblock %}

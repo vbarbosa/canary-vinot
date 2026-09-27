@@ -1,0 +1,24 @@
+<div class="stats">
+  {% for s in services %}
+  <article class="stat"><small class="muted">{{ s.name }}</small>
+    <strong class="{{ 'ok-text' if s.ok else 'err-text' }}">{{ 'no ar' if s.ok else 'fora do ar' }}</strong>
+    <small class="muted">{{ s.where }}{% if s.ms is not none %} · {{ s.ms }} ms{% endif %}</small></article>
+  {% endfor %}
+  <article class="stat"><small class="muted">Jogadores online</small><strong>{{ online.n }}</strong><small class="muted">pico 24h: {{ peak }}</small></article>
+  <article class="stat"><small class="muted">Jogo ligado há</small><strong>{{ hd(now() - last.started_at) if last and last.started_at else '—' }}</strong><small class="muted">ponte: {{ 'ok' if last and last.ts > now() - 180 else 'sem dados' }}</small></article>
+</div>
+
+<div class="stats">
+  <article class="stat"><small class="muted">CPU da VM</small><strong>{{ host.cpu }}%</strong><small class="muted">{{ host.cpus }} núcleos · carga {{ host.load|join(' ') }}</small>
+    <progress value="{{ host.cpu }}" max="100"></progress></article>
+  <article class="stat"><small class="muted">Memória da VM</small><strong>{{ hb(host.mem_used) }}</strong><small class="muted">de {{ hb(host.mem_total) }}</small>
+    <progress value="{{ host.mem_used }}" max="{{ host.mem_total }}"></progress></article>
+  <article class="stat"><small class="muted">Disco</small><strong>{{ hb(host.disk_used) }}</strong><small class="muted">de {{ hb(host.disk_total) }}</small>
+    <progress value="{{ host.disk_used }}" max="{{ host.disk_total }}"></progress></article>
+  <article class="stat"><small class="muted">VM ligada há</small><strong>{{ hd(host.uptime) if host.uptime else '—' }}</strong></article>
+</div>
+
+<div class="stats">
+  <article class="stat"><small class="muted">No mapa agora</small><strong>{{ last.monsters if last else '—' }}</strong><small class="muted">monstros · {{ last.npcs if last else '—' }} NPCs</small></article>
+  <article class="stat"><small class="muted">Banco de dados</small><strong>{{ hb(counts.db_size|int) }}</strong><small class="muted">{{ counts.accounts }} contas · {{ counts.players }} personagens</small></article>
+</div>

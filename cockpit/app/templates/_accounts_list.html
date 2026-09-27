@@ -1,0 +1,21 @@
+<div id="accounts-list">
+<table class="compact" data-plain>
+  <thead><tr><th>Conta</th><th>Personagens</th><th>Coins</th><th>Premium</th><th></th></tr></thead>
+  <tbody>
+  {% for a in rows %}
+    <tr>
+      <td><a href="/conta/{{ a.id }}">{{ a.name }}</a><div class="muted small">{{ a.email }}</div></td>
+      <td class="small">{{ a.names or '—' }}</td>
+      <td>{{ a.coins }}{% if a.coins_transferable %} <span class="muted small">+{{ a.coins_transferable }} transf.</span>{% endif %}</td>
+      <td>{% set d = ((a.lastday - now() + 86399) // 86400) if a.lastday and a.lastday > now() else 0 %}{{ d ~ ' dias' if d else '—' }}</td>
+      <td class="right"><button class="outline small danger" hx-post="/conta/{{ a.id }}/apagar" hx-target="#toast" hx-confirm="Apagar a conta {{ a.name }} e todos os personagens dela? Não tem volta.">Apagar</button></td>
+    </tr>
+  {% else %}<tr><td colspan="5" class="muted">Nenhuma conta.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% if total > rows|length %}
+<button type="button" class="outline small" hx-get="/contas?q={{ q|urlencode }}&limit={{ limit + 100 }}" hx-target="#accounts-list" hx-swap="outerHTML">
+  Carregar mais ({{ total - rows|length }} restam)
+</button>
+{% endif %}
+</div>

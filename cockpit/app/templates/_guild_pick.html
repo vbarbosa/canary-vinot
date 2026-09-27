@@ -1,0 +1,4 @@
+{% for p in rows %}
+<li><label><input type="radio" name="pid" value="{{ p.id }}" {{ 'checked' if loop.first }}> <strong>{{ p.name }}</strong>
+  <span class="muted small">nível {{ p.level }} · {{ vocations.get(p.vocation, '') }}</span></label></li>
+{% else %}<li class="muted small">Digite pelo menos 2 letras. Aparecem só jogadores sem guild.</li>{% endfor %}

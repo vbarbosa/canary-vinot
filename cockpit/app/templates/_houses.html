@@ -1,0 +1,16 @@
+{% macro gold(v) %}{{ '{:,}'.format(v|int).replace(',', '.') }}{% endmacro %}
+<p class="muted small">{{ total }} casa(s){% if total > rows|length %}, mostrando {{ rows|length }}. Refine a busca para ver outras{% endif %}.</p>
+<div class="places">
+  {% for h in rows %}
+  <article class="house st-{{ h.status }}" tabindex="0" hx-get="/imobiliaria/{{ h.id }}" hx-target="#house" hx-trigger="click, keyup[key=='Enter']">
+    <img src="/mapa/{{ h.x }}/{{ h.y }}/{{ h.z }}.png" alt="Mapa de {{ h.name }}" loading="lazy">
+    <span class="badge">{{ {'livre': 'Livre', 'ocupada': 'Ocupada', 'atrasada': 'Atrasada'}[h.status] }}</span>
+    <div class="place-body">
+      <strong>{% if h.guildhall %}🏰 {% endif %}{{ h.name }}</strong>
+      <small class="muted">{{ h.town }} · {{ h.size }} sqm · {{ h.beds }} cama(s)</small>
+      {% if h.owner %}<small>🔑 {{ h.owner_name }}</small>{% else %}<small class="muted">Preço: {{ gold(h.price) }} gold</small>{% endif %}
+      <small class="muted">Aluguel {{ gold(h.rent) }}{% if h.rent_override is not none %} (próprio){% endif %}</small>
+    </div>
+  </article>
+  {% else %}<p class="muted">Nenhuma casa com esse filtro.</p>{% endfor %}
+</div>

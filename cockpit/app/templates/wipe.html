@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Apagar dados{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🗑 Apagar dados</h3>
+  <p class="muted">Escolha o que quer apagar, categoria por categoria, ou marque "Selecionar tudo" para zerar o servidor
+    inteiro. Contas do God e da equipe nunca são apagadas, senão ninguém entra mais no painel. Não tem volta.</p>
+</div>
+
+<article class="panel">
+  <form hx-post="/apagar" hx-target="#toast" hx-confirm="Confirma apagar as categorias marcadas? Não tem volta.">
+    <label class="row"><input type="checkbox" id="selecionar-tudo" onclick="document.querySelectorAll('.categoria').forEach(c => c.checked = this.checked)">
+      <strong>Selecionar tudo</strong></label>
+    <hr>
+    {% for key, (label, desc, _) in categories.items() %}
+    <label class="row wrap">
+      <input type="checkbox" class="categoria" name="{{ key }}">
+      <span><strong>{{ label }}</strong><br><small class="muted">{{ desc }}</small></span>
+    </label>
+    {% endfor %}
+    <hr>
+    <label>Para confirmar, digite <code>{{ phrase }}</code>
+      <input name="confirma" placeholder="{{ phrase }}" required autocomplete="off">
+    </label>
+    <button class="danger">Apagar categorias marcadas</button>
+  </form>
+</article>
+{% endblock %}

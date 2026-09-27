@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Teleporte{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>🌀 Teleporte</h3>
+  <p class="muted">Escolha um lugar, marque quem vai junto e leve a turma. Quem está offline aparece no lugar quando entrar no jogo.</p>
+</div>
+<div class="with-catalog tp">
+  <section>
+    <form class="row wrap tp-search" hx-get="/teleporte/lugares" hx-target="#places" hx-trigger="input changed delay:300ms from:input[name=q], change from:input[name=tipo], submit">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar: Thais, dragon, Rashid, Ferumbras…" id="tp-q" autofocus>
+      <div class="chips" role="radiogroup">
+        <label><input type="radio" name="tipo" value="" {{ 'checked' if not tipo }}> Tudo</label>
+        {% for k, label in kinds.items() %}<label><input type="radio" name="tipo" value="{{ k }}" {{ 'checked' if tipo == k }}> {{ label }}</label>{% endfor %}
+      </div>
+    </form>
+    <div id="places">{% include list_tpl %}</div>
+  </section>
+
+  <aside class="tp-side">
+    <article class="panel">
+      <header><h4>Destino</h4></header>
+      <div id="tp-dest" class="tp-dest muted">Clique num lugar da lista.</div>
+      <form hx-post="/teleporte" hx-target="#toast" id="tp-form">
+        <input type="hidden" name="x"><input type="hidden" name="y"><input type="hidden" name="z"><input type="hidden" name="lugar">
+        <p class="small muted" style="margin:.6rem 0 .3rem">Quem vai:</p>
+        <div class="row wrap small">
+          <button type="button" class="outline small" data-pick="all">Online</button>
+          <button type="button" class="outline small" data-pick="group">A turma</button>
+          <button type="button" class="outline small" data-pick="none">Ninguém</button>
+        </div>
+        <input type="search" name="busca" placeholder="Buscar qualquer personagem…" autocomplete="off" class="who-search"
+               hx-get="/teleporte/quem" hx-trigger="input changed delay:250ms" hx-target="#who-found">
+        <div id="who-found"></div>
+        <ul class="pick-list" id="pick-list">
+          {% for o in who %}{% include "_who_item.html" %}{% endfor %}
+        </ul>
+            <button id="tp-go" disabled>🌀 Teleportar</button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header><h4 id="place-title">⭐ Salvar um lugar</h4></header>
+      <form hx-post="/teleporte/salvar" hx-target="#toast" id="place-form">
+        <input type="hidden" name="id">
+        <input name="nome" placeholder="Nome (ex.: Nossa base secreta)" required maxlength="64">
+        <input name="nota" placeholder="Nota (opcional)" maxlength="255">
+        <div class="row coords"><input name="x" type="number" placeholder="x" required><input name="y" type="number" placeholder="y" required><input name="z" type="number" min="0" max="15" placeholder="z" required></div>
+        {% if online %}
+        <select id="place-from"><option value="">Usar a posição atual de…</option>
+          {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
+        </select>
+        {% endif %}
+        <div class="row"><button id="place-save">Salvar lugar</button><button type="button" class="outline secondary" id="place-cancel" hidden>Cancelar</button></div>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header><h4>👹 Soltar monstro ou boss</h4></header>
+      <form hx-post="/teleporte/monstro" hx-target="#toast">
+        <input name="nome" placeholder="Nome exato (ex.: Ferumbras, Demon)" required maxlength="64">
+        <div class="row coords"><input name="x" type="number" placeholder="x" required><input name="y" type="number" placeholder="y" required><input name="z" type="number" min="0" max="15" placeholder="z" required></div>
+        {% if online %}
+        <select onchange="if(this.value){const [x,y,z]=this.value.split(',');this.form.x.value=x;this.form.y.value=y;this.form.z.value=z}">
+          <option value="">Usar a posição atual de…</option>
+          {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
+        </select>
+        {% endif %}
+        <button>Soltar</button>
+        <p class="muted small">O nome tem que ser exatamente o do monstro (o filtro Criaturas aqui do lado ajuda a achar). Vale no próximo minuto.</p>
+      </form>
+    </article>
+  </aside>
+</div>
+{% endblock %}

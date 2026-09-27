@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Métricas{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/uPlot.min.css"><script src="/static/uPlot.iife.min.js" defer></script><script src="/static/charts.js" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h3>Métricas</h3>
+  <p class="muted">Agora, e o histórico dos últimos 7 dias. Passe o dedo ou o mouse sobre um gráfico para ver o valor naquele horário.</p>
+</div>
+<div hx-get="/parts/metricas" hx-trigger="load, every 10s">Carregando…</div>
+
+<div class="row wrap chart-bar">
+  <h4>Histórico</h4>
+  <div class="seg right" role="group" id="periods">
+    {% for p in ['1h', '6h', '24h', '7d'] %}<button type="button" data-period="{{ p }}" class="{{ 'active' if p == '6h' }}">{{ p }}</button>{% endfor %}
+  </div>
+</div>
+<div class="charts" data-src="/metricas/dados">
+  {% for key, title, unit, group in [
+    ('cpu', 'CPU da VM', '%', 'host'), ('mem', 'Memória da VM', '%', 'host'),
+    ('players', 'Jogadores online', '', 'game'), ('game_ms', 'Tempo de resposta do jogo', ' ms', 'host'),
+    ('load', 'Carga da VM (1 min)', '', 'host'), ('disk', 'Disco usado', '%', 'host'),
+    ('monsters', 'Monstros vivos no mapa', '', 'game'), ('lua_mb', 'Memória do Lua', ' MB', 'game'),
+  ] %}
+  <article class="chart" data-key="{{ key }}" data-unit="{{ unit }}" data-group="{{ group }}">
+    <header class="row"><strong>{{ title }}</strong><span class="right now muted"></span></header>
+    <div class="plot"></div>
+  </article>
+  {% endfor %}
+</div>
+<p class="muted small">CPU, memória e disco são da VM inteira, incluindo seus outros projetos. O painel grava um ponto por minuto e guarda 7 dias.</p>
+{% endblock %}

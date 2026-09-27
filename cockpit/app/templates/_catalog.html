@@ -1,0 +1,1 @@
+{% for it in items %}<div class="item" data-id="{{ it.id }}" title="{{ it.name }} ({{ it.id }})"><img src="/icone/{{ it.id }}.png" alt="" loading="lazy"><span>{{ it.name }}</span></div>{% else %}<p class="muted">Nenhum item.</p>{% endfor %}
