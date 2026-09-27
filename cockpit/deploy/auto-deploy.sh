@@ -3,6 +3,7 @@
 # Brings in new commits of DEPLOY_BRANCH and rebuilds only what changed.
 #   cockpit/**                              -> rebuild and restart the panel (game keeps running)
 #   data/scripts/globalevents/cockpit.lua   -> restart the game server (only if RESTART_GAME=yes)
+#   data-otservbr-global/world/custom/**    -> flag "novo mapa" in the panel (Mundo); no auto-restart
 #   anything else                           -> logged; restart or rebuild the game by hand
 set -euo pipefail
 
@@ -31,6 +32,7 @@ fi
 log "atualizado ${old:0:7} -> ${new:0:7}: $(git log --format=%s -1 "$new")"
 
 cd docker
+set -a; source .env; set +a
 if grep -q '^cockpit/' <<<"$changed"; then
 	log "reconstruindo o painel"
 	docker compose up -d --build cockpit
@@ -47,7 +49,18 @@ if grep -qx 'data/scripts/globalevents/cockpit.lua' <<<"$changed"; then
 	fi
 fi
 
-other="$(grep -v -e '^cockpit/' -e '^data/scripts/globalevents/cockpit.lua$' <<<"$changed" || true)"
+map_changed="$(grep -e '^data-otservbr-global/world/custom/' <<<"$changed" || true)"
+if [ -n "$map_changed" ]; then
+	log "mapa customizado mudou, avisando no painel (Mundo): $(tr '\n' ' ' <<<"$map_changed")"
+	files_list="$(tr '\n' ',' <<<"$map_changed" | sed "s/'/''/g;s/,$//")"
+	docker compose exec -T database mysql -u"${MYSQL_USER:-canary}" -p"${MYSQL_PASSWORD:-canary}" "${MYSQL_DATABASE:-otservbr-global}" <<-SQL
+		INSERT INTO cockpit_settings (k, v) VALUES ('map.pending_sha', '${new}') ON DUPLICATE KEY UPDATE v = VALUES(v);
+		INSERT INTO cockpit_settings (k, v) VALUES ('map.pending_at', UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE v = VALUES(v);
+		INSERT INTO cockpit_settings (k, v) VALUES ('map.pending_files', '${files_list}') ON DUPLICATE KEY UPDATE v = VALUES(v);
+	SQL
+fi
+
+other="$(grep -v -e '^cockpit/' -e '^data/scripts/globalevents/cockpit.lua$' -e '^data-otservbr-global/world/custom/' <<<"$changed" || true)"
 if [ -n "$other" ]; then
 	log "outras mudanças, não aplicadas automaticamente:"
 	while IFS= read -r f; do echo "    $f"; done <<<"$other"

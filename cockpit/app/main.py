@@ -347,7 +347,7 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "stamina_full": "⏳ stamina cheia", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "restart_server": "🔁 reiniciar servidor", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "restart_server": "🔁 reiniciar servidor", "load_new_map": "🗺 carregar novo mapa", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
@@ -545,6 +545,11 @@ def dispatch(actor, name, alvo, text, form, me=""):
         db.enqueue(actor, name, text=text)
         return True, "Enviado ao servidor."
 
+    if name == "load_new_map":
+        db.enqueue(actor, "restart_server", text="mapa novo do Remere's")
+        world.clear_map_pending()
+        return True, "Reiniciando para carregar o mapa novo (salva tudo antes)."
+
     if name == "event":
         return events.run_preset(actor, clamp(form.get("arg1"), 0, 10**9), resolve_targets)
 
@@ -617,7 +622,7 @@ async def action(request: Request):
         name = form.get("action", "")
         if name == "set_group" and clamp(form.get("arg1"), 0, 99) >= GOD_GROUP:
             return toast("Só o dono do painel pode dar God.", ok=False)
-        if name == "restart_server":
+        if name in ("restart_server", "load_new_map"):
             return toast("Só o dono do painel pode reiniciar o servidor.", ok=False)
         if name not in GLOBAL_ACTIONS and str(form.get("alvo", "")).isdigit():
             for t in resolve_targets(str(form.get("alvo", ""))):
@@ -1706,7 +1711,7 @@ def world_page(request: Request):
     user = require(request)
     return page(request, "world.html", user, s=world.load(), switches=world.SWITCHES, rates=world.RATES, stages=world.STAGES,
                 world_types=world.WORLD_TYPES, numbers=world.NUMBERS, texts=world.TEXTS,
-                last=world.last_result(), ss=world.save_settings())
+                last=world.last_result(), ss=world.save_settings(), map_pending=world.map_pending())
 
 
 @app.post("/mundo/save", response_class=HTMLResponse)
