@@ -639,7 +639,7 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids", "preySystemEnabled", "preyFreeThirdSlot", "taskHuntingSystemEnabled", "taskHuntingFreeThirdSlot", "vipSystemEnabled", "vipAutoLootVipOnly" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids", "preySystemEnabled", "preyFreeThirdSlot", "taskHuntingSystemEnabled", "taskHuntingFreeThirdSlot", "vipSystemEnabled", "vipAutoLootVipOnly", "experienceByKillingPlayers" }
 local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
@@ -669,6 +669,18 @@ local WORLD_NUMBERS = {
 	vipBonusExp = { 0, 100 },
 	vipBonusLoot = { 0, 100 },
 	vipBonusSkill = { 0, 100 },
+	dayKillsToRedSkull = { 1, 100 },
+	weekKillsToRedSkull = { 1, 100 },
+	monthKillsToRedSkull = { 1, 100 },
+	redSkullDuration = { 1, 365 },
+	blackSkullDuration = { 1, 365 },
+	orangeSkullDuration = { 1, 365 },
+	expFromPlayersLevelRange = { 0, 200 },
+}
+-- key -> { min, max, multiplier } for panel settings in a friendly unit that config.lua wants in milliseconds
+local WORLD_MS_NUMBERS = {
+	fragsDecreaseHours = { 1, 168, 3600000, "timeToDecreaseFrags" },
+	whiteSkullMinutes = { 1, 1440, 60000, "whiteSkullTime" },
 }
 
 local function readWorld()
@@ -817,6 +829,13 @@ globalActions.apply_world = function()
 		local v = tonumber(saved[key])
 		if v then
 			lines[#lines + 1] = key .. " = " .. math.max(bounds[1], math.min(bounds[2], math.floor(v)))
+		end
+	end
+	for key, spec in pairs(WORLD_MS_NUMBERS) do
+		local v = tonumber(saved[key])
+		if v then
+			local clamped = math.max(spec[1], math.min(spec[2], math.floor(v)))
+			lines[#lines + 1] = spec[4] .. " = " .. (clamped * spec[3])
 		end
 	end
 	if WORLD_TYPES[saved.worldType or ""] then

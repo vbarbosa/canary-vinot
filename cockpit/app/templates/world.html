@@ -24,8 +24,11 @@
       {% endfor %}
       {% set dl_label, dl_help, dl_lo, dl_hi = death_lose %}
       <label>{{ dl_label }}<input name="deathLosePercent" type="number" min="{{ dl_lo }}" max="{{ dl_hi }}" value="{{ s.deathLosePercent }}"><small class="muted">{{ dl_help }}</small></label>
+      {% for k, (label, help, lo, hi, _) in pvp_skull.items() %}
+      <label>{{ label }}<input name="{{ k }}" type="number" min="{{ lo }}" max="{{ hi }}" value="{{ s[k] }}"><small class="muted">{{ help }}</small></label>
+      {% endfor %}
     </div>
-    <p class="small muted">Retro PvP fica em "Liga e desliga". Tudo aqui vale na hora, sem reiniciar.</p>
+    <p class="small muted">Retro PvP e "Ganha XP matando jogador" ficam em "Liga e desliga". Tudo aqui vale na hora, sem reiniciar.</p>
   </article>
 
   <article class="panel">

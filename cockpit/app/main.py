@@ -1706,7 +1706,7 @@ def world_page(request: Request):
     user = require(request)
     return page(request, "world.html", user, s=world.load(), switches=world.SWITCHES, rates=world.RATES, stages=world.STAGES,
                 world_types=world.WORLD_TYPES, numbers=world.NUMBERS, texts=world.TEXTS, stamina=world.STAMINA,
-                hunting=world.HUNTING, vip_bonus=world.VIP_BONUS,
+                hunting=world.HUNTING, vip_bonus=world.VIP_BONUS, pvp_skull=world.PVP_SKULL,
                 death_lose=(world.DEATH_LOSE_LABEL, world.DEATH_LOSE_HELP, world.DEATH_LOSE_MIN, world.DEATH_LOSE_MAX),
                 last=world.last_result(), ss=world.save_settings())
 
@@ -1727,7 +1727,7 @@ async def world_server_save(request: Request):
 async def world_save(request: Request):
     user = require(request, post=True)
     f = await request.form()
-    values = {k: f.get(k) for k in world.SWITCHES} | {k: f.get(k, "") for k in (*world.RATES, *world.NUMBERS, *world.STAMINA, *world.HUNTING, *world.VIP_BONUS, *world.TEXTS, "deathLosePercent", "worldType", "signPos")}
+    values = {k: f.get(k) for k in world.SWITCHES} | {k: f.get(k, "") for k in (*world.RATES, *world.NUMBERS, *world.STAMINA, *world.HUNTING, *world.VIP_BONUS, *world.PVP_SKULL, *world.TEXTS, "deathLosePercent", "worldType", "signPos")}
     for k in world.STAGES:
         rows = zip(f.getlist(f"{k}_de"), f.getlist(f"{k}_ate"), f.getlist(f"{k}_x"))
         values[k] = ",".join(f"{lo.strip()}-{hi.strip()}:{x.strip()}" for lo, hi, x in rows if lo.strip() and x.strip())

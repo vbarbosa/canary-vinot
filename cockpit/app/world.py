@@ -29,6 +29,7 @@ SWITCHES = {
     "taskHuntingFreeThirdSlot": ("bool", "3º slot de Task Hunting grátis", "Sem isso, o 3º slot só libera pra quem é premium.", False),
     "vipSystemEnabled": ("bool", "Sistema VIP (bônus de doador)", "Liga os bônus de XP/loot/skill abaixo para contas VIP, além do premium normal.", False),
     "vipAutoLootVipOnly": ("bool", "Autoloot só pra VIP", "Com 'Sistema VIP' ligado, restringe o autoloot a quem é VIP.", False),
+    "experienceByKillingPlayers": ("bool", "Ganha XP matando jogador", "Como no PvP Enforced oficial: dá XP por matar outro jogador, dentro da faixa de nível do campo abaixo.", False),
 }
 # Stamina: mesmo padrão do Tibia oficial (referência usada pelos servidores OT bem avaliados),
 # com tudo parametrizável. Faixas: verde (bônus), normal, vermelha (penalidade), preta (0 = corta XP se staminaCutsXp).
@@ -63,6 +64,19 @@ VIP_BONUS = {
     "vipBonusExp": ("Bônus de XP pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
     "vipBonusLoot": ("Bônus de loot pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
     "vipBonusSkill": ("Bônus de skill pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
+}
+# Skull e frag: sistema oficial do Tibia. Os tempos aqui usam minutos/horas/dias (o bridge converte pro
+# formato em milissegundos que o config.lua espera nas duas primeiras chaves).
+PVP_SKULL = {
+    "fragsDecreaseHours": ("Tempo pra perder 1 frag (horas)", "Padrão Tibia: 24 (1 dia).", 1, 168, 24),
+    "whiteSkullMinutes": ("Duração da skull branca (minutos)", "Fica com o ícone até esse tempo passar sem atacar de novo. Padrão Tibia: 15.", 1, 1440, 15),
+    "dayKillsToRedSkull": ("Frags no dia pra virar skull vermelha", "Padrão Tibia: 3.", 1, 100, 3),
+    "weekKillsToRedSkull": ("Frags na semana pra virar skull vermelha", "Padrão Tibia: 5.", 1, 100, 5),
+    "monthKillsToRedSkull": ("Frags no mês pra virar skull vermelha", "Padrão Tibia: 10.", 1, 100, 10),
+    "redSkullDuration": ("Duração da skull vermelha (dias)", "", 1, 365, 1),
+    "blackSkullDuration": ("Duração da skull preta (dias)", "", 1, 365, 3),
+    "orangeSkullDuration": ("Duração da skull laranja (dias)", "", 1, 365, 7),
+    "expFromPlayersLevelRange": ("Faixa de nível pra XP matando jogador (%)", "Só ganha XP de PvP se o alvo estiver dentro dessa % do seu nível. Padrão Tibia: 75.", 0, 200, 75),
 }
 WORLD_TYPES = {"no-pvp": "Sem PvP (ninguém ataca ninguém)", "pvp": "PvP normal (com skull e punição)",
                "pvp-enforced": "PvP livre (sem skull, vale tudo)"}
@@ -140,6 +154,8 @@ def load():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     for k, (*_, default) in VIP_BONUS.items():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in PVP_SKULL.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
     dv = saved.get("deathLosePercent", "")
     s["deathLosePercent"] = int(dv) if dv.lstrip("-").isdigit() else DEATH_LOSE_DEFAULT
     for k, (_, default) in STAGES.items():
@@ -186,6 +202,11 @@ def save(values):
         if not v.isdigit() or not lo <= int(v) <= hi:
             return f"{label}: use um número de {lo} a {hi}."
         rows[k] = v
+    for k, (label, _, lo, hi, _) in PVP_SKULL.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
     dv = str(values.get("deathLosePercent", "")).strip()
     if not dv.lstrip("-").isdigit() or not DEATH_LOSE_MIN <= int(dv) <= DEATH_LOSE_MAX:
         return f"{DEATH_LOSE_LABEL}: use um número de {DEATH_LOSE_MIN} a {DEATH_LOSE_MAX}."
@@ -225,7 +246,7 @@ def seed(actor="cockpit"):
         return
     s = load()
     save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, **{k: s[k] for k in STAMINA},
-          **{k: s[k] for k in HUNTING}, **{k: s[k] for k in VIP_BONUS},
+          **{k: s[k] for k in HUNTING}, **{k: s[k] for k in VIP_BONUS}, **{k: s[k] for k in PVP_SKULL},
           "deathLosePercent": s["deathLosePercent"], "worldType": s["worldType"],
           **{k: s[k] for k in TEXTS}, "signPos": "",
           **{k: format_stages(s[k]) for k in STAGES}})
