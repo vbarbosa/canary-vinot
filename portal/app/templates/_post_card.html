@@ -1,0 +1,13 @@
+<a class="card post-card{{ ' featured' if p.featured }}" href="/noticias/{{ p.slug }}">
+  <div class="cover">
+    {% set cover = p.cover | img(700) %}
+    {% if cover %}<img src="{{ cover }}" alt="" loading="lazy">
+    {% else %}<div class="cover-art cat-{{ p.category }}"><img src="/static/px/{{ {'promocao':'gift','evento':'skull','atualizacao':'map'}.get(p.category, 'scroll') }}.svg" alt="" class="px"></div>{% endif %}
+    <span class="tag cat-{{ p.category }}">{{ categories.get(p.category, 'Notícia') }}</span>
+  </div>
+  <div class="card-body">
+    <small class="muted">{{ p.publishedAt | date }}{% if p.endsAt %} · até {{ p.endsAt | date }}{% endif %}</small>
+    <h3>{{ p.title }}</h3>
+    {% if p.excerpt %}<p>{{ p.excerpt }}</p>{% endif %}
+  </div>
+</a>

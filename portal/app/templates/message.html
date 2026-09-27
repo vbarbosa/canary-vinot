@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap narrow section center-text">
+  <div class="card pad">
+    <img src="/static/px/scroll.svg" alt="" class="px s64">
+    <h1>{{ title }}</h1>
+    <p>{{ text }}</p>
+    {% if link %}<a class="btn" href="{{ link[0] }}">{{ link[1] }}</a>{% endif %}
+  </div>
+</section>
+{% endblock %}

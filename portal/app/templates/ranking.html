@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Ranking · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/coin.svg" alt="" class="px">Hall da fama</span>
+    <h1>Ranking</h1>
+    <p class="muted">Os aventureiros mais fortes do VinOT, por level.</p>
+  </div></div>
+
+  {% if top and not filtered and pagina == 1 %}
+  <div class="podium">
+    {% for i in [1, 0, 2] if i < top | length %}
+    {% set p = top[i] %}
+    <div class="podium-spot place-{{ i + 1 }}">
+      <div class="podium-art"><img src="{{ hero_img(p.vocation) }}" alt="" class="px"></div>
+      <span class="medal">{{ i + 1 }}º</span>
+      <b>{{ p.name }}</b>
+      <small>{{ vocation_names.get(p.vocation, '') }}</small>
+      <span class="lvl-pill">Level {{ p.level }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form class="rank-tools" method="get" action="/ranking">
+    <nav class="chips" aria-label="Vocação">
+      <a href="/ranking{{ '?q=' ~ q if q }}" {{ 'aria-current=page' if not voc }}>Todas</a>
+      {% for id, name in vocations.items() %}<a href="/ranking?vocacao={{ id }}{{ '&q=' ~ q if q }}" {{ 'aria-current=page' if voc == id|string }}><img src="{{ hero_art[id] }}" alt="" class="px">{{ name }}</a>{% endfor %}
+    </nav>
+    {% if voc %}<input type="hidden" name="vocacao" value="{{ voc }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar personagem" aria-label="Buscar personagem" maxlength="29">
+  </form>
+
+  <div class="card table-wrap">
+  <table class="table rank-table">
+    <thead><tr><th class="pos">#</th><th>Personagem</th><th class="hide-xs">Vocação</th><th class="right-col">Level</th></tr></thead>
+    <tbody>
+    {% for p in top %}
+      <tr class="{{ 'top-' ~ loop.index if loop.index <= 3 and not filtered and pagina == 1 }}">
+        <td class="pos"><span class="rank">{{ offset + loop.index }}</span></td>
+        <td><span class="who"><span class="avatar"><img src="{{ hero_img(p.vocation) }}" alt="" class="px"></span><span>{{ p.name }}<small class="show-xs">{{ vocation_names.get(p.vocation, '') }}</small></span></span></td>
+        <td class="hide-xs muted">{{ vocation_names.get(p.vocation, '') }}</td>
+        <td class="right-col"><span class="lvl">{{ p.level }}</span></td>
+      </tr>
+    {% else %}<tr><td colspan="4" class="muted empty">{{ 'Ninguém encontrado.' if filtered else 'Ninguém no ranking ainda. Que tal ser o primeiro?' }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if pagina > 1 or has_next %}
+  {% set qs = ('&vocacao=' ~ voc if voc else '') ~ ('&q=' ~ (q | urlencode) if q else '') %}
+  <nav class="pager" aria-label="Páginas do ranking">
+    {% if pagina > 1 %}<a class="btn ghost small" href="/ranking?pagina={{ pagina - 1 }}{{ qs }}" rel="prev">← Anterior</a>{% else %}<span></span>{% endif %}
+    <span class="muted">Página {{ pagina }}</span>
+    {% if has_next %}<a class="btn ghost small" href="/ranking?pagina={{ pagina + 1 }}{{ qs }}" rel="next">Próxima →</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

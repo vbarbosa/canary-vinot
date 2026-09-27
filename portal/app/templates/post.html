@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · {{ site.serverName }}{% endblock %}
+{% block description %}{{ post.excerpt or site.tagline }}{% endblock %}
+{% block main %}
+<article class="wrap narrow section article">
+  <a href="/noticias" class="more">‹ Todas as notícias</a>
+  <span class="tag cat-{{ post.category }}">{{ categories.get(post.category, 'Notícia') }}</span>
+  <h1>{{ post.title }}</h1>
+  <p class="muted">{{ post.publishedAt | date }}{% if post.endsAt %} · vale até {{ post.endsAt | date(true) }}{% endif %}</p>
+  {% set cover = post.cover | img(1400) %}
+  {% if cover %}<img class="article-cover" src="{{ cover }}" alt="">{% endif %}
+  <div class="prose">{{ post.body | pt }}</div>
+  {% if post.cta and post.cta.url %}<p><a class="btn big" href="{{ post.cta.url }}">{{ post.cta.label or 'Saiba mais' }}</a></p>{% endif %}
+</article>
+{% endblock %}

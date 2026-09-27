@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ it.name }} · Wiki · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section wiki-page">
+  <a href="/wiki/itens" class="more back">Itens</a>
+  <div class="wiki-layout">
+    <article class="wiki-article">
+      <span class="tag">Item</span>
+      <h1>{{ it.name }}</h1>
+      {% if it.drops %}
+      <h2 class="small-title">Quem dropa</h2>
+      <div class="card table-wrap">
+        <table class="table loot-table">
+          <thead><tr><th>Criatura</th><th>Chance</th><th class="right-col">Quantidade</th></tr></thead>
+          <tbody>
+          {% for c, ch, mx in it.drops %}
+          <tr>
+            <td><span class="who"><span class="avatar sm"><img src="/static/wiki/c/{{ c.slug }}.png" alt="" class="px" onerror="this.parentElement.style.visibility='hidden'"></span><a href="/wiki/criaturas/{{ c.slug }}">{{ c.name }}</a></span></td>
+            <td><small class="muted">{{ wiki_chance_pt(ch) }}</small></td>
+            <td class="right-col">{% if mx > 1 %}até {{ mx }}{% else %}1{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="muted">Nenhuma criatura conhecida dropa esse item ainda.</p>
+      {% endif %}
+    </article>
+    <aside class="wiki-infobox">
+      <div class="wiki-infobox-art"><img src="/static/wiki/i/{{ it.id }}.png" alt="{{ it.name }}" class="px" onerror="this.style.display='none'"></div>
+      <h2>{{ it.name }}</h2>
+      <dl class="infobox-facts">
+        <div><dt>ID</dt><dd>{{ it.id }}</dd></div>
+        {% if it.attrs.weight %}<div><dt>Peso</dt><dd>{{ (it.attrs.weight | int / 100) | round(2) }} oz</dd></div>{% endif %}
+        {% if it.attrs.primarytype %}<div><dt>Tipo</dt><dd>{{ it.attrs.primarytype }}</dd></div>{% endif %}
+      </dl>
+    </aside>
+  </div>
+</section>
+{% endblock %}

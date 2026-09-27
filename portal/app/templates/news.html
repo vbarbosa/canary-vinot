@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Notícias · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  <h1 class="title"><img src="/static/px/scroll.svg" alt="" class="px s40"> Notícias</h1>
+  <nav class="chips" aria-label="Categorias">
+    <a href="/noticias" {{ 'aria-current=page' if not cat }}>Tudo</a>
+    {% for key, label in categories.items() %}<a href="/noticias?categoria={{ key }}" {{ 'aria-current=page' if cat == key }}>{{ label }}</a>{% endfor %}
+  </nav>
+  <div class="posts grid">
+    {% for p in posts %}{% include "_post_card.html" %}{% else %}<p class="muted">Nada por aqui ainda.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

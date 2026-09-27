@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Wiki · {{ site.serverName }}{% endblock %}
+{% block main %}
+<section class="wrap section">
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/scroll.svg" alt="" class="px">Wiki do VinOT</span>
+    <h1>Wiki</h1>
+    <p class="muted">Tudo direto dos arquivos do servidor: quando um monstro ou um item muda no jogo, muda aqui também.</p>
+  </div></div>
+
+  <div class="wiki-search">
+    <form action="/wiki/criaturas" method="get" class="wiki-search-form">
+      <input type="search" name="q" placeholder="Buscar uma criatura ou item…" aria-label="Buscar na wiki">
+      <button class="btn" type="submit">Buscar</button>
+    </form>
+  </div>
+
+  <div class="features">
+    <a class="card feature" href="/wiki/criaturas"><span class="icon-ring"><img src="/static/px/skull.svg" alt="" class="px"></span><div><h3>Criaturas</h3><p>{{ total_creatures }} monstros, com vida, experiência, loot e fraquezas.</p></div></a>
+    <a class="card feature" href="/wiki/itens"><span class="icon-ring"><img src="/static/px/chest.svg" alt="" class="px"></span><div><h3>Itens</h3><p>{{ total_items }} itens que aparecem no loot, com quem dropa cada um.</p></div></a>
+    <a class="card feature" href="/wiki/servidor"><span class="icon-ring"><img src="/static/px/coin.svg" alt="" class="px"></span><div><h3>Rates do servidor</h3><p>Estágios de XP, skill, magia e loot que estão valendo agora.</p></div></a>
+    <div class="card feature muted-card"><span class="icon-ring"><img src="/static/px/map.svg" alt="" class="px"></span><div><h3>Guias</h3><p>Dicas pra começar, quests e eventos do VinOT. Em breve.</p></div></div>
+  </div>
+
+  {% if classes %}
+  <h2 class="title small-title"><img src="/static/px/skull.svg" alt="" class="px s24"> Criaturas por classe</h2>
+  <div class="wiki-classes">
+    {% for cls, n in classes %}<a class="chip-card" href="/wiki/criaturas?classe={{ cls | urlencode }}">{{ wiki_class_pt(cls) }}<b>{{ n }}</b></a>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
