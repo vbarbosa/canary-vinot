@@ -32,7 +32,11 @@ fi
 log "atualizado ${old:0:7} -> ${new:0:7}: $(git log --format=%s -1 "$new")"
 
 cd docker
-set -a; source .env; set +a
+set -a
+# docker/.env only exists on the VM (gitignored), not in this checkout
+# shellcheck disable=SC1091
+source .env
+set +a
 if grep -q '^cockpit/' <<<"$changed"; then
 	log "reconstruindo o painel"
 	docker compose up -d --build cockpit
