@@ -3,8 +3,8 @@
 {% block content %}
 <div class="page-head">
   <h3>🪙 Pedidos Pix</h3>
-  <p class="muted">Compras de Tibia coins feitas no portal. O jogador paga por Pix com o código do pedido na descrição; confira no app do banco
-    e confirme aqui para as coins entrarem na conta. Cada pedido só pode ser confirmado uma vez.</p>
+  <p class="muted">Compras de Tibia coins e de premium feitas no portal. O jogador paga por Pix com o código do pedido na descrição; confira no app do banco
+    e confirme aqui para as coins ou os dias de premium entrarem na conta. Cada pedido só pode ser confirmado uma vez.</p>
 </div>
 <div class="stats">
   <article class="stat"><small class="muted">Aguardando o Pix</small><strong>{{ c.pending }}</strong><small class="muted">{{ brl(c.pending_cents) }}</small></article>
@@ -17,7 +17,7 @@
   <header><h4>⏳ Aguardando pagamento</h4></header>
   {% if pending %}
   <div class="wheel-wrap"><table class="compact">
-    <thead><tr><th>Código</th><th>Conta</th><th class="num">Coins</th><th class="num">Valor</th><th></th></tr></thead>
+    <thead><tr><th>Código</th><th>Conta</th><th class="num">Item</th><th class="num">Valor</th><th></th></tr></thead>
     <tbody>{% for o in pending %}{% include "_order_row.html" %}{% endfor %}</tbody>
   </table></div>
   {% else %}<p class="muted">Nenhum pedido esperando.</p>{% endif %}
@@ -27,7 +27,7 @@
   <header><h4>📜 Resolvidos</h4></header>
   {% if done %}
   <div class="wheel-wrap"><table class="compact">
-    <thead><tr><th>Código</th><th>Conta</th><th class="num">Coins</th><th class="num">Valor</th><th>Situação</th></tr></thead>
+    <thead><tr><th>Código</th><th>Conta</th><th class="num">Item</th><th class="num">Valor</th><th>Situação</th></tr></thead>
     <tbody>{% for o in done %}{% include "_order_row.html" %}{% endfor %}</tbody>
   </table></div>
   {% else %}<p class="muted">Nada resolvido ainda.</p>{% endif %}

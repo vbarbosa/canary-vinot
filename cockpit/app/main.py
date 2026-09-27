@@ -929,13 +929,10 @@ def account_password(request: Request, aid: int, senha: str = Form(...)):
 @app.post("/conta/{aid}/premium", response_class=HTMLResponse)
 def account_premium(request: Request, aid: int, dias: int = Form(...)):
     user = require(request, post=True)
-    acc = db.one("SELECT lastday FROM accounts WHERE id = %s", aid)
-    now = int(time.time())
-    left = max(0, acc["lastday"] - now) if acc and acc["lastday"] else 0
-    total = max(0, left + clamp(dias, -3650, 3650) * 86400)
-    db.run("UPDATE accounts SET premdays = %s, lastday = %s WHERE id = %s", total // 86400, now + total if total else 0, aid)
-    db.audit(user["account"], "premium", str(aid), f"{dias} dias")
-    return toast(f"Premium agora: {total // 86400} dias. Se o jogador estiver online, vale depois de relogar.")
+    total = shop.grant_premium_days(aid, dias, user["account"])
+    if total is None:
+        raise HTTPException(404)
+    return toast(f"Premium agora: {total} dias. Se o jogador estiver online, vale depois de relogar.")
 
 
 @app.post("/conta/{aid}/coins", response_class=HTMLResponse)

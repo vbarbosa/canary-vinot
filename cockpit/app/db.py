@@ -369,6 +369,8 @@ def changed(sql, *args):
 MIGRATIONS = [
     ("cockpit_event_presets", "extra", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `extra` VARCHAR(1000) NOT NULL DEFAULT ''"),
     ("cockpit_event_presets", "signup_min", "ALTER TABLE `cockpit_event_presets` ADD COLUMN `signup_min` INT NOT NULL DEFAULT 5"),
+    ("portal_orders", "kind", "ALTER TABLE `portal_orders` ADD COLUMN `kind` VARCHAR(10) NOT NULL DEFAULT 'coins'"),
+    ("portal_orders", "days", "ALTER TABLE `portal_orders` ADD COLUMN `days` SMALLINT UNSIGNED NULL"),
 ]
 
 
