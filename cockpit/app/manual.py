@@ -114,6 +114,7 @@ HOWTO = {
     "/metricas": "CPU, memória, disco e tempo de resposta do jogo, em gráficos de 7 dias.",
     "/logs": "Os logs do servidor e dos comandos de GM, só leitura.",
     "/equipe": "Co-administradores: dê acesso a um amigo e escolha que áreas do painel ele pode usar.",
+    "/apagar": "Apagar dados: marque as categorias que quer zerar (ou todas) e confirme digitando a palavra pedida. Contas do God e da equipe nunca são apagadas.",
 }
 
 

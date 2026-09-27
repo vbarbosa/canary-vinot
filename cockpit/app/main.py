@@ -24,7 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import boosted, db, gamedata, scheduler, system
 from . import economy as economy_mod
-from . import dungeons, events, guilds, manual, market, metin, resets, shop, places, raids, ranking, realty, sheet, wheel, world
+from . import dungeons, events, guilds, manual, market, metin, resets, shop, places, raids, ranking, realty, sheet, wheel, wipe, world
 from .palette import PALETTE
 
 HERE = os.path.dirname(__file__)
@@ -101,7 +101,7 @@ MENU = [
     ("economia", "💰", "Itens e economia", [("/kits", "🎁", "Kits"), ("/economia", "🏦", "Economia"), ("/pedidos", "🪙", "Pedidos Pix"), ("/mercado", "🛒", "Mercado"), ("/imobiliaria", "🏘", "Imobiliária")]),
     ("servidor", "🛠", "Servidor", [("/mundo", "🌍", "Mundo"), ("/metricas", "📈", "Métricas"), ("/logs", "📄", "Logs")]),
 ]
-OWNER_MENU = ("dono", "👑", "Dono", [("/equipe", "👮", "Equipe")])
+OWNER_MENU = ("dono", "👑", "Dono", [("/equipe", "👮", "Equipe"), ("/apagar", "🗑", "Apagar dados")])
 OPEN_TO_ALL = ("/", "/manual")
 EXTRA_PREFIXES = {"jogo": ("/acao",), "pessoas": ("/jogador", "/conta", "/guild")}
 EXTRA_HELP = {"jogo": "ações nos jogadores", "pessoas": "ban e senha"}
@@ -111,7 +111,7 @@ SECTIONS = {
     for key, icon, title, links in MENU
 }
 templates.env.globals.update(menu_all=MENU, owner_menu=OWNER_MENU)
-OWNER_ONLY = ("/equipe",)
+OWNER_ONLY = ("/equipe", "/apagar")
 
 
 def panel_role(account_id):
@@ -1299,6 +1299,29 @@ async def staff_change(request: Request, aid: int, acao: str):
         raise HTTPException(404)
     db.audit(user["account"], "equipe_" + acao, str(aid), str(dict(f)))
     return toast(msg)
+
+
+WIPE_PHRASE = "APAGAR"
+
+
+@app.get("/apagar", response_class=HTMLResponse)
+def wipe_page(request: Request):
+    user = require(request)
+    return page(request, "wipe.html", user, categories=wipe.CATEGORIES, phrase=WIPE_PHRASE)
+
+
+@app.post("/apagar", response_class=HTMLResponse)
+async def wipe_run(request: Request):
+    user = require(request, post=True)
+    f = await request.form()
+    if str(f.get("confirma", "")).strip().upper() != WIPE_PHRASE:
+        return toast(f'Digite exatamente "{WIPE_PHRASE}" para confirmar.', ok=False)
+    keys = [k for k in wipe.CATEGORIES if f.get(k)]
+    if not keys:
+        return toast("Marque pelo menos uma categoria.", ok=False)
+    done = wipe.run(keys)
+    db.audit(user["account"], "apagar_dados", "", ", ".join(keys))
+    return toast("Apagado: " + "; ".join(done))
 
 
 # ---------------------------------------------------------------- metrics and logs
