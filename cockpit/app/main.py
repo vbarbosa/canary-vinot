@@ -305,7 +305,8 @@ TRAINING = {
     4: [35285, 35286, 35287, 44067], 8: [35285, 35286, 35287, 44067],  # knight: sword, axe, club + shield
 }
 TRAINING_DEFAULT = [35285, 44067]
-GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}, "close_server": {}, "open_server": {}, "clean_map": {}, "restart_server": {}}
+GLOBAL_ACTIONS = {"broadcast": {"text": True}, "save": {}, "close_server": {}, "open_server": {}, "clean_map": {}, "restart_server": {},
+                  "double_on": {}, "double_off": {}}
 
 
 # ---------------------------------------------------------------- pages
@@ -347,7 +348,8 @@ ACTION_LABELS = {
     "give_item": "🎁 item", "give_money": "💰 depósito", "take_money": "🏦 saque", "set_level": "⬆ level", "set_skill": "⬆ skill", "set_outfit": "👕 outfit",
     "add_mount": "🐎 montaria", "set_group": "🛡 grupo", "kick": "👢 kick", "heal": "💚 cura", "stamina_full": "⏳ stamina cheia", "teleport": "✨ teleporte", "temple": "⛪ templo",
     "summon_to": "✨ puxar", "effect": "🎆 efeito", "say_over": "💬 fala", "narrate_to": "📜 narração", "give_trophy": "🏆 troféu", "give_spins": "🎡 giros", "broadcast": "📣 anúncio",
-    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "restart_server": "🔁 reiniciar servidor", "load_new_map": "🗺 carregar novo mapa", "clean_map": "🧹 limpar chão", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
+    "save": "💾 salvar", "close_server": "🔒 fechar", "open_server": "🔓 abrir", "restart_server": "🔁 reiniciar servidor", "load_new_map": "🗺 carregar novo mapa", "clean_map": "🧹 limpar chão",
+    "double_on": "🎉 ligar double XP/loot", "double_off": "🎉 desligar double XP/loot", "start_raid": "👹 raid", "house_sell": "🏷 venda de casa", "raid_auto": "👹 raid automática", "event_start": "🎪 evento", "event_stop": "🛑 fim do evento", "place_dummy": "🎯 dummy",
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
