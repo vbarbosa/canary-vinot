@@ -5,6 +5,17 @@
   <h3>🌍 Mundo</h3>
   <p class="muted">As regras do servidor: PvP, nome e boas-vindas, autoloot, stamina, viagens e rates. Ao salvar, o jogo aplica na hora, sem reiniciar.</p>
 </div>
+<article class="panel">
+  <details>
+    <summary>🗺 Como atualizar o mapa (edição no Remere's)</summary>
+    <ol class="small muted">
+      <li>Edite o mapa no Remere's Map Editor e salve por cima de <code>data-otservbr-global/world/custom/otservbr-custom.otbm</code>.</li>
+      <li>Dê <code>git commit</code> + <code>git push</code> nesse arquivo, no branch que a VM acompanha.</li>
+      <li>Em até 1 minuto o deploy da VM detecta a mudança e mostra aqui embaixo o aviso "Novo mapa disponível", com o botão para carregar.</li>
+      <li>Clicar no botão reinicia o jogo pra aplicar (salva tudo antes, mas desconecta todo mundo por alguns segundos) — escolha um horário de manutenção.</li>
+    </ol>
+  </details>
+</article>
 {% if map_pending %}
 <article class="panel">
   <header><h4>🗺 Novo mapa disponível</h4></header>
