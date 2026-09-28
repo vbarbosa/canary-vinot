@@ -162,7 +162,7 @@ def fmt_date(value, with_time=False):
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
     categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART, hero_img=hero_img, voc_info=VOC_INFO,
-    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open, asset_v=ASSET_V, menu_active=menu_active,
+    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open, asset_v=ASSET_V,
     wiki_url=os.environ.get("PORTAL_WIKI_URL", "").rstrip("/"),
     wiki_class_pt=lambda c: wk.CLASS_PT.get(c, c), wiki_rarity_pt=lambda r: wk.RARITY_PT.get(r, r), fmt_int=wk.fmt_int, wiki_chance_pt=wk.fmt_chance,
 )
@@ -225,6 +225,9 @@ def menu_active(href, path, full_path, hrefs):
     if href == "/":
         return path == "/"
     return path == href or path.startswith(href.rstrip("/") + "/")
+
+
+templates.env.globals["menu_active"] = menu_active
 
 
 def _me(request):
