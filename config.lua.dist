@@ -296,6 +296,15 @@ staminaPz = true
 staminaOrangeDelay = 1
 staminaGreenDelay = 5
 staminaPzGain = 1
+-- Stamina bands (official Tibia values): green > staminaGreenMinutes (premium bonus),
+-- normal in between, low <= staminaLowMinutes (penalty), 0 cuts XP if staminaCutsXp is on.
+staminaCutsXp = true
+staminaMaxMinutes = 2520 -- 42h
+staminaGreenMinutes = 2340 -- 39h
+staminaGreenBonusPercent = 150 -- 1.5x XP, premium only
+staminaLowMinutes = 840 -- 14h
+staminaLowBonusPercent = 50 -- 0.5x XP
+staminaDrainRatePercent = 100 -- 100 = 1 minute of stamina per minute played
 -- Max players allowed on a dummy.
 maxAllowedOnADummy = 1
 

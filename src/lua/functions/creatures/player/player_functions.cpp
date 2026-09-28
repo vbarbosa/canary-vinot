@@ -1653,7 +1653,8 @@ int PlayerFunctions::luaPlayerSetStamina(lua_State* L) {
 	uint16_t stamina = getNumber<uint16_t>(L, 2);
 	std::shared_ptr<Player> player = getUserdataShared<Player>(L, 1);
 	if (player) {
-		player->staminaMinutes = std::min<uint16_t>(2520, stamina);
+		auto maxStamina = static_cast<uint16_t>(g_configManager().getNumber(STAMINA_MAX_MINUTES, __FUNCTION__));
+		player->staminaMinutes = std::min<uint16_t>(maxStamina, stamina);
 		player->sendStats();
 	} else {
 		lua_pushnil(L);

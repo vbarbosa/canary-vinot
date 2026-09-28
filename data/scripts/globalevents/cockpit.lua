@@ -639,10 +639,49 @@ end
 -- World settings from the panel. Only these keys are written, with values checked here again.
 local WORLD_FILE = "cockpit-world.lua"
 local WORLD_MARK = "-- cockpit: world settings"
-local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids" }
+local WORLD_BOOLS = { "autoLoot", "staminaPz", "staminaTrainer", "staminaCutsXp", "toggleTravelsFree", "toggleFreeQuest", "partyShareLootBoosts", "rateUseStages", "toggleServerIsRetroPVP", "disableLegacyRaids", "preySystemEnabled", "preyFreeThirdSlot", "taskHuntingSystemEnabled", "taskHuntingFreeThirdSlot", "vipSystemEnabled", "vipAutoLootVipOnly", "experienceByKillingPlayers" }
 local WORLD_TYPES = { ["no-pvp"] = WORLD_TYPE_NO_PVP, ["pvp"] = WORLD_TYPE_PVP, ["pvp-enforced"] = WORLD_TYPE_PVP_ENFORCED }
 local WORLD_RATES = { "rateExp", "rateSkill", "rateMagic", "rateLoot" }
 local WORLD_STAGES = { "experienceStages", "skillsStages", "magicLevelStages" }
+-- key -> { min, max } for plain integer world settings written as-is (clamped)
+local WORLD_NUMBERS = {
+	staminaMaxMinutes = { 60, 6000 },
+	staminaGreenMinutes = { 0, 6000 },
+	staminaGreenBonusPercent = { 100, 300 },
+	staminaLowMinutes = { 0, 6000 },
+	staminaLowBonusPercent = { 10, 100 },
+	staminaDrainRatePercent = { 10, 500 },
+	staminaGreenDelay = { 1, 60 },
+	staminaOrangeDelay = { 1, 60 },
+	staminaPzGain = { 1, 60 },
+	staminaTrainerDelay = { 1, 60 },
+	staminaTrainerGain = { 1, 60 },
+	preyBonusTime = { 600, 86400 },
+	preyFreeRerollTime = { 3600, 604800 },
+	preyRerollPricePerLevel = { 0, 10000 },
+	preySelectListPrice = { 0, 10000 },
+	preyBonusRerollPrice = { 0, 10000 },
+	taskHuntingLimitedTasksExhaust = { 600, 604800 },
+	taskHuntingRerollPricePerLevel = { 0, 10000 },
+	taskHuntingSelectListPrice = { 0, 10000 },
+	taskHuntingBonusRerollPrice = { 0, 10000 },
+	taskHuntingFreeRerollTime = { 3600, 604800 },
+	vipBonusExp = { 0, 100 },
+	vipBonusLoot = { 0, 100 },
+	vipBonusSkill = { 0, 100 },
+	dayKillsToRedSkull = { 1, 100 },
+	weekKillsToRedSkull = { 1, 100 },
+	monthKillsToRedSkull = { 1, 100 },
+	redSkullDuration = { 1, 365 },
+	blackSkullDuration = { 1, 365 },
+	orangeSkullDuration = { 1, 365 },
+	expFromPlayersLevelRange = { 0, 200 },
+}
+-- key -> { min, max, multiplier } for panel settings in a friendly unit that config.lua wants in milliseconds
+local WORLD_MS_NUMBERS = {
+	fragsDecreaseHours = { 1, 168, 3600000, "timeToDecreaseFrags" },
+	whiteSkullMinutes = { 1, 1440, 60000, "whiteSkullTime" },
+}
 
 local function readWorld()
 	local saved = {}
@@ -786,12 +825,29 @@ globalActions.apply_world = function()
 			lines[#lines + 1] = key .. " = " .. math.max(1, math.min(100, math.floor(v)))
 		end
 	end
+	for key, bounds in pairs(WORLD_NUMBERS) do
+		local v = tonumber(saved[key])
+		if v then
+			lines[#lines + 1] = key .. " = " .. math.max(bounds[1], math.min(bounds[2], math.floor(v)))
+		end
+	end
+	for key, spec in pairs(WORLD_MS_NUMBERS) do
+		local v = tonumber(saved[key])
+		if v then
+			local clamped = math.max(spec[1], math.min(spec[2], math.floor(v)))
+			lines[#lines + 1] = spec[4] .. " = " .. (clamped * spec[3])
+		end
+	end
 	if WORLD_TYPES[saved.worldType or ""] then
 		lines[#lines + 1] = 'worldType = "' .. saved.worldType .. '"'
 	end
 	local level = tonumber(saved.protectionLevel)
 	if level then
 		lines[#lines + 1] = "protectionLevel = " .. math.max(1, math.min(1000, math.floor(level)))
+	end
+	local deathLose = tonumber(saved.deathLosePercent)
+	if deathLose then
+		lines[#lines + 1] = "deathLosePercent = " .. math.max(-1, math.min(100, math.floor(deathLose)))
 	end
 	local pz = tonumber(saved.pzLockedSeconds)
 	if pz then

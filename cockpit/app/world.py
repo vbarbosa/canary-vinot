@@ -17,11 +17,66 @@ SWITCHES = {
     "autoLoot": ("bool", "Autoloot", "O loot vai direto para a mochila, sem abrir o corpo.", True),
     "staminaPz": ("bool", "Stamina na cidade", "Quem fica em área protegida recupera stamina.", True),
     "staminaTrainer": ("bool", "Stamina no treino", "Quem treina em dummy também recupera stamina.", True),
+    "staminaCutsXp": ("bool", "Stamina zerada corta XP", "Como no Tibia oficial: com a stamina em zero, o personagem para de ganhar experiência (continua jogando normal).", True),
     "toggleTravelsFree": ("bool", "Viagens grátis", "Barcos, tapetes e outras viagens de NPC não cobram.", True),
     "toggleFreeQuest": ("bool", "Acessos de quest liberados", "Libera os acessos e portas das quests principais sem precisar fazer tudo antes.", True),
     "partyShareLootBoosts": ("bool", "Loot boost dividido na party", "Boosts de loot (prey, charms) valem para a party toda.", True),
     "rateUseStages": ("bool", "Rates por nível", "Usa as tabelas de estágios abaixo. Desligado, vale a rate fixa.", True),
     "toggleServerIsRetroPVP": ("bool", "Retro PvP", "PvP das antigas: sem proteção de party e sem modo seguro avançado.", False),
+    "preySystemEnabled": ("bool", "Sistema de Prey", "Sistema oficial do Tibia: escolhe até 3 criaturas pra ganhar bônus de XP, loot ou dano nelas.", True),
+    "preyFreeThirdSlot": ("bool", "3º slot de Prey grátis", "Sem isso, o 3º slot de Prey só libera pra quem é premium.", False),
+    "taskHuntingSystemEnabled": ("bool", "Sistema de Task Hunting", "Sistema oficial do Tibia: mata um número de criaturas escolhidas pra ganhar recompensa.", True),
+    "taskHuntingFreeThirdSlot": ("bool", "3º slot de Task Hunting grátis", "Sem isso, o 3º slot só libera pra quem é premium.", False),
+    "vipSystemEnabled": ("bool", "Sistema VIP (bônus de doador)", "Liga os bônus de XP/loot/skill abaixo para contas VIP, além do premium normal.", False),
+    "vipAutoLootVipOnly": ("bool", "Autoloot só pra VIP", "Com 'Sistema VIP' ligado, restringe o autoloot a quem é VIP.", False),
+    "experienceByKillingPlayers": ("bool", "Ganha XP matando jogador", "Como no PvP Enforced oficial: dá XP por matar outro jogador, dentro da faixa de nível do campo abaixo.", False),
+}
+# Stamina: mesmo padrão do Tibia oficial (referência usada pelos servidores OT bem avaliados),
+# com tudo parametrizável. Faixas: verde (bônus), normal, vermelha (penalidade), preta (0 = corta XP se staminaCutsXp).
+STAMINA = {
+    "staminaMaxMinutes": ("Stamina máxima (minutos)", "Teto da stamina. Padrão Tibia: 2520 (42h).", 60, 6000, 2520),
+    "staminaGreenMinutes": ("Início da faixa verde (minutos)", "Acima disso, quem é premium ganha o bônus de XP. Padrão Tibia: 2340 (39h).", 0, 6000, 2340),
+    "staminaGreenBonusPercent": ("Bônus da faixa verde (%)", "100 = XP normal. Padrão Tibia: 150 (1,5x), só para premium.", 100, 300, 150),
+    "staminaLowMinutes": ("Fim da faixa vermelha (minutos)", "Nessa stamina ou abaixo, o XP fica reduzido. Padrão Tibia: 840 (14h).", 0, 6000, 840),
+    "staminaLowBonusPercent": ("XP na faixa vermelha (%)", "100 = XP normal. Padrão Tibia: 50 (metade).", 10, 100, 50),
+    "staminaDrainRatePercent": ("Velocidade de gasto (%)", "100 = gasta 1 minuto de stamina por minuto jogado (padrão Tibia). Mais alto gasta mais rápido.", 10, 500, 100),
+    "staminaGreenDelay": ("Recarga na cidade, faixa verde (min a cada X min)", "De quanto em quanto tempo recupera estando na faixa verde e em área protegida.", 1, 60, 5),
+    "staminaOrangeDelay": ("Recarga na cidade, faixa normal (min a cada X min)", "De quanto em quanto tempo recupera nas outras faixas e em área protegida.", 1, 60, 1),
+    "staminaPzGain": ("Quanto recupera por vez na cidade", "Minutos de stamina ganhos a cada recarga em área protegida.", 1, 60, 1),
+    "staminaTrainerDelay": ("Recarga no treino (min a cada X min)", "De quanto em quanto tempo recupera treinando no dummy.", 1, 60, 5),
+    "staminaTrainerGain": ("Quanto recupera por vez no treino", "Minutos de stamina ganhos a cada recarga no dummy.", 1, 60, 1),
+}
+# Prey e Task Hunting: sistemas oficiais do Tibia (padrão dos OTs bem avaliados), preço/tempo parametrizáveis.
+HUNTING = {
+    "preyBonusTime": ("Duração do bônus de Prey (segundos)", "Padrão Tibia: 7200 (2 horas).", 600, 86400, 7200),
+    "preyFreeRerollTime": ("Espera pra lista de Prey grátis de novo (segundos)", "Padrão Tibia: 72000 (20 horas).", 3600, 604800, 72000),
+    "preyRerollPricePerLevel": ("Preço de reroll de Prey (gold por nível)", "Multiplica pelo nível do personagem.", 0, 10000, 200),
+    "preySelectListPrice": ("Preço pra travar criatura na Prey (gold)", "", 0, 10000, 5),
+    "preyBonusRerollPrice": ("Preço pra trocar o tipo de bônus da Prey", "Também ativa o reroll automático.", 0, 10000, 1),
+    "taskHuntingLimitedTasksExhaust": ("Espera pra nova criatura na Task Hunting (segundos)", "Depois de resgatar a recompensa. Padrão Tibia: 72000 (20 horas).", 600, 604800, 72000),
+    "taskHuntingRerollPricePerLevel": ("Preço de reroll de Task Hunting (gold por nível)", "Multiplica pelo nível do personagem.", 0, 10000, 200),
+    "taskHuntingSelectListPrice": ("Preço pra travar criatura na Task Hunting (gold)", "", 0, 10000, 5),
+    "taskHuntingBonusRerollPrice": ("Preço pra trocar o bônus da Task Hunting", "", 0, 10000, 1),
+    "taskHuntingFreeRerollTime": ("Espera pra lista de Task Hunting grátis de novo (segundos)", "Padrão Tibia: 72000 (20 horas).", 3600, 604800, 72000),
+}
+# Bônus de doador (sistema VIP, separado do premium normal). Zero desliga cada bônus.
+VIP_BONUS = {
+    "vipBonusExp": ("Bônus de XP pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
+    "vipBonusLoot": ("Bônus de loot pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
+    "vipBonusSkill": ("Bônus de skill pra VIP (%)", "0 desliga. Só vale com 'Sistema VIP' ligado.", 0, 100, 0),
+}
+# Skull e frag: sistema oficial do Tibia. Os tempos aqui usam minutos/horas/dias (o bridge converte pro
+# formato em milissegundos que o config.lua espera nas duas primeiras chaves).
+PVP_SKULL = {
+    "fragsDecreaseHours": ("Tempo pra perder 1 frag (horas)", "Padrão Tibia: 24 (1 dia).", 1, 168, 24),
+    "whiteSkullMinutes": ("Duração da skull branca (minutos)", "Fica com o ícone até esse tempo passar sem atacar de novo. Padrão Tibia: 15.", 1, 1440, 15),
+    "dayKillsToRedSkull": ("Frags no dia pra virar skull vermelha", "Padrão Tibia: 3.", 1, 100, 3),
+    "weekKillsToRedSkull": ("Frags na semana pra virar skull vermelha", "Padrão Tibia: 5.", 1, 100, 5),
+    "monthKillsToRedSkull": ("Frags no mês pra virar skull vermelha", "Padrão Tibia: 10.", 1, 100, 10),
+    "redSkullDuration": ("Duração da skull vermelha (dias)", "", 1, 365, 1),
+    "blackSkullDuration": ("Duração da skull preta (dias)", "", 1, 365, 3),
+    "orangeSkullDuration": ("Duração da skull laranja (dias)", "", 1, 365, 7),
+    "expFromPlayersLevelRange": ("Faixa de nível pra XP matando jogador (%)", "Só ganha XP de PvP se o alvo estiver dentro dessa % do seu nível. Padrão Tibia: 75.", 0, 200, 75),
 }
 WORLD_TYPES = {"no-pvp": "Sem PvP (ninguém ataca ninguém)", "pvp": "PvP normal (com skull e punição)",
                "pvp-enforced": "PvP livre (sem skull, vale tudo)"}
@@ -29,6 +84,11 @@ NUMBERS = {
     "protectionLevel": ("Proteção até o nível", "Abaixo desse nível ninguém pode ser atacado por jogador.", 1, 1000, 7),
     "pzLockedSeconds": ("Tempo de PZ lock (s)", "Quanto tempo fica sem entrar em área protegida depois de atacar alguém.", 0, 3600, 60),
 }
+# Perda de XP/skill ao morrer. -1 usa a fórmula oficial do Tibia (a mesma referência dos OTs bem avaliados:
+# quanto mais alto o nível, menor o % perdido); 0 desliga a perda; bênçãos e promoção reduzem ainda mais em qualquer caso.
+DEATH_LOSE_MIN, DEATH_LOSE_MAX, DEATH_LOSE_DEFAULT = -1, 100, -1
+DEATH_LOSE_LABEL = "Perda de XP/skill ao morrer (%)"
+DEATH_LOSE_HELP = "-1 = fórmula oficial do Tibia (recomendado). 0 = sem perda nenhuma. Bênçãos e promoção reduzem ainda mais."
 # Text shown to players. Accents become plain letters (the game client does not always show them) and quotes go.
 TEXTS = {
     "serverName": ("Nome do servidor", "Aparece no jogo e no status. Na lista de personagens quem manda é o login (veja a nota).", 30, "VinOT"),
@@ -88,6 +148,16 @@ def load():
     s["worldType"] = saved.get("worldType") if saved.get("worldType") in WORLD_TYPES else "pvp"
     for k, (*_, default) in NUMBERS.items():
         s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in STAMINA.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in HUNTING.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in VIP_BONUS.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    for k, (*_, default) in PVP_SKULL.items():
+        s[k] = int(saved[k]) if saved.get(k, "").isdigit() else default
+    dv = saved.get("deathLosePercent", "")
+    s["deathLosePercent"] = int(dv) if dv.lstrip("-").isdigit() else DEATH_LOSE_DEFAULT
     for k, (_, default) in STAGES.items():
         s[k] = parse_stages(saved.get(k, default)) or parse_stages(default)
     for k, (*_, default) in TEXTS.items():
@@ -115,6 +185,32 @@ def save(values):
         if not v.isdigit() or not lo <= int(v) <= hi:
             return f"{label}: use um número de {lo} a {hi}."
         rows[k] = v
+    for k, (label, _, lo, hi, _) in STAMINA.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
+    if not int(rows["staminaLowMinutes"]) < int(rows["staminaGreenMinutes"]) < int(rows["staminaMaxMinutes"]):
+        return "Stamina: a faixa vermelha tem que ser menor que a verde, e a verde menor que a máxima."
+    for k, (label, _, lo, hi, _) in HUNTING.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
+    for k, (label, _, lo, hi, _) in VIP_BONUS.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
+    for k, (label, _, lo, hi, _) in PVP_SKULL.items():
+        v = str(values.get(k, "")).strip()
+        if not v.isdigit() or not lo <= int(v) <= hi:
+            return f"{label}: use um número de {lo} a {hi}."
+        rows[k] = v
+    dv = str(values.get("deathLosePercent", "")).strip()
+    if not dv.lstrip("-").isdigit() or not DEATH_LOSE_MIN <= int(dv) <= DEATH_LOSE_MAX:
+        return f"{DEATH_LOSE_LABEL}: use um número de {DEATH_LOSE_MIN} a {DEATH_LOSE_MAX}."
+    rows["deathLosePercent"] = dv
     for k, (label, _, limit, _) in TEXTS.items():
         rows[k] = plain_text(values.get(k, ""), limit)
     if not rows["serverName"]:
@@ -149,7 +245,9 @@ def seed(actor="cockpit"):
             apply(actor)
         return
     s = load()
-    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, "worldType": s["worldType"],
+    save({**{k: s[k] for k in SWITCHES}, **{k: s[k] for k in RATES}, **{k: s[k] for k in NUMBERS}, **{k: s[k] for k in STAMINA},
+          **{k: s[k] for k in HUNTING}, **{k: s[k] for k in VIP_BONUS}, **{k: s[k] for k in PVP_SKULL},
+          "deathLosePercent": s["deathLosePercent"], "worldType": s["worldType"],
           **{k: s[k] for k in TEXTS}, "signPos": "",
           **{k: format_stages(s[k]) for k in STAGES}})
     apply(actor)

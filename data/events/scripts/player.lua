@@ -117,16 +117,19 @@ local function useStamina(player, isStaminaEnabled)
 		return
 	end
 
+	local drainRate = configManager.getNumber(configKeys.STAMINA_DRAIN_RATE_PERCENT) / 100
 	if timePassed > 60 then
-		if staminaMinutes > 2 then
-			staminaMinutes = staminaMinutes - 2
+		local drain = math.floor(2 * drainRate + 0.5)
+		if staminaMinutes > drain then
+			staminaMinutes = staminaMinutes - drain
 		else
 			staminaMinutes = 0
 		end
 		_G.NextUseStaminaTime[playerId] = currentTime + 120
 		player:removePreyStamina(120)
 	else
-		staminaMinutes = staminaMinutes - 1
+		local drain = math.floor(1 * drainRate + 0.5)
+		staminaMinutes = staminaMinutes > drain and (staminaMinutes - drain) or 0
 		_G.NextUseStaminaTime[playerId] = currentTime + 60
 		player:removePreyStamina(60)
 	end
