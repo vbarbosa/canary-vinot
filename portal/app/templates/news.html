@@ -2,7 +2,11 @@
 {% block title %}Notícias · {{ site.serverName }}{% endblock %}
 {% block main %}
 <section class="wrap section">
-  <h1 class="title"><img src="/static/px/scroll.svg" alt="" class="px s40"> Notícias</h1>
+  <div class="section-head"><div>
+    <span class="eyebrow"><img src="/static/px/scroll.svg" alt="" class="px">Novidades</span>
+    <h1>Notícias</h1>
+    <p class="muted">Atualizações, eventos e promoções do VinOT.</p>
+  </div></div>
   <nav class="chips" aria-label="Categorias">
     <a href="/noticias" {{ 'aria-current=page' if not cat }}>Tudo</a>
     {% for key, label in categories.items() %}<a href="/noticias?categoria={{ key }}" {{ 'aria-current=page' if cat == key }}>{{ label }}</a>{% endfor %}
