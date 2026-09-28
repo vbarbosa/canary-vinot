@@ -32,6 +32,8 @@ JOB_ACTIONS = {
     "close_server": "Fechar o servidor",
     "open_server": "Abrir o servidor",
     "metin_spawn": "Soltar uma pedra Metin",
+    "double_on": "Ligar double XP e loot",
+    "double_off": "Desligar double XP e loot",
 }
 
 

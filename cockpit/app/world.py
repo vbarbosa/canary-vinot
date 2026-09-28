@@ -164,6 +164,7 @@ def load():
         s[k] = saved.get(k, default)
     s["signPos"] = saved.get("signPos", "")
     s["signAt"] = saved.get("_signAt", "")
+    s["doubleXp"] = saved.get("doubleXp") == "1"
     return s
 
 

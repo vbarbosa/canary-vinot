@@ -162,4 +162,17 @@
     <button>Salvar server save</button>
   </form>
 </article>
+
+<article class="panel">
+  <header><h4>🎉 Double XP e loot</h4></header>
+  <p class="small muted">Dobra a rate de XP e de loot (a de skill e magic level não mudam) até desligar de novo. Vale na hora; para agendar horário de início e fim, crie duas tarefas na Agenda.</p>
+  <p class="row wrap">
+    <span>Agora está <strong>{{ 'ligado' if s.doubleXp else 'desligado' }}</strong>.</span>
+    {% if s.doubleXp %}
+    <button class="outline small" hx-post="/acao" hx-vals='{"action":"double_off"}' hx-target="#toast">Desligar</button>
+    {% else %}
+    <button class="outline small" hx-post="/acao" hx-vals='{"action":"double_on"}' hx-target="#toast" hx-confirm="Ligar double XP e loot agora?">Ligar</button>
+    {% endif %}
+  </p>
+</article>
 {% endblock %}

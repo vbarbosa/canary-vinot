@@ -442,6 +442,19 @@ globalActions.save = function()
 	return true, "servidor salvo"
 end
 
+-- liga/desliga double XP e loot (tela Mundo, ou agendado na Agenda); reaproveita apply_world para valer na hora
+globalActions.double_on = function()
+	db.query("INSERT INTO `cockpit_settings` (`k`, `v`) VALUES ('world.doubleXp', '1') ON DUPLICATE KEY UPDATE `v` = '1'")
+	globalActions.apply_world()
+	return true, "double XP e loot ligado"
+end
+
+globalActions.double_off = function()
+	db.query("INSERT INTO `cockpit_settings` (`k`, `v`) VALUES ('world.doubleXp', '0') ON DUPLICATE KEY UPDATE `v` = '0'")
+	globalActions.apply_world()
+	return true, "double XP e loot desligado"
+end
+
 -- arg1 = house id, arg2 = new owner guid (0 = evict; the old owner's items go to their depot)
 globalActions.house_owner = function(cmd)
 	local house = House(cmd.arg1)
@@ -819,9 +832,13 @@ globalActions.apply_world = function()
 			lines[#lines + 1] = key .. " = " .. (saved[key] == "1" and "true" or "false")
 		end
 	end
+	local doubling = saved.doubleXp == "1"
 	for _, key in ipairs(WORLD_RATES) do
 		local v = tonumber(saved[key])
 		if v then
+			if doubling and (key == "rateExp" or key == "rateLoot") then
+				v = v * 2
+			end
 			lines[#lines + 1] = key .. " = " .. math.max(1, math.min(100, math.floor(v)))
 		end
 	end
