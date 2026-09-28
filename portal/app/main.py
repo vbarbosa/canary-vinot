@@ -429,8 +429,13 @@ def download_page(request: Request):
     site = cms.settings()
     rels = downloads.releases()
     links = {k: site.get(v) for k, v in (("windows", "clientWindowsUrl"), ("android", "clientAndroidUrl")) if site.get(v)}
+    # each platform shows its newest file, even when the newest release only has the other platform
+    latest = {}
+    for r in rels:
+        for plat, f in r["files"].items():
+            latest.setdefault(plat, (r, f))
     return page(request, "download.html", site=site, releases=rels, current=rels[0] if rels else None, links=links,
-                size=downloads.human_size, sha=downloads.sha256)
+                latest=latest, size=downloads.human_size, sha=downloads.sha256)
 
 
 @app.get("/baixar/{platform}")

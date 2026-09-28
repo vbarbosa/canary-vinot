@@ -688,3 +688,4 @@ input[aria-invalid=true] { border-color: var(--red); }
 .chip-tiny { font-size: .72rem; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); }
 @media (max-width: 900px) { .wiki-layout { grid-template-columns: 1fr; } .wiki-infobox { position: static; } }
 .mb-28 { margin-bottom: 28px; }
+.changelog li, .dl-facts dd, .release-badge b { overflow-wrap: anywhere; }
