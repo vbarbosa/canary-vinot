@@ -136,17 +136,18 @@
 <section class="wrap section" id="bestiario">
   <div class="section-head">
     <div><span class="eyebrow"><img src="/static/px/skull.svg" alt="" class="px">Bestiário</span><h2>Criaturas que te esperam</h2><p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p></div>
+    <a href="{{ wiki_url ~ '/index.php/Categoria:Criaturas' if wiki_url else '/wiki/criaturas' }}" class="more">Bestiário completo</a>
   </div>
   <div class="bestiary" tabindex="0" aria-label="Criaturas">
     {% for slug, name, tier, blurb in creatures %}
-    <div class="creature tier-{{ tier }}">
+    <a class="creature tier-{{ tier }}" href="{{ wiki_url ~ '/index.php/' ~ (name | replace(' ', '_')) if wiki_url else '/wiki/criaturas/' ~ slug }}">
       <div class="lair"><img src="/static/creatures/{{ slug }}.png" alt="{{ name }}" class="px"></div>
       <div class="creature-body">
         <span class="tier-chip">{{ tiers[tier] }}</span>
         <h3>{{ name }}</h3>
         <p>{{ blurb }}</p>
       </div>
-    </div>
+    </a>
     {% endfor %}
   </div>
 </section>

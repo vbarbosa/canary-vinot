@@ -325,9 +325,9 @@ p { margin: 0 0 1em; }
 .creature {
   --tc: var(--green);
   scroll-snap-align: start; border-radius: var(--radius); overflow: hidden; background: var(--panel); border: 1px solid var(--line);
-  transition: transform .2s, border-color .2s;
+  transition: transform .2s, border-color .2s; display: block; color: var(--text);
 }
-.creature:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--tc) 60%, transparent); }
+.creature:hover { color: var(--text); transform: translateY(-4px); border-color: color-mix(in srgb, var(--tc) 60%, transparent); }
 .tier-1 { --tc: #8bc34a; } .tier-2 { --tc: var(--blue); } .tier-3 { --tc: #b26cf0; } .tier-4 { --tc: var(--ember); } .tier-5 { --tc: var(--red); }
 .lair { height: 170px; display: grid; place-items: center; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent), linear-gradient(180deg, #1c2130, #141824); }
 .lair img { max-height: 140px; max-width: 80%; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, .5)); transition: transform .3s; }

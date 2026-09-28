@@ -162,7 +162,7 @@ def fmt_date(value, with_time=False):
 templates.env.filters.update(date=fmt_date, img=cms.image_url, pt=cms.render)
 templates.env.globals.update(
     categories=cms.CATEGORIES, vocation_names=VOCATION_NAMES, vocation_art=VOCATION_ART, hero_art=HERO_ART, hero_img=hero_img, voc_info=VOC_INFO,
-    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open, asset_v=ASSET_V,
+    turnstile_site=TURNSTILE_SITE, year=lambda: dt.datetime.now(TZ).year, signups_open=signups_open, asset_v=ASSET_V, menu_active=menu_active,
     wiki_url=os.environ.get("PORTAL_WIKI_URL", "").rstrip("/"),
     wiki_class_pt=lambda c: wk.CLASS_PT.get(c, c), wiki_rarity_pt=lambda r: wk.RARITY_PT.get(r, r), fmt_int=wk.fmt_int, wiki_chance_pt=wk.fmt_chance,
 )
@@ -211,7 +211,20 @@ def page(request, name, status_code=200, **ctx):
     ctx.setdefault("me", _me(request))
     ctx["csrf"] = sec.csrf_token(request.session)
     ctx["path"] = request.url.path
+    ctx["full_path"] = request.url.path + (f"?{request.url.query}" if request.url.query else "")
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
+
+
+def menu_active(href, path, full_path, hrefs):
+    """Which side-menu link is the current page. An exact match (query included, e.g. Eventos =
+    /noticias?categoria=evento) wins; otherwise a plain link is active on its page and its subpages."""
+    if full_path in hrefs:
+        return href == full_path
+    if "?" in href or "#" in href or href.startswith("http"):
+        return False
+    if href == "/":
+        return path == "/"
+    return path == href or path.startswith(href.rstrip("/") + "/")
 
 
 def _me(request):
