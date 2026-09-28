@@ -693,3 +693,5 @@ input[aria-invalid=true] { border-color: var(--red); }
 .label > img, .shop-form .label img { width: 22px; height: 22px; flex: none; }
 .inline-form { display: inline; margin: 0; }
 .center-row { justify-content: center; }
+.top-actions .btn { white-space: nowrap; }
+@media (max-width: 400px) { .topbar .brand span { display: none; } }
