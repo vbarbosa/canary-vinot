@@ -108,6 +108,7 @@
         </div>
         <div>
           <h4>Wiki</h4>
+          <a href="{{ wiki_url ~ '/' if wiki_url else '/wiki' }}">Início da wiki</a>
           <a href="{{ wiki_url ~ '/index.php/Categoria:Criaturas' if wiki_url else '/wiki/criaturas' }}">Criaturas</a>
           <a href="{{ wiki_url ~ '/index.php/Categoria:Itens' if wiki_url else '/wiki/itens' }}">Itens</a>
           <a href="/wiki/servidor">Rates do servidor</a>
@@ -115,8 +116,8 @@
         <div>
           <h4>Novidades</h4>
           <a href="/noticias">Notícias</a>
-          <a href="/noticias?categoria=promocao">Promoções</a>
           <a href="/noticias?categoria=evento">Eventos</a>
+          <a href="/noticias?categoria=promocao">Promoções</a>
         </div>
       </div>
       <div class="wrap signature">
