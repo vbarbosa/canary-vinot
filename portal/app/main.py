@@ -415,6 +415,11 @@ def top_players(limit=5):
 # ---------------------------------------------------------------- public pages
 
 
+@app.get("/vocacoes", response_class=HTMLResponse)
+def vocations_page(request: Request):
+    return page(request, "vocations.html", vocations=VOCATIONS, blurbs=VOCATION_BLURB)
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return page(
@@ -954,6 +959,38 @@ def account_password(request: Request, atual: str = Form(""), senha: str = Form(
     acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", me["id"])
     log_in(request, acc)  # keeps this browser logged in; every other session ends
     flash(request, "Senha trocada! Use a nova no jogo também.")
+    return redirect("/conta")
+
+
+@app.post("/conta/email", response_class=HTMLResponse)
+def account_email(request: Request, email: str = Form(""), atual: str = Form(""), csrf: str = Form("")):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    ip = sec.client_ip(request)
+    email = email.strip().lower()
+    problem = None
+    if bad_csrf(request, csrf):
+        problem = "A página expirou. Tente de novo."
+    elif login_ip.blocked(ip):
+        problem = "Muitas tentativas. Espere 10 minutos."
+    elif not EMAIL_RE.match(email) or len(email) > 255:
+        problem = "Esse e-mail não parece certo."
+    elif not sec.password_ok(me["password"], atual):
+        login_ip.hit(ip)
+        problem = "A senha atual está errada."
+    elif email == (me["email"] or "").lower():
+        problem = "Esse já é o seu e-mail."
+    elif db.one("SELECT 1 AS x FROM accounts WHERE email = %s", email):
+        problem = "Esse e-mail já é de outra conta."
+    if problem:
+        flash(request, problem, "err")
+        return redirect("/conta#email")
+    db.run("UPDATE accounts SET email = %s WHERE id = %s", email, me["id"])
+    log.info("account %s changed e-mail", me["id"])
+    acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", me["id"])
+    log_in(request, acc)
+    flash(request, "E-mail trocado! Use o novo pra entrar no site e no jogo.")
     return redirect("/conta")
 
 

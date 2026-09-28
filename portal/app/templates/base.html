@@ -30,7 +30,7 @@
   ('jogar', 'sword', 'Jogar', [
     ('/baixar', 'chest', 'Download'),
     ('/#jogar', 'map', 'Como jogar'),
-    ('/#vocacoes', 'staff', 'Vocações'),
+    ('/vocacoes', 'staff', 'Vocações'),
     ('/wiki/servidor', 'torch', 'Rates do servidor'),
     ('/loja', 'coin', 'Loja'),
   ] + ([('/conta', 'key', 'Minha conta')] if me else [('/entrar', 'key', 'Entrar'), ('/criar-conta', 'potion', 'Criar conta')])),
@@ -62,6 +62,10 @@
   <div class="top-actions">
     {% if me %}
     <a href="/conta" class="btn small">Minha conta</a>
+    <form method="post" action="/sair" class="inline-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn ghost small" type="submit">Sair</button>
+    </form>
     {% else %}
     <a href="/entrar" class="btn ghost small">Entrar</a>
     {% if signups_open() %}<a href="/criar-conta" class="btn small hide-xs">Criar conta</a>{% endif %}

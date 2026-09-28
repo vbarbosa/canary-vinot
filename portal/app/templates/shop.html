@@ -20,7 +20,7 @@
       {% else %}
       <form method="post" action="/loja/premium" class="card pad form shop-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <span class="label"><img src="/static/px/gift.svg" alt="" class="px">Get Premium</span>
+        <span class="label"><img src="/static/px/gift.svg" alt="" class="px">Premium</span>
         <div class="packs pick" role="radiogroup" aria-label="Dias de premium">
           {% for p in premium_packs %}
           <label class="pack-opt"><input type="radio" name="dias" value="{{ p.days }}" {{ 'checked' if loop.index == 2 }}>

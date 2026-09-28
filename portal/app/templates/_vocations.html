@@ -1,0 +1,22 @@
+<section class="band" id="vocacoes">
+  <div class="wrap section">
+    <div class="section-head center"><div><span class="eyebrow"><img src="/static/px/sword.svg" alt="" class="px">Escolha seu caminho</span><h2>Vocações</h2></div></div>
+    <div class="vocations">
+      {% for id, name in vocations.items() %}
+      {% set v = voc_info[id] %}
+      <a class="vocation v-{{ v.key }}" href="/criar-conta?vocacao={{ id }}">
+        <div class="voc-art"><img src="{{ hero_art[id] }}" alt="" class="px"></div>
+        <div class="voc-body">
+          <span class="voc-role">{{ v.role }}</span>
+          <h3>{{ name }}</h3>
+          <p>{{ blurbs[id] }}</p>
+          <ul class="bars">
+            {% for label, val in v.stats.items() %}<li><span>{{ label }}</span><i class="lv{{ val }}"></i></li>{% endfor %}
+          </ul>
+          <div class="voc-tags">{% for t in v.tags %}<span>{{ t }}</span>{% endfor %}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>

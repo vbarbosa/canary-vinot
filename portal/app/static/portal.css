@@ -74,7 +74,7 @@ p { margin: 0 0 1em; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font: 800 1.3rem var(--serif); letter-spacing: .04em; }
 .brand:hover { color: var(--gold-2); }
 .topbar .brand img { width: 24px; height: 24px; opacity: .85; }
-.top-actions { margin-left: auto; display: flex; gap: 8px; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .icon-btn { display: grid; gap: 4px; place-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03); cursor: pointer; padding: 0; }
 .icon-btn span { width: 18px; height: 2px; border-radius: 2px; background: #d8dbe3; }
 .icon-btn:hover { border-color: rgba(232, 182, 76, .5); }
@@ -689,3 +689,7 @@ input[aria-invalid=true] { border-color: var(--red); }
 @media (max-width: 900px) { .wiki-layout { grid-template-columns: 1fr; } .wiki-infobox { position: static; } }
 .mb-28 { margin-bottom: 28px; }
 .changelog li, .dl-facts dd, .release-badge b { overflow-wrap: anywhere; }
+.label:has(> img) { display: flex; align-items: center; gap: 8px; }
+.label > img, .shop-form .label img { width: 22px; height: 22px; flex: none; }
+.inline-form { display: inline; margin: 0; }
+.center-row { justify-content: center; }
