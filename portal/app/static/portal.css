@@ -695,3 +695,6 @@ input[aria-invalid=true] { border-color: var(--red); }
 .center-row { justify-content: center; }
 .top-actions .btn { white-space: nowrap; }
 @media (max-width: 400px) { .topbar .brand span { display: none; } }
+.box-account .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: -4px 0 10px; }
+.box-account .kv { margin-bottom: 14px; }
+.box-account .btn + .box-link { margin-top: 10px; }

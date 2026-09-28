@@ -75,6 +75,27 @@
   </div>
 
   <aside class="sidebar">
+    <div class="box box-account">
+      {% if me %}
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Sua conta</h3>
+      <p class="muted small ellipsis">{{ me.email }}</p>
+      {% if mine %}
+      <ul class="kv">
+        <li><span>Premium</span><b>{% if mine.premium_until %}até {{ mine.premium_until | date }}{% else %}<a href="/loja">virar premium</a>{% endif %}</b></li>
+        <li><span>Tibia Coins</span><b>{{ mine.coins }}</b></li>
+        {% for c in mine.chars[:3] %}<li><span>{{ c.name }}</span><b>{{ vocation_names.get(c.vocation, '') }} {{ c.level }}</b></li>{% endfor %}
+      </ul>
+      {% endif %}
+      <a href="/conta" class="btn block">Minha conta</a>
+      <a href="/loja" class="box-link">Comprar coins ou premium</a>
+      {% else %}
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Acesso à conta</h3>
+      <a href="/entrar" class="btn block">Entrar</a>
+      {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
+      <a href="/esqueci" class="box-link">Esqueci a senha</a>
+      {% endif %}
+    </div>
+
     <div class="box">
       <h3 class="box-title"><img src="/static/px/torch.svg" alt="" class="px">Status do servidor</h3>
       <ul class="kv">
@@ -83,19 +104,6 @@
         <li><span>Recorde</span><b>{{ stats.record if stats else '—' }}</b></li>
         <li><span>Versão</span><b>13.40</b></li>
       </ul>
-    </div>
-
-    <div class="box">
-      {% if me %}
-      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Sua conta</h3>
-      <p class="muted small">Você já está conectado.</p>
-      <a href="/conta" class="btn block">Minha conta</a>
-      {% else %}
-      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Acesso à conta</h3>
-      <a href="/entrar" class="btn block">Entrar</a>
-      {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
-      <a href="/esqueci" class="box-link">Esqueci a senha</a>
-      {% endif %}
     </div>
 
     <div class="box">

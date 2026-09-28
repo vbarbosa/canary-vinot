@@ -420,12 +420,26 @@ def vocations_page(request: Request):
     return page(request, "vocations.html", vocations=VOCATIONS, blurbs=VOCATION_BLURB)
 
 
+def account_summary(me):
+    """What the home page shows about the logged-in account: coins, premium and characters."""
+    if not me:
+        return None
+    try:
+        acc = db.one("SELECT coins, premdays, lastday FROM accounts WHERE id = %s", me["id"])
+        chars = db.all("SELECT name, level, vocation FROM players WHERE account_id = %s AND deletion = 0 ORDER BY level DESC, name", me["id"])
+    except Exception:
+        return None
+    premium = acc and acc["lastday"] and acc["lastday"] > time.time()
+    return {"coins": acc["coins"] if acc else 0, "premium_until": acc["lastday"] if premium else 0, "chars": chars}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
+    me = _me(request)
     return page(
-        request, "index.html", home=cms.home(), posts=cms.posts(limit=3), promos=cms.promotions(),
+        request, "index.html", me=me, home=cms.home(), posts=cms.posts(limit=3), promos=cms.promotions(),
         stats=stats(), top=top_players(), vocations=VOCATIONS, blurbs=VOCATION_BLURB, flash=pop_flash(request),
-        creatures=CREATURES, tiers=TIERS,
+        creatures=CREATURES, tiers=TIERS, mine=account_summary(me),
     )
 
 
