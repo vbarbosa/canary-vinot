@@ -130,25 +130,7 @@ local function createTemplate(vocationId, config, accountId)
 	local manamax = BASE_MANA + (TARGET_LEVEL - 1) * config.gainMana
 	local cap = BASE_CAP + (TARGET_LEVEL - 1) * config.gainCap
 
-	local inserted = db.query(
-		"INSERT INTO `players` (`name`, `group_id`, `account_id`, `level`, `vocation`, `health`, `healthmax`, `mana`, `manamax`, `cap`, `sex`, `town_id`, `conditions`) VALUES ("
-			.. db.escapeString(name)
-			.. ", 1, "
-			.. accountId
-			.. ", 1, "
-			.. vocationId
-			.. ", "
-			.. healthmax
-			.. ", "
-			.. healthmax
-			.. ", "
-			.. manamax
-			.. ", "
-			.. manamax
-			.. ", "
-			.. cap
-			.. ", 1, 1, '')"
-	)
+	local inserted = db.query("INSERT INTO `players` (`name`, `group_id`, `account_id`, `level`, `vocation`, `health`, `healthmax`, `mana`, `manamax`, `cap`, `sex`, `town_id`, `conditions`) VALUES (" .. db.escapeString(name) .. ", 1, " .. accountId .. ", 1, " .. vocationId .. ", " .. healthmax .. ", " .. healthmax .. ", " .. manamax .. ", " .. manamax .. ", " .. cap .. ", 1, 1, '')")
 
 	if not inserted then
 		logger.error("[vinot] Template failed: could not insert player row for '{}'.", name)
