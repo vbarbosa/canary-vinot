@@ -30,6 +30,7 @@
   ('jogar', 'sword', 'Jogar', [
     ('/baixar', 'chest', 'Download'),
     ('/#vocacoes', 'staff', 'Vocações'),
+    ('/#bestiario', 'skull', 'Bestiário'),
     ('/#jogar', 'map', 'Como jogar'),
     ('/loja', 'coin', 'Loja'),
   ] + ([('/conta', 'key', 'Minha conta')] if me else [('/entrar', 'key', 'Entrar'), ('/criar-conta', 'potion', 'Criar conta')])),
@@ -43,11 +44,11 @@
     ('/wiki/itens', 'chest', 'Itens'),
   ]) + [
     ('/wiki/servidor', 'coin', 'Rates do servidor'),
-  ]),
-  ('comunidade', 'heart', 'Comunidade', [
     ('/ranking', 'coin', 'Ranking'),
-  ] + ([(site.whatsappUrl, 'heart', 'WhatsApp')] if site.whatsappUrl else []) + ([(site.instagramUrl, 'gift', 'Instagram')] if site.instagramUrl else [])),
-] %}
+  ]),
+] + ([('comunidade', 'heart', 'Comunidade',
+    ([(site.whatsappUrl, 'heart', 'WhatsApp')] if site.whatsappUrl else []) + ([(site.instagramUrl, 'gift', 'Instagram')] if site.instagramUrl else []),
+  )] if (site.whatsappUrl or site.instagramUrl) else []) %}
 <header class="topbar">
   <button type="button" class="icon-btn" id="side-toggle" aria-label="Abrir ou recolher o menu" aria-controls="side">
     <span></span><span></span><span></span>
@@ -104,7 +105,7 @@
           <h4>Jogo</h4>
           <a href="/baixar">Download</a>
           <a href="/criar-conta">Criar conta</a>
-          <a href="/ranking">Ranking</a>
+          <a href="/loja">Loja</a>
         </div>
         <div>
           <h4>Wiki</h4>
@@ -112,6 +113,7 @@
           <a href="{{ wiki_url ~ '/index.php/Categoria:Criaturas' if wiki_url else '/wiki/criaturas' }}">Criaturas</a>
           <a href="{{ wiki_url ~ '/index.php/Categoria:Itens' if wiki_url else '/wiki/itens' }}">Itens</a>
           <a href="/wiki/servidor">Rates do servidor</a>
+          <a href="/ranking">Ranking</a>
         </div>
         <div>
           <h4>Novidades</h4>
