@@ -436,13 +436,22 @@ end
 function Player.getFinalBonusStamina(self)
 	local staminaBonus = 1
 	if configManager.getBoolean(configKeys.STAMINA_SYSTEM) then
-		local staminaMinutes = self:getStamina()
-		local greenMinutes = configManager.getNumber(configKeys.STAMINA_GREEN_MINUTES)
-		local lowMinutes = configManager.getNumber(configKeys.STAMINA_LOW_MINUTES)
-		if staminaMinutes > greenMinutes and self:isPremium() then
-			staminaBonus = configManager.getNumber(configKeys.STAMINA_GREEN_BONUS_PERCENT) / 100
-		elseif staminaMinutes <= lowMinutes then
-			staminaBonus = configManager.getNumber(configKeys.STAMINA_LOW_BONUS_PERCENT) / 100
+		-- The STAMINA_GREEN_MINUTES/STAMINA_LOW_MINUTES/*_BONUS_PERCENT config keys only exist
+		-- once the server binary has been rebuilt with them (see src/config/config_enums.hpp).
+		-- A binary still running an older build doesn't know these enum values, so
+		-- configManager.getNumber() errors ("Wrong enum") and, since this runs on every
+		-- login (creaturescripts/player/login.lua), it was kicking every player straight
+		-- back to the character list. pcall here keeps login working (falling back to no
+		-- stamina bonus) until the binary that has these keys is deployed.
+		local ok, staminaMinutes, greenMinutes, lowMinutes = pcall(function()
+			return self:getStamina(), configManager.getNumber(configKeys.STAMINA_GREEN_MINUTES), configManager.getNumber(configKeys.STAMINA_LOW_MINUTES)
+		end)
+		if ok then
+			if staminaMinutes > greenMinutes and self:isPremium() then
+				staminaBonus = configManager.getNumber(configKeys.STAMINA_GREEN_BONUS_PERCENT) / 100
+			elseif staminaMinutes <= lowMinutes then
+				staminaBonus = configManager.getNumber(configKeys.STAMINA_LOW_BONUS_PERCENT) / 100
+			end
 		end
 	end
 	return staminaBonus
