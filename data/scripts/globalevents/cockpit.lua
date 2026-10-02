@@ -304,6 +304,29 @@ actions.heal = function(player)
 	return true, "curado"
 end
 
+-- as 8 bencoes (1 = Twist of Fate, as outras reduzem perda de itens/skill); dar todas e o mesmo que o jogador
+-- comprar tudo com !bless, so que de graca e sem precisar de gold no banco
+actions.give_bless = function(player)
+	for i = 1, 8 do
+		if not player:hasBlessing(i) then
+			player:addBlessing(i, 1)
+		end
+	end
+	player:sendBlessStatus()
+	player:getPosition():sendMagicEffect(CONST_ME_HOLYAREA)
+	return true, "bencoes dadas"
+end
+
+actions.clear_bless = function(player)
+	for i = 1, 8 do
+		if player:hasBlessing(i) then
+			player:removeBlessing(i, 1)
+		end
+	end
+	player:sendBlessStatus()
+	return true, "bencoes removidas"
+end
+
 -- Enche a stamina (42h): jogador em 0 de stamina ganha 0% de XP, mesmo matando criatura.
 actions.stamina_full = function(player)
 	player:setStamina(2520)
