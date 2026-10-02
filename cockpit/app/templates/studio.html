@@ -105,6 +105,8 @@
         <button class="secondary small" hx-post="/acao" hx-vals='{"action":"heal","alvo":"{{ p.id }}"}' hx-target="#toast">Curar</button>
         <button class="secondary outline small" hx-post="/acao" hx-vals='{"action":"stamina_full","alvo":"{{ p.id }}"}' hx-target="#toast" title="Com a stamina em 0 não sobe XP nenhuma, mesmo matando criatura.">⏳ Encher stamina</button>
         <button class="secondary outline small" hx-post="/acao" hx-vals='{"action":"temple","alvo":"{{ p.id }}"}' hx-target="#toast">Templo</button>
+        <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_bless","alvo":"{{ p.id }}"}' hx-target="#toast" title="Dá as 8 bênçãos (igual ao !bless, de graça). Com elas, ele não perde itens nem skill ao morrer.">🙏 Dar bênçãos</button>
+        <button class="outline small danger" hx-post="/acao" hx-vals='{"action":"clear_bless","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Tirar todas as bênçãos de {{ p.name }}? Ele volta a perder itens e skill ao morrer.">🙏 Tirar bênçãos</button>
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"give_training","alvo":"{{ p.id }}"}' hx-target="#toast">🏋 Kit de treino</button>
         <button class="outline small" hx-post="/acao" hx-vals='{"action":"place_dummy","alvo":"{{ p.id }}"}' hx-target="#toast"
                 title="Cria um exercise dummy na frente do jogador. Fora de casa, some quando o servidor reinicia.">🎯 Dummy na frente</button>

@@ -295,6 +295,9 @@ ACTIONS = {
     "place_dummy": {},
     "give_trophy": {"text": True},
     "give_spins": {"arg1": (1, 100)},
+    "stamina_full": {},
+    "give_bless": {},
+    "clear_bless": {},
 }
 
 # Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
@@ -353,6 +356,7 @@ ACTION_LABELS = {
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
+    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos",
 }
 
 
