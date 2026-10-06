@@ -298,6 +298,7 @@ ACTIONS = {
     "stamina_full": {},
     "give_bless": {},
     "clear_bless": {},
+    "quest_queen_banshees": {},
 }
 
 # Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
@@ -356,7 +357,7 @@ ACTION_LABELS = {
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
-    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos",
+    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos", "quest_queen_banshees": "🗝 liberar quest (Queen of the Banshees)",
 }
 
 

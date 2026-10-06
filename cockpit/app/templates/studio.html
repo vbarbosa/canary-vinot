@@ -77,6 +77,19 @@
       </form>
     </details>
 
+    <details>
+      <summary>Quests (liberar acesso sem fazer a quest)</summary>
+      <p class="muted small">Catálogo com o que cada quest exige (item + ação) pra equipe conseguir ajudar manualmente, e um botão pra liberar de vez quando dá pra fazer isso com segurança.</p>
+      <table>
+        <tr><th>Quest</th><th>O que o jogador precisa fazer</th><th></th></tr>
+        <tr>
+          <td>The Queen of the Banshees</td>
+          <td class="small">Puzzle dos "7 selos" (acender chamas, trocar pérolas, puxar uma alavanca numa ordem certa e sobreviver aos warlocks) até chegar na sala final pra lutar com a Queen.</td>
+          <td><button class="outline small" hx-post="/acao" hx-vals='{"action":"quest_queen_banshees","alvo":"{{ p.id }}"}' hx-target="#toast" hx-confirm="Liberar {{ p.name }} direto pra sala final de The Queen of the Banshees, pulando os 7 selos?" title="Faz exatamente o que o jogo faz ao completar o último selo: marca os 7 selos como feitos e teleporta pra sala final.">🗝 Liberar acesso</button></td>
+        </tr>
+      </table>
+    </details>
+
     <details open>
       <summary>Presentes e brincadeiras</summary>
       <form class="row wrap" hx-post="/acao" hx-target="#toast">

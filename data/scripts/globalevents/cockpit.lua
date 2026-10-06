@@ -334,6 +334,31 @@ actions.stamina_full = function(player)
 	return true, "stamina cheia"
 end
 
+-- Libera o acesso final de The Queen of the Banshees sem fazer os 7 selos: copia exatamente o que o
+-- jogo faz ao completar o ultimo selo (data-otservbr-global/scripts/quests/the_queen_of_the_banshees/movement-7-last_seal_flame.lua)
+actions.quest_queen_banshees = function(player)
+	local banshees = Storage.Quest.U7_2.TheQueenOfTheBanshees
+	player:setStorageValue(banshees.FirstSeal, 1)
+	player:setStorageValue(banshees.SecondSeal, 1)
+	player:setStorageValue(banshees.ThirdSeal, 1)
+	player:setStorageValue(banshees.ThirdSealWarlocks, 1)
+	player:setStorageValue(banshees.FourthSeal, 1)
+	player:setStorageValue(banshees.FifthSealTile, 9)
+	player:setStorageValue(banshees.FifthSeal, 1)
+	player:setStorageValue(banshees.SixthSeal, 1)
+	player:setStorageValue(banshees.FirstSealDoor, -1)
+	player:setStorageValue(banshees.SecondSealDoor, -1)
+	player:setStorageValue(banshees.ThirdSealDoor, -1)
+	player:setStorageValue(banshees.FourthSealDoor, -1)
+	player:setStorageValue(banshees.FifthSealDoor, -1)
+	player:setStorageValue(banshees.SixthSealDoor, -1)
+	player:setStorageValue(banshees.LastSealDoor, -1)
+	player:setStorageValue(banshees.FinalBattle, 1)
+	player:teleportTo(Position(32269, 31853, 15))
+	player:getPosition():sendMagicEffect(CONST_ME_TELEPORT)
+	return true, "acesso liberado: queen of the banshees"
+end
+
 -- Ground with no blocking flag, so the player lands somewhere they can actually walk out of.
 local function walkable(pos)
 	local tile = Tile(pos)
