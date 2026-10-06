@@ -18,7 +18,7 @@ set -o pipefail
 
 while true; do
 	sleep 2
-	"$BIN_PATH" 2>&1 | awk '{ print strftime("%F %T - "),
+	stdbuf -oL -eL "$BIN_PATH" 2>&1 | awk '{ print strftime("%F %T - "),
 	$0; fflush(); }' | tee "logs/$(date +"%F %H-%M-%S.log")"
 	# Verificar se a tecla 'q' foi pressionada
     read -t 1 -N 1 -r input
