@@ -10,13 +10,26 @@
   function onDrop(evt) {
     const el = evt.item, zone = evt.to;
     el.remove();
-    if (zone.dataset.kitBuilder !== undefined) return addToKit(el.dataset.id, el.title);
+    sendToZone(zone, el.dataset.id, el.dataset.kit, el.title);
+  }
+
+  function sendToZone(zone, id, kitId, title) {
+    if (!zone) return;
+    if (zone.dataset.kitBuilder !== undefined) return addToKit(id, title);
     const alvo = zone.dataset.alvo;
-    if (el.dataset.kit) send({ action: "give_kit", alvo, arg1: el.dataset.kit });
-    else if (el.dataset.id) send({ action: "give_item", alvo, arg1: el.dataset.id, arg2: qty() });
+    if (kitId) send({ action: "give_kit", alvo, arg1: kitId });
+    else if (id) send({ action: "give_item", alvo, arg1: id, arg2: qty() });
     zone.classList.add("flash");
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
+
+  // Botão "enviar" no card do item: mesmo efeito do arrastar, sem precisar arrastar (ruim no celular/tablet).
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".item .send");
+    if (!b) return;
+    e.preventDefault();
+    sendToZone(document.querySelector(".drop"), b.dataset.id, b.closest(".item").dataset.kit, b.closest(".item").title);
+  });
 
   // Kit editor: add by dragging, change quantities, remove, or load an existing kit to edit or duplicate.
   let kit = [];

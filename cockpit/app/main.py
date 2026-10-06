@@ -1502,13 +1502,27 @@ def place_save(request: Request, nome: str = Form(...), nota: str = Form(""), x:
 
 
 @app.post("/teleporte/monstro", response_class=HTMLResponse)
-def spawn_monster(request: Request, nome: str = Form(...), x: int = Form(...), y: int = Form(...), z: int = Form(...)):
+async def spawn_monster(request: Request):
     user = require(request, post=True)
-    nome = nome.strip()[:64]
-    if not nome or not (0 <= z <= 15):
+    f = await request.form()
+    nome = str(f.get("nome", "")).strip()[:64]
+    x, y, z = clamp(f.get("x"), 0, 65535), clamp(f.get("y"), 0, 65535), clamp(f.get("z"), 0, 15)
+    if not nome:
         return toast("Dê o nome do monstro e uma posição válida.", ok=False)
     db.enqueue(user["account"], "spawn_monster", text=nome, arg1=x, arg2=y, arg3=z)
-    return toast("Pedido enviado. Solta no próximo minuto.")
+    ids = list(dict.fromkeys(int(i) for i in f.getlist("pid") if str(i).isdigit()))[:100]
+    levados = 0
+    if ids:
+        rows = db.all(f"SELECT p.id, p.name, o.player_id IS NOT NULL AS online FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id "
+                      f"WHERE p.id IN ({','.join(['%s'] * len(ids))})", *ids)
+        for r in rows:
+            if r["online"]:
+                db.enqueue(user["account"], "teleport", r["name"], x, y, z, text=f"junto com {nome}"[:100])
+            else:
+                db.run("UPDATE players SET posx = %s, posy = %s, posz = %s WHERE id = %s", x, y, z, r["id"])
+                db.audit(user["account"], "teleport_offline", r["name"], f"{x} {y} {z} junto com {nome}")
+            levados += 1
+    return toast(f"Pedido enviado. Solta no próximo minuto." + (f" {levados} jogador(es) vão pro mesmo lugar." if levados else ""))
 
 
 @app.post("/teleporte/{lid}/apagar", response_class=HTMLResponse)

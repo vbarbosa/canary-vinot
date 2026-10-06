@@ -66,8 +66,14 @@
           {% for o in online %}<option value="{{ o.posx }},{{ o.posy }},{{ o.posz }}">{{ o.name }} ({{ o.posx }}, {{ o.posy }}, {{ o.posz }})</option>{% endfor %}
         </select>
         {% endif %}
+        {% if online %}
+        <p class="small muted" style="margin:.6rem 0 .3rem">Teleportar junto:</p>
+        <div class="row wrap small">
+          {% for o in online %}<label class="row"><input type="checkbox" name="pid" value="{{ o.id }}">{{ o.name }}</label>{% endfor %}
+        </div>
+        {% endif %}
         <button>Soltar</button>
-        <p class="muted small">O nome tem que ser exatamente o do monstro (o filtro Criaturas aqui do lado ajuda a achar). Vale no próximo minuto.</p>
+        <p class="muted small">O nome tem que ser exatamente o do monstro (o filtro Criaturas aqui do lado ajuda a achar). Vale no próximo minuto. Quem for marcado acima é teleportado pro mesmo lugar.</p>
       </form>
     </article>
   </aside>
