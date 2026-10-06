@@ -1454,6 +1454,24 @@ def teleport_creature(request: Request, nome: str = "", q: str = ""):
                 count=sum(a["n"] for a in areas), q=q)
 
 
+@app.get("/teleporte/monstros", response_class=HTMLResponse)
+def monster_name_search(request: Request, q: str = ""):
+    """Options for the <datalist> of the spawn-monster field: every registered monster type, not just mapped spawns."""
+    user = require(request)
+    return page(request, "_monster_names.html", user, names=places.search_monster_names(q))
+
+
+@app.get("/teleporte/posicao", response_class=HTMLResponse)
+def teleport_position_search(request: Request, busca: str = ""):
+    """Any character (online or not) to copy their saved position from, for the spawn-monster destination."""
+    user = require(request)
+    busca = busca.strip()
+    rows = db.all("SELECT p.name, p.posx, p.posy, p.posz, o.player_id IS NOT NULL AS online FROM players p "
+                  "LEFT JOIN cockpit_online o ON o.player_id = p.id WHERE p.name LIKE %s ORDER BY online DESC, p.name LIMIT 10",
+                  "%" + busca.replace("%", "").replace("_", "\\_") + "%") if len(busca) >= 2 else []
+    return page(request, "_position_pick.html", user, rows=rows, busca=busca)
+
+
 @app.get("/mapa/{x}/{y}/{z}.png")
 def map_thumb(request: Request, x: int, y: int, z: int):
     require(request)
