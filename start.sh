@@ -18,8 +18,7 @@ set -o pipefail
 
 while true; do
 	sleep 2
-	stdbuf -oL -eL "$BIN_PATH" 2>&1 | awk '{ print strftime("%F %T - "),
-	$0; fflush(); }' | tee "logs/$(date +"%F %H-%M-%S.log")"
+	stdbuf -oL -eL "$BIN_PATH" 2>&1 | perl "$(dirname "$0")/docker/scripts/timestamp_prefix.pl" | tee "logs/$(date +"%F %H-%M-%S.log")"
 	# Verificar se a tecla 'q' foi pressionada
     read -t 1 -N 1 -r input
     if [[ "$input" == "q" ]]; then
