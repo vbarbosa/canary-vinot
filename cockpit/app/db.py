@@ -335,6 +335,24 @@ SCHEMA += [
         `updated_at` INT UNSIGNED NOT NULL DEFAULT 0,
         PRIMARY KEY (`player_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    # One row per raid launched from the panel (/raids/lançar). `ended_at`/status 'encerrada' are
+    # written by the Lua bridge itself once it removes the monsters (raid_cancel), same as cockpit_metin_active.
+    """CREATE TABLE IF NOT EXISTS `cockpit_raid_launches` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `raid_name` VARCHAR(191) NOT NULL,
+        `label` VARCHAR(191) NOT NULL DEFAULT '',
+        `kind` VARCHAR(16) NOT NULL DEFAULT '',
+        `monsters` VARCHAR(500) NOT NULL DEFAULT '',
+        `x` INT NOT NULL,
+        `y` INT NOT NULL,
+        `z` INT NOT NULL,
+        `status` VARCHAR(12) NOT NULL DEFAULT 'ativa',
+        `launched_by` VARCHAR(255) NOT NULL DEFAULT '',
+        `launched_at` INT UNSIGNED NOT NULL DEFAULT 0,
+        `ended_at` INT UNSIGNED NULL,
+        PRIMARY KEY (`id`),
+        KEY `cockpit_raid_launches_status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 
