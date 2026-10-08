@@ -295,6 +295,10 @@ ACTIONS = {
     "place_dummy": {},
     "give_trophy": {"text": True},
     "give_spins": {"arg1": (1, 100)},
+    "stamina_full": {},
+    "give_bless": {},
+    "clear_bless": {},
+    "quest_queen_banshees": {},
 }
 
 # Lasting exercise weapons (14400 charges each) by vocation; knights get all three melee types.
@@ -353,6 +357,7 @@ ACTION_LABELS = {
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
+    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos", "quest_queen_banshees": "🗝 liberar quest (Queen of the Banshees)",
 }
 
 
@@ -1449,6 +1454,24 @@ def teleport_creature(request: Request, nome: str = "", q: str = ""):
                 count=sum(a["n"] for a in areas), q=q)
 
 
+@app.get("/teleporte/monstros", response_class=HTMLResponse)
+def monster_name_search(request: Request, q: str = ""):
+    """Options for the <datalist> of the spawn-monster field: every registered monster type, not just mapped spawns."""
+    user = require(request)
+    return page(request, "_monster_names.html", user, names=places.search_monster_names(q))
+
+
+@app.get("/teleporte/posicao", response_class=HTMLResponse)
+def teleport_position_search(request: Request, busca: str = ""):
+    """Any character (online or not) to copy their saved position from, for the spawn-monster destination."""
+    user = require(request)
+    busca = busca.strip()
+    rows = db.all("SELECT p.name, p.posx, p.posy, p.posz, o.player_id IS NOT NULL AS online FROM players p "
+                  "LEFT JOIN cockpit_online o ON o.player_id = p.id WHERE p.name LIKE %s ORDER BY online DESC, p.name LIMIT 10",
+                  "%" + busca.replace("%", "").replace("_", "\\_") + "%") if len(busca) >= 2 else []
+    return page(request, "_position_pick.html", user, rows=rows, busca=busca)
+
+
 @app.get("/mapa/{x}/{y}/{z}.png")
 def map_thumb(request: Request, x: int, y: int, z: int):
     require(request)
@@ -1497,13 +1520,27 @@ def place_save(request: Request, nome: str = Form(...), nota: str = Form(""), x:
 
 
 @app.post("/teleporte/monstro", response_class=HTMLResponse)
-def spawn_monster(request: Request, nome: str = Form(...), x: int = Form(...), y: int = Form(...), z: int = Form(...)):
+async def spawn_monster(request: Request):
     user = require(request, post=True)
-    nome = nome.strip()[:64]
-    if not nome or not (0 <= z <= 15):
+    f = await request.form()
+    nome = str(f.get("nome", "")).strip()[:64]
+    x, y, z = clamp(f.get("x"), 0, 65535), clamp(f.get("y"), 0, 65535), clamp(f.get("z"), 0, 15)
+    if not nome:
         return toast("Dê o nome do monstro e uma posição válida.", ok=False)
     db.enqueue(user["account"], "spawn_monster", text=nome, arg1=x, arg2=y, arg3=z)
-    return toast("Pedido enviado. Solta no próximo minuto.")
+    ids = list(dict.fromkeys(int(i) for i in f.getlist("pid") if str(i).isdigit()))[:100]
+    levados = 0
+    if ids:
+        rows = db.all(f"SELECT p.id, p.name, o.player_id IS NOT NULL AS online FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id "
+                      f"WHERE p.id IN ({','.join(['%s'] * len(ids))})", *ids)
+        for r in rows:
+            if r["online"]:
+                db.enqueue(user["account"], "teleport", r["name"], x, y, z, text=f"junto com {nome}"[:100])
+            else:
+                db.run("UPDATE players SET posx = %s, posy = %s, posz = %s WHERE id = %s", x, y, z, r["id"])
+                db.audit(user["account"], "teleport_offline", r["name"], f"{x} {y} {z} junto com {nome}")
+            levados += 1
+    return toast(f"Pedido enviado. Solta no próximo minuto." + (f" {levados} jogador(es) vão pro mesmo lugar." if levados else ""))
 
 
 @app.post("/teleporte/{lid}/apagar", response_class=HTMLResponse)

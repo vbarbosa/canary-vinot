@@ -2,8 +2,8 @@
 
 The public portal (portal/app/shop.py) reads these `cockpit_settings` keys every 10 s:
   economy.shopOpen       "1" or "0"  the portal shows the shop (it also stays closed while there is no Pix key)
-  economy.coinPrice      "1.00"      price of ONE Tibia coin in reais (1.00 = the 1 para 1 start)
-  economy.premiumDayPrice "2.00"     price of ONE premium day in reais
+  economy.coinPrice      "0.05"      price of ONE Tibia coin in reais (started cheap: beginner/almost-volunteer server)
+  economy.premiumDayPrice "0.20"     price of ONE premium day in reais
   economy.pixKey         text        static Pix key; the buyer pays by hand and the staff checks it here
   economy.pixName        text        receiver name for the Pix code (max 25), optional
 
@@ -18,7 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from . import db
 
-DEFAULTS = {"shopOpen": "1", "coinPrice": "1.00", "premiumDayPrice": "2.00", "pixKey": "", "pixName": ""}
+DEFAULTS = {"shopOpen": "1", "coinPrice": "0.05", "premiumDayPrice": "0.20", "pixKey": "", "pixName": ""}
 # first version of this screen stored shop.*; moved once to the names the portal reads
 LEGACY = {"shop.enabled": "shopOpen", "shop.pix_key": "pixKey", "shop.pix_name": "pixName"}
 

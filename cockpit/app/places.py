@@ -127,6 +127,31 @@ def creature(name):
     return None, []
 
 
+MONSTER_NAME_RE = re.compile(r'Game\.createMonsterType\("([^"]+)"\)')
+
+
+@lru_cache(maxsize=1)
+def monster_names():
+    """Every monster type registered in the datapack (quest bosses included, not just the ones with a map spawn)."""
+    names = set()
+    for path in glob.glob(os.path.join(DATAPACK, "monster", "**", "*.lua"), recursive=True):
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                names.update(MONSTER_NAME_RE.findall(f.read()))
+        except OSError:
+            continue
+    return sorted(names)
+
+
+def search_monster_names(q, limit=30):
+    q = q.strip().lower()
+    if not q:
+        return []
+    res = [n for n in monster_names() if q in n.lower()]
+    res.sort(key=lambda n: (not n.lower().startswith(q), n.lower()))
+    return res[:limit]
+
+
 def landmarks():
     """Town temples, to say roughly where a spot is."""
     return [(t["name"], t["posx"], t["posy"]) for t in db.all("SELECT name, posx, posy FROM towns")]
