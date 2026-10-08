@@ -607,6 +607,27 @@ globalActions.start_raid = function(cmd)
 	return true, "raid solta"
 end
 
+-- Painel > Raids > Remover invasão. A raid/boss has no despawn timer of its own (see cockpit/app/raids.py,
+-- CANCEL_RADIUS), so "removing" it means sweeping its own monsters out by name near where it was launched.
+-- text = comma-separated monster names, arg1/2/3 = x/y/z of the launch, arg4 = the cockpit_raid_launches id.
+globalActions.raid_cancel = function(cmd)
+	local names = {}
+	for name in cmd.text:gmatch("[^,]+") do
+		names[name:lower()] = true
+	end
+	local radius = 50
+	local removed = 0
+	for _, creature in ipairs(Game.getSpectators(Position(cmd.arg1, cmd.arg2, cmd.arg3), false, false, radius, radius, radius, radius)) do
+		local monster = Monster(creature)
+		if monster and names[creature:getName():lower()] then
+			monster:remove()
+			removed = removed + 1
+		end
+	end
+	db.query(string.format("UPDATE `cockpit_raid_launches` SET `status` = 'encerrada', `ended_at` = %d WHERE `id` = %d AND `status` = 'ativa'", os.time(), cmd.arg4))
+	return true, removed .. " monstro(s) removido(s)"
+end
+
 -- Mini-games (scripts in cockpit_<kind>.lua). arg1-3 = arena centre, arg4 = radius,
 -- text = "id=..;kind=..;players=A|B;seconds=..;first=..;every=..;speed=..;prize=id:count,..;gold=.."
 globalActions.event_start = function(cmd)

@@ -179,3 +179,42 @@ def save_override(name, f):
 def legacy_on():
     r = db.one("SELECT v FROM cockpit_settings WHERE k = 'world.disableLegacyRaids'")
     return not (r and r["v"] == "1")
+
+
+# ---------------------------------------------------------------- launches (soltar agora / central table)
+# Every raid started from the panel (button or Agenda) gets a row here so it can show up as "ativa" and be
+# removed again. The bridge (raid_cancel in cockpit.lua) despawns the monsters and marks it 'encerrada' itself,
+# same pattern as cockpit_metin_active.
+
+CANCEL_RADIUS = 50  # sqm around the launch point swept for monsters to remove; same floor only
+
+
+def record_launch(actor, r):
+    """r is a row from all_raids()/get(). Returns the new launch id."""
+    return db.run(
+        "INSERT INTO cockpit_raid_launches (raid_name, label, kind, monsters, x, y, z, status, launched_by, launched_at) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,'ativa',%s,%s)",
+        r["name"], r["label"], r["kind"], ",".join(r["monsters"]), r["x"], r["y"], r["z"], actor, int(time.time()),
+    )
+
+
+def active_launches():
+    return db.all("SELECT * FROM cockpit_raid_launches WHERE status = 'ativa' ORDER BY launched_at DESC")
+
+
+def active_by_name():
+    return {r["raid_name"]: r for r in active_launches()}
+
+
+def extra_active():
+    """Active launches that aren't one of the known raids: ad-hoc bosses dropped from Teleporte > Soltar monstro."""
+    known = {r["name"] for r in all_raids()}
+    return [a for a in active_launches() if a["raid_name"] not in known]
+
+
+def cancel_launch(actor, launch_id):
+    r = db.one("SELECT * FROM cockpit_raid_launches WHERE id = %s AND status = 'ativa'", launch_id)
+    if not r:
+        return "Essa invasão já não está mais ativa."
+    db.enqueue(actor, "raid_cancel", text=r["monsters"], arg1=r["x"], arg2=r["y"], arg3=r["z"], arg4=launch_id)
+    return ""

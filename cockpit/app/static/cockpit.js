@@ -243,7 +243,8 @@
     }
     const pick = e.target.closest("[data-pick]");
     if (pick) {
-      document.querySelectorAll("#tp-form input[name=pid]").forEach(c => {
+      const scope = pick.closest("form") || document;
+      scope.querySelectorAll("input[name=pid]").forEach(c => {
         c.checked = (pick.dataset.pick === "all" && c.dataset.online === "1") || (pick.dataset.pick === "group" && c.dataset.group === "1");
       });
       return;
@@ -269,7 +270,7 @@
     }
     const add = e.target.closest("[data-add-who]");
     if (add) {
-      const o = JSON.parse(add.dataset.addWho), list = document.getElementById("pick-list");
+      const o = JSON.parse(add.dataset.addWho), list = (add.closest("dialog") || document).querySelector(".pick-list");
       let box = list.querySelector(`input[name=pid][value="${o.id}"]`);
       if (!box) {
         const li = document.createElement("li");
@@ -298,6 +299,16 @@
       document.getElementById("place-title").textContent = "⭐ Salvar um lugar";
       document.getElementById("place-save").textContent = "Salvar lugar";
       e.target.hidden = true;
+    } else if (e.target.id === "qt-use") {
+      const q = e.target.closest("#tp-quick"), form = document.getElementById("tp-form");
+      const x = q.querySelector("#qt-x").value, y = q.querySelector("#qt-y").value, z = q.querySelector("#qt-z").value;
+      if (x === "" || y === "" || z === "") return;
+      form.elements.x.value = x; form.elements.y.value = y; form.elements.z.value = z; form.elements.lugar.value = "";
+      document.querySelectorAll(".place.selected").forEach(c => c.classList.remove("selected"));
+      const dest = document.getElementById("tp-dest");
+      dest.classList.remove("muted");
+      dest.innerHTML = `<strong>${x}, ${y}, ${z}</strong><small class="muted">coordenada direta</small>`;
+      document.getElementById("tp-go").disabled = false;
     }
   });
   document.addEventListener("input", e => {
