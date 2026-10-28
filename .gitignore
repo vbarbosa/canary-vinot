@@ -408,3 +408,6 @@ portal/app/static/wiki/i/
 
 # written by the Cockpit panel (tela Mundo)
 cockpit-world.lua
+
+# Backups locais
+*.bak

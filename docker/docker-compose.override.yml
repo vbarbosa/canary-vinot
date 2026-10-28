@@ -1,0 +1,20 @@
+# Local (Oracle ARM): banco inicial do VinOT, build ARM, login compilado localmente
+# e portas publicadas so no IP do Tailscale (banco so em localhost)
+services:
+  database:
+    volumes:
+      - db-volume:/var/lib/mysql
+      - ../otserv-vinot.sql:/docker-entrypoint-initdb.d/init.sql
+    ports: !override
+      - 127.0.0.1:3306:3306
+  server:
+    build:
+      dockerfile: docker/Dockerfile.oracle
+    ports: !override
+      - 100.70.92.116:7171:7171
+      - 100.70.92.116:7172:7172
+  login:
+    image: vinot/login-server:local
+    ports: !override
+      - 100.70.92.116:8080:8080
+      - 127.0.0.1:9090:9090
