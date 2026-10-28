@@ -18,30 +18,32 @@
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
 
-  // Direct send: the search field holds "Nome (id)" or a bare id; resolve it to the item id before the request goes out.
-  document.addEventListener("htmx:configRequest", evt => {
-    const form = evt.detail.elt;
-    if (!form.matches || !form.matches("form[data-send-item]")) return;
-    const m = /\((\d+)\)\s*$/.exec(form.elements.busca.value) || /^\s*(\d+)\s*$/.exec(form.elements.busca.value);
-    if (!m) {
-      evt.preventDefault();
-      form.elements.busca.setCustomValidity("Escolha um item da lista ou digite o id.");
-      form.elements.busca.reportValidity();
-      form.elements.busca.addEventListener("input", () => form.elements.busca.setCustomValidity(""), { once: true });
-      return;
-    }
-    evt.detail.parameters.arg1 = m[1];
+  // Catalog: click selects an item or kit, Enviar sends it (with Qtd) to the player or group on screen.
+  const target = () => { const z = document.querySelector(".drop[data-alvo]"); return z && z.dataset.alvo; };
+  let picked = null;
+  function flashZone() {
+    const z = document.querySelector(".drop[data-alvo]");
+    if (!z) return;
+    z.classList.add("flash");
+    setTimeout(() => z.classList.remove("flash"), 600);
+  }
+  function sendPicked() {
+    const alvo = target();
+    if (!picked || !alvo) return;
+    send(picked.kit ? { action: "give_kit", alvo, arg1: picked.kit } : { action: "give_item", alvo, arg1: picked.id, arg2: qty() });
+    flashZone();
+  }
+  document.addEventListener("click", e => {
+    if (e.target.id === "send-selected") return sendPicked();
+    const it = e.target.closest(".catalog .item");
+    if (!it || !target()) return;
+    document.querySelectorAll(".catalog .item.picked").forEach(x => x.classList.remove("picked"));
+    it.classList.add("picked");
+    picked = { id: it.dataset.id, kit: it.dataset.kit, name: it.title || it.textContent.trim() };
+    document.getElementById("sel-name").textContent = picked.name;
+    document.getElementById("send-selected").disabled = false;
   });
-
-  // Double-click an item in the catalog to send it straight to the player on screen.
-  document.addEventListener("dblclick", e => {
-    const it = e.target.closest(".catalog .item[data-id]");
-    const zone = document.querySelector(".drop[data-alvo]");
-    if (!it || !zone || isNaN(zone.dataset.alvo)) return;
-    send({ action: "give_item", alvo: zone.dataset.alvo, arg1: it.dataset.id, arg2: qty() });
-    zone.classList.add("flash");
-    setTimeout(() => zone.classList.remove("flash"), 600);
-  });
+  document.addEventListener("dblclick", e => { if (e.target.closest(".catalog .item") && picked) sendPicked(); });
 
   // Kit editor: add by dragging, change quantities, remove, or load an existing kit to edit or duplicate.
   let kit = [];
@@ -166,6 +168,7 @@
   }
 
   function init(root) {
+    if (target()) root.querySelectorAll("#send-selected, #sel-name").forEach(el => { el.hidden = false; });
     (root.matches && root.matches("table.compact") ? [root] : [...root.querySelectorAll("table.compact")]).forEach(enhanceTable);
     root.querySelectorAll("[data-source]").forEach(el => {
       if (el._sortable) return;

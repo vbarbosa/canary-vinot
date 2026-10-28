@@ -476,15 +476,6 @@ def catalog(request: Request, q: str = "", cat: str = ""):
     return page(request, "_catalog.html", user, items=gamedata.search_items(q, cat))
 
 
-@app.get("/itens/opcoes", response_class=HTMLResponse)
-def item_options(request: Request, q: str = ""):
-    """<option>s for the direct-send item field: 'Nome (id)'."""
-    require(request)
-    if len(q.strip()) < 2:
-        return HTMLResponse("")
-    return HTMLResponse("".join(f'<option value="{html.escape(it["name"])} ({it["id"]})">' for it in gamedata.search_items(q, limit=30)))
-
-
 @app.get("/icone/{item_id}.png")
 def icon(item_id: int):
     path = os.path.join(ICON_DIR, f"{item_id}.png")
