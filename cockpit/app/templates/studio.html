@@ -13,7 +13,7 @@
       <div hx-get="/jogador/{{ p.id }}/ficha" hx-trigger="load"><p class="muted small">Carregando…</p></div>
     </details>
 
-    <div class="drop big" data-alvo="{{ p.id }}">Solte itens ou kits aqui para dar a {{ p.name }} (ou escolha no catálogo ao lado e clique em Enviar)</div>
+    <div class="drop big" data-alvo="{{ p.id }}" data-nome="{{ p.name }}">Solte itens ou kits aqui para dar a {{ p.name }} (ou escolha no catálogo ao lado e clique em Enviar)</div>
 
     {% if p.group_id < 6 %}
     <details>

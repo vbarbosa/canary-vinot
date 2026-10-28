@@ -7,11 +7,18 @@
     htmx.ajax("POST", "/acao", { values, target: "#toast", headers: { "X-CSRF-Token": csrf() } });
   }
 
+  // Every send from the catalog asks first: what, how many, and to whom.
+  function confirmSend(zone, what, n) {
+    const who = zone.dataset.nome || (zone.dataset.alvo === "turma" ? "toda a turma" : "o jogador #" + zone.dataset.alvo);
+    return window.confirm(`Enviar ${n ? n + "x " : ""}${what} para ${who}?`);
+  }
+
   function onDrop(evt) {
     const el = evt.item, zone = evt.to;
     el.remove();
     if (zone.dataset.kitBuilder !== undefined) return addToKit(el.dataset.id, el.title);
     const alvo = zone.dataset.alvo;
+    if (!(el.dataset.kit || el.dataset.id) || !confirmSend(zone, el.title || "item", el.dataset.kit ? 0 : qty())) return;
     if (el.dataset.kit) send({ action: "give_kit", alvo, arg1: el.dataset.kit });
     else if (el.dataset.id) send({ action: "give_item", alvo, arg1: el.dataset.id, arg2: qty() });
     zone.classList.add("flash");
@@ -29,7 +36,8 @@
   }
   function sendPicked() {
     const alvo = target();
-    if (!picked || !alvo) return;
+    const zone = document.querySelector(".drop[data-alvo]");
+    if (!picked || !alvo || !confirmSend(zone, picked.name, picked.kit ? 0 : qty())) return;
     send(picked.kit ? { action: "give_kit", alvo, arg1: picked.kit } : { action: "give_item", alvo, arg1: picked.id, arg2: qty() });
     flashZone();
   }
