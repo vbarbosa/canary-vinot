@@ -18,6 +18,31 @@
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
 
+  // Direct send: the search field holds "Nome (id)" or a bare id; resolve it to the item id before the request goes out.
+  document.addEventListener("htmx:configRequest", evt => {
+    const form = evt.detail.elt;
+    if (!form.matches || !form.matches("form[data-send-item]")) return;
+    const m = /\((\d+)\)\s*$/.exec(form.elements.busca.value) || /^\s*(\d+)\s*$/.exec(form.elements.busca.value);
+    if (!m) {
+      evt.preventDefault();
+      form.elements.busca.setCustomValidity("Escolha um item da lista ou digite o id.");
+      form.elements.busca.reportValidity();
+      form.elements.busca.addEventListener("input", () => form.elements.busca.setCustomValidity(""), { once: true });
+      return;
+    }
+    evt.detail.parameters.arg1 = m[1];
+  });
+
+  // Double-click an item in the catalog to send it straight to the player on screen.
+  document.addEventListener("dblclick", e => {
+    const it = e.target.closest(".catalog .item[data-id]");
+    const zone = document.querySelector(".drop[data-alvo]");
+    if (!it || !zone || isNaN(zone.dataset.alvo)) return;
+    send({ action: "give_item", alvo: zone.dataset.alvo, arg1: it.dataset.id, arg2: qty() });
+    zone.classList.add("flash");
+    setTimeout(() => zone.classList.remove("flash"), 600);
+  });
+
   // Kit editor: add by dragging, change quantities, remove, or load an existing kit to edit or duplicate.
   let kit = [];
   function renderKit() {

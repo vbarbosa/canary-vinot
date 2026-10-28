@@ -13,6 +13,16 @@
       <div hx-get="/jogador/{{ p.id }}/ficha" hx-trigger="load"><p class="muted small">Carregando…</p></div>
     </details>
 
+    <form class="row wrap" data-send-item hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.elements.busca.value=''">
+      <input type="hidden" name="action" value="give_item"><input type="hidden" name="alvo" value="{{ p.id }}"><input type="hidden" name="arg1">
+      <input name="busca" list="item-opcoes" placeholder="Item (nome ou id)" autocomplete="off" required
+             hx-get="/itens/opcoes" hx-target="#item-opcoes" hx-trigger="input changed delay:250ms" hx-vals="js:{q: event.target.value}">
+      <datalist id="item-opcoes"></datalist>
+      <label class="qty">Qtd <input name="arg2" type="number" value="1" min="1" max="1000" class="w6"></label>
+      <button>Enviar para {{ p.name }}</button>
+    </form>
+    <p class="muted small">Ou arraste do catálogo até a zona abaixo (a quantidade vem do campo Qtd do catálogo), ou dê dois cliques num item do catálogo.</p>
+
     <div class="drop big" data-alvo="{{ p.id }}">Solte itens ou kits aqui para dar a {{ p.name }}</div>
 
     {% if p.group_id < 6 %}
