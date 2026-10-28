@@ -492,3 +492,11 @@ label.inline input { margin: 0; }
 @media (max-width: 900px) { .side-grip { display: none; } }
 .portal > * { min-width: 0; }
 .chart-bar .seg { flex-wrap: wrap; }
+
+/* Direct item send: search, quantity and button on one line */
+.send-item { flex-wrap: nowrap; }
+.send-item > input[name=busca] { flex: 1 1 auto; min-width: 0; margin: 0; }
+.send-item .qty { display: flex; align-items: center; gap: .3rem; white-space: nowrap; margin: 0; }
+.send-item .qty input { width: 5rem !important; margin: 0; }
+.send-item button { margin: 0; width: auto; white-space: nowrap; }
+@media (max-width: 600px) { .send-item { flex-wrap: wrap; } .send-item > input[name=busca] { flex-basis: 100%; } }

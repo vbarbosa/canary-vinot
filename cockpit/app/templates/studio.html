@@ -13,7 +13,7 @@
       <div hx-get="/jogador/{{ p.id }}/ficha" hx-trigger="load"><p class="muted small">Carregando…</p></div>
     </details>
 
-    <form class="row wrap" data-send-item hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.elements.busca.value=''">
+    <form class="row send-item" data-send-item hx-post="/acao" hx-target="#toast" hx-on::after-request="if(event.detail.successful) this.elements.busca.value=''">
       <input type="hidden" name="action" value="give_item"><input type="hidden" name="alvo" value="{{ p.id }}"><input type="hidden" name="arg1">
       <input name="busca" list="item-opcoes" placeholder="Item (nome ou id)" autocomplete="off" required
              hx-get="/itens/opcoes" hx-target="#item-opcoes" hx-trigger="input changed delay:250ms" hx-vals="js:{q: event.target.value}">
