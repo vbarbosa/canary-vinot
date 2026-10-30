@@ -67,6 +67,7 @@ services:
       MYSQL_HOST: database
       PORTAL_GAME_HOST: server
       PORTAL_GAME_DATA: /gamedata
+      SMTP_PASSWORD_FILE: /run/secrets/smtp-password
     networks:
       - canary-net
     ports:
@@ -78,6 +79,14 @@ services:
       # Monster/item files for the Wiki (see portal/app/wiki.py); read-only, same source the game uses.
       - '../data:/gamedata/data:ro'
       - '../data-otservbr-global:/gamedata/data-otservbr-global:ro'
+      # SMTP password from the Vault, rendered to tmpfs by vinot-secrets.service (docker/systemd/).
+      # Without it the container fails closed instead of Docker creating an empty folder.
+      - type: bind
+        source: /run/vinot-secrets/portal
+        target: /run/secrets
+        read_only: true
+        bind:
+          create_host_path: false
     read_only: true
     tmpfs:
       - /tmp

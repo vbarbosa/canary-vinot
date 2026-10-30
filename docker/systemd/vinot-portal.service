@@ -1,0 +1,23 @@
+[Unit]
+Description=Portal VinOT (Docker Compose, só o serviço portal)
+# O portal monta /run/vinot-secrets sem criar a pasta: sem os segredos o container falha fechado e o Docker não o religa.
+# Esta unit espera o .ready e sobe o portal; se o Vault demorar ou falhar, tenta de novo.
+Requires=docker.service
+Wants=vinot-secrets.service
+After=docker.service vinot-secrets.service tailscaled.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=ubuntu
+WorkingDirectory=/home/ubuntu/GitHub/canary-vinot/docker
+# "+" = roda como root: /run/vinot-secrets é 0700 root.
+ExecStartPre=+/usr/bin/timeout 600 /bin/sh -c 'until [ -e /run/vinot-secrets/.ready ]; do sleep 5; done'
+ExecStart=/usr/bin/docker compose up -d portal
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,11 @@ HOST = os.environ.get("SMTP_HOST", "").strip()
 PORT = int(os.environ.get("SMTP_PORT", "587"))
 USER = os.environ.get("SMTP_USER", "")
 PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+# In production the password is a file on tmpfs (OCI Vault -> /run/vinot-secrets), not an env var.
+_PW_FILE = os.environ.get("SMTP_PASSWORD_FILE", "")
+if _PW_FILE:
+    with open(_PW_FILE) as fh:
+        PASSWORD = fh.read().strip()
 FROM = os.environ.get("MAIL_FROM", "nao-responda@barbosamaria.online")
 FROM_NAME = os.environ.get("MAIL_FROM_NAME", "VinOT")
 
