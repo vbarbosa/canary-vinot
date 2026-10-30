@@ -1,0 +1,28 @@
+# Segredos do OCI Vault em tmpfs (/run/vault-secrets/otbr, gerado pelo vault-secrets@otbr.service).
+# O entrypoint genérico carrega /run/secrets/vault/env, confere VAULT_REQUIRED e faz exec do entrypoint original.
+# Sem os segredos, o container não sobe (bind sem criar pasta; entrypoint sai com 78).
+x-vault: &vault-ep
+  type: bind
+  source: /usr/local/lib/vault-secrets/entrypoint.sh
+  target: /vault/entrypoint.sh
+  read_only: true
+services:
+  server:
+    entrypoint: ["/bin/sh", "/vault/entrypoint.sh", "/srv/canary/start.sh", "canary"]
+    environment: {VAULT_REQUIRED: "MYSQL_PASS"}
+    volumes:
+      - *vault-ep
+      - {type: bind, source: /run/vault-secrets/otbr/server, target: /run/secrets/vault, read_only: true, bind: {create_host_path: false}}
+  login:
+    entrypoint: ["/bin/sh", "/vault/entrypoint.sh", "/bin/login-server"]
+    environment: {VAULT_REQUIRED: "MYSQL_PASS"}
+    volumes:
+      - *vault-ep
+      - {type: bind, source: /run/vault-secrets/otbr/login, target: /run/secrets/vault, read_only: true, bind: {create_host_path: false}}
+  cockpit:
+    entrypoint: ["/bin/sh", "/vault/entrypoint.sh"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8090"]
+    environment: {VAULT_REQUIRED: "MYSQL_PASS COCKPIT_SECRET"}
+    volumes:
+      - *vault-ep
+      - {type: bind, source: /run/vault-secrets/otbr/cockpit, target: /run/secrets/vault, read_only: true, bind: {create_host_path: false}}

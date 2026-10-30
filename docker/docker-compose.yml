@@ -82,7 +82,7 @@ services:
       # SMTP password from the Vault, rendered to tmpfs by vinot-secrets.service (docker/systemd/).
       # Without it the container fails closed instead of Docker creating an empty folder.
       - type: bind
-        source: /run/vinot-secrets/portal
+        source: /run/vault-secrets/vinot-portal/portal
         target: /run/secrets
         read_only: true
         bind:
