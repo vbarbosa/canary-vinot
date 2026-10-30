@@ -14,8 +14,10 @@ Segredo (`SMTP_PASSWORD`): Vault `bm-streaming-vault`, compartimento `vinot-port
 
 **Como quitar.** Seguir `portal/README.md` (regra `vinot.barbosamaria.online` no túnel, `cloudflared tunnel route dns`, reinício do cloudflared) e então trocar `PORTAL_BASE_URL` e `PORTAL_DEV=0`. Antes de abrir, rever o interruptor de cadastros (`portal_signups`) e o Turnstile, descritos na seção Security do README do portal.
 
-## DT-3: o portal em produção é um container manual, de outro clone (aberto desde 30/10/2026)
+## DT-3: o portal em produção é um container manual (aberto desde 30/10/2026)
 
-**Situação.** O `vinot-portal` que serve o site foi criado à mão a partir de `~/vinot-portal` (outro clone, mais novo: wiki, caixa de conta, vocações) e não vem do `docker-compose.yml` deste repositório. Em 30/10 ele foi recriado à mão com o SMTP ligado (mesmo `mailer.py`, `SMTP_PASSWORD_FILE` e bind de `/run/vinot-secrets/portal`, `PORTAL_DEV=0`); o container anterior ficou parado como `vinot-portal-old` e a imagem anterior como `vinot-portal:rollback-20261030`. O `mailer.py` alterado está sem commit no clone `~/vinot-portal`. Como é container manual, ele não sobe sozinho no reboot sem `/run/vinot-secrets`: depois do boot, subir à mão. `docker/systemd/vinot-portal.service` existe mas **não foi instalado** (subiria o portal do compose por cima do manual).
+**Situação.** O `vinot-portal` que serve o site não vem do `docker-compose.yml` deste repositório: foi criado à mão a partir do clone `~/vinot-portal` (imagem `vinot-portal:latest`, porta `100.70.92.116:8091`). Em 30/10 o código do clone foi integrado ao `main` (commit `4bf175a`), o clone foi alinhado ao `origin/main` e o container foi recriado a partir dele, com o SMTP ligado (`SMTP_PASSWORD_FILE` e bind de `/run/vinot-secrets/portal`, `PORTAL_DEV=0`). Rollback: container parado `vinot-portal-old` e imagem `vinot-portal:rollback-20261030b`.
 
-**Como quitar.** Trazer o código de `~/vinot-portal` para este repositório (ou o contrário), subir o portal pelo compose com `PORTAL_BIND=100.70.92.116` e `PORTAL_DOWNLOADS_DIR=/home/ubuntu/vinot-downloads`, desligar o container manual, e então `./docker/systemd/install.sh app && ./install.sh boot`.
+**Pendente.** Como é container manual, não sobe sozinho no reboot sem `/run/vinot-secrets`: depois do boot, subir à mão. `docker/systemd/vinot-portal.service` existe mas **não foi instalado** (subiria o portal do compose por cima do manual).
+
+**Como quitar.** Subir o portal pelo compose com `PORTAL_BIND=100.70.92.116` e `PORTAL_DOWNLOADS_DIR=/home/ubuntu/vinot-downloads` (hoje o compose monta `../data*` deste repo, e o manual monta o clone), desligar o container manual, apagar o clone, e então `./docker/systemd/install.sh app && ./install.sh boot`.
