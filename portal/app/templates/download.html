@@ -19,7 +19,7 @@
 <section class="wrap section dl-section">
   <div class="dl-grid">
     {% for key, title, icon, sub, steps in plats %}
-    {% set f = current.files.get(key) if current else None %}
+    {% set rel, f = latest.get(key, (None, None)) %}
     {% set link = links.get(key) %}
     <div class="card dl-card">
       <div class="dl-head">
@@ -29,7 +29,7 @@
       {% if f %}
       <a class="btn big block" href="{{ f.url }}" download>Baixar pro {{ title }}</a>
       <dl class="dl-facts">
-        <div><dt>Versão</dt><dd>v{{ current.version }}</dd></div>
+        <div><dt>Versão</dt><dd>v{{ rel.version }}</dd></div>
         <div><dt>Tamanho</dt><dd>{{ size(f.size) }}</dd></div>
         <div><dt>Arquivo</dt><dd>{{ f.name }}</dd></div>
       </dl>

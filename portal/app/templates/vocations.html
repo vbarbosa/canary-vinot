@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Vocações · {{ site.serverName }}{% endblock %}
+{% block description %}As quatro vocações do {{ site.serverName }}: Sorcerer, Druid, Paladin e Knight.{% endblock %}
+{% block main %}
+{% include "_vocations.html" %}
+<section class="wrap section center-text">
+  <p class="muted">Escolheu? A vocação vem já no cadastro e dá pra ter até 5 personagens por conta.</p>
+  <div class="row wrap-row center-row">
+    <a class="btn" href="{{ '/conta' if me else '/criar-conta' }}">{{ 'Criar personagem' if me else 'Criar minha conta' }}</a>
+    <a class="btn ghost" href="{{ wiki_url ~ '/index.php/Categoria:Magias' if wiki_url else '/wiki' }}">Ver as magias</a>
+  </div>
+</section>
+{% endblock %}

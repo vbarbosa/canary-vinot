@@ -75,6 +75,27 @@
   </div>
 
   <aside class="sidebar">
+    <div class="box box-account">
+      {% if me %}
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Sua conta</h3>
+      <p class="muted small ellipsis">{{ me.email }}</p>
+      {% if mine %}
+      <ul class="kv">
+        <li><span>Premium</span><b>{% if mine.premium_until %}até {{ mine.premium_until | date }}{% else %}<a href="/loja">virar premium</a>{% endif %}</b></li>
+        <li><span>Tibia Coins</span><b>{{ mine.coins }}</b></li>
+        {% for c in mine.chars[:3] %}<li><span>{{ c.name }}</span><b>{{ vocation_names.get(c.vocation, '') }} {{ c.level }}</b></li>{% endfor %}
+      </ul>
+      {% endif %}
+      <a href="/conta" class="btn block">Minha conta</a>
+      <a href="/loja" class="box-link">Comprar coins ou premium</a>
+      {% else %}
+      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Acesso à conta</h3>
+      <a href="/entrar" class="btn block">Entrar</a>
+      {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
+      <a href="/esqueci" class="box-link">Esqueci a senha</a>
+      {% endif %}
+    </div>
+
     <div class="box">
       <h3 class="box-title"><img src="/static/px/torch.svg" alt="" class="px">Status do servidor</h3>
       <ul class="kv">
@@ -83,19 +104,6 @@
         <li><span>Recorde</span><b>{{ stats.record if stats else '—' }}</b></li>
         <li><span>Versão</span><b>13.40</b></li>
       </ul>
-    </div>
-
-    <div class="box">
-      {% if me %}
-      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Sua conta</h3>
-      <p class="muted small">Você já está conectado.</p>
-      <a href="/conta" class="btn block">Minha conta</a>
-      {% else %}
-      <h3 class="box-title"><img src="/static/px/key.svg" alt="" class="px">Acesso à conta</h3>
-      <a href="/entrar" class="btn block">Entrar</a>
-      {% if signups_open() %}<a href="/criar-conta" class="btn ghost block">Criar conta grátis</a>{% endif %}
-      <a href="/esqueci" class="box-link">Esqueci a senha</a>
-      {% endif %}
     </div>
 
     <div class="box">
@@ -110,43 +118,23 @@
   </aside>
 </div>
 
-<section class="band" id="vocacoes">
-  <div class="wrap section">
-    <div class="section-head center"><div><span class="eyebrow"><img src="/static/px/sword.svg" alt="" class="px">Escolha seu caminho</span><h2>Vocações</h2></div></div>
-    <div class="vocations">
-      {% for id, name in vocations.items() %}
-      {% set v = voc_info[id] %}
-      <a class="vocation v-{{ v.key }}" href="/criar-conta?vocacao={{ id }}">
-        <div class="voc-art"><img src="{{ hero_art[id] }}" alt="" class="px"></div>
-        <div class="voc-body">
-          <span class="voc-role">{{ v.role }}</span>
-          <h3>{{ name }}</h3>
-          <p>{{ blurbs[id] }}</p>
-          <ul class="bars">
-            {% for label, val in v.stats.items() %}<li><span>{{ label }}</span><i class="lv{{ val }}"></i></li>{% endfor %}
-          </ul>
-          <div class="voc-tags">{% for t in v.tags %}<span>{{ t }}</span>{% endfor %}</div>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
+{% include "_vocations.html" %}
 
 <section class="wrap section" id="bestiario">
   <div class="section-head">
     <div><span class="eyebrow"><img src="/static/px/skull.svg" alt="" class="px">Bestiário</span><h2>Criaturas que te esperam</h2><p class="muted">Do primeiro rato ao Orshabaal: um gostinho do que tem lá fora.</p></div>
+    <a href="{{ wiki_url ~ '/index.php/Categoria:Criaturas' if wiki_url else '/wiki/criaturas' }}" class="more">Bestiário completo</a>
   </div>
   <div class="bestiary" tabindex="0" aria-label="Criaturas">
     {% for slug, name, tier, blurb in creatures %}
-    <div class="creature tier-{{ tier }}">
+    <a class="creature tier-{{ tier }}" href="{{ wiki_url ~ '/index.php/' ~ (name | replace(' ', '_')) if wiki_url else '/wiki/criaturas/' ~ slug }}">
       <div class="lair"><img src="/static/creatures/{{ slug }}.png" alt="{{ name }}" class="px"></div>
       <div class="creature-body">
         <span class="tier-chip">{{ tiers[tier] }}</span>
         <h3>{{ name }}</h3>
         <p>{{ blurb }}</p>
       </div>
-    </div>
+    </a>
     {% endfor %}
   </div>
 </section>
