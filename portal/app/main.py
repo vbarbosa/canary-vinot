@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cms, db, downloads, mailer, shop
+from . import cms, db, downloads, emails, mailer, shop
 from . import wiki as wk
 from . import security as sec
 
@@ -342,38 +342,22 @@ def find_token(kind, token):
     )
 
 
-def email_html(title, lines, button, url):
-    body = "".join(f'<p style="margin:0 0 14px">{line}</p>' for line in lines)
-    return f"""<!doctype html><html><body style="margin:0;background:#15130f;padding:24px;font-family:Arial,sans-serif;color:#f2e6c9">
-<table role="presentation" width="100%" style="max-width:520px;margin:auto;background:#1f1b14;border:3px solid #d9a441;border-radius:6px">
-<tr><td style="padding:24px 28px">
-<img src="{BASE_URL}/static/apple-touch-icon.png" width="60" height="60" alt="VinOT" style="image-rendering:pixelated">
-<h1 style="color:#f3d27a;font-size:22px;margin:12px 0 16px">{title}</h1>{body}
-<p style="margin:22px 0"><a href="{url}" style="background:#d9a441;color:#15130f;padding:12px 20px;text-decoration:none;font-weight:bold;border-radius:4px">{button}</a></p>
-<p style="font-size:12px;color:#9a8f7c">Se o botão não funcionar, copie este link no navegador:<br>{url}</p>
-<p style="font-size:12px;color:#9a8f7c">Se não foi você, ignore este e-mail.</p>
-</td></tr></table></body></html>"""
-
-
-def send_confirmation(email, token):
+def send_confirmation(email, token, payload=None):
     url = f"{BASE_URL}/confirmar?t={token}"
-    text = (
-        "Falta pouco pra entrar no VinOT!\n\n"
-        f"Confirme seu e-mail abrindo o link abaixo (vale por {SIGNUP_HOURS} horas):\n{url}\n\n"
-        "Se não foi você que se cadastrou, ignore este e-mail."
-    )
-    html_body = email_html("Confirme sua conta", ["Falta pouco pra entrar no VinOT!",
-                           f"Clique no botão pra confirmar seu e-mail. O link vale por {SIGNUP_HOURS} horas."], "Confirmar e-mail", url)
-    mailer.send(email, "Confirme sua conta no VinOT", text, html_body)
+    payload = payload or {}
+    subject, text, html_body = emails.confirmation(BASE_URL, url, SIGNUP_HOURS, payload.get("name"), VOCATIONS.get(payload.get("voc")))
+    mailer.send(email, subject, text, html_body)
     return url
 
 
 def send_reset(email, token):
     url = f"{BASE_URL}/redefinir?t={token}"
-    text = f"Pra criar uma senha nova no VinOT, abra o link abaixo (vale por {RESET_MINUTES} minutos):\n{url}\n\nSe não foi você, ignore este e-mail."
-    html_body = email_html("Nova senha", [f"Recebemos um pedido pra trocar a senha da sua conta. O link vale por {RESET_MINUTES} minutos."], "Criar nova senha", url)
-    mailer.send(email, "Trocar a senha do VinOT", text, html_body)
+    mailer.send(email, *emails.reset(BASE_URL, url, RESET_MINUTES))
     return url
+
+
+def send_welcome(email, char=None, voc=None):
+    mailer.send(email, *emails.welcome(BASE_URL, char, voc, os.environ.get("PORTAL_WIKI_URL", "").rstrip("/")))
 
 
 _status = {"at": 0, "up": False}
@@ -645,7 +629,7 @@ def signup(
     signup_all.hit("all")
     payload = {"pw": sec.sha1(senha), "name": name, "sex": int(sexo), "voc": voc, "news": bool(novidades)}
     token = new_token("signup", email, payload, SIGNUP_HOURS * 3600, ip)
-    link = send_confirmation(email, token)
+    link = send_confirmation(email, token, payload)
     request.session["pending"] = email
     return page(request, "check_email.html", email=email, dev_link=link if DEV else None)
 
@@ -663,7 +647,7 @@ def resend(request: Request, email: str = Form(""), csrf: str = Form("")):
         # New token each time; the old link stops working.
         token = new_token("signup", email, json.loads(row["payload"]), SIGNUP_HOURS * 3600, ip)
         db.run("UPDATE portal_tokens SET sent_count = %s WHERE token_hash = %s", row["sent_count"] + 1, sec.token_hash(token))
-        link = send_confirmation(email, token)
+        link = send_confirmation(email, token, json.loads(row["payload"]))
     return page(request, "check_email.html", email=email, dev_link=link if DEV else None,
                 note="Se o cadastro estiver pendente, mandamos o link de novo. Olhe também o spam.")
 
@@ -691,6 +675,7 @@ def confirm(request: Request, t: str = ""):
     log.info("account %s confirmed (%s)", acc_id, row["email"])
     acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", acc_id)
     log_in(request, acc)
+    send_welcome(row["email"], data["name"] if char_ok else None, VOCATIONS.get(data["voc"]) if char_ok else None)
     if char_ok:
         flash(request, f"Conta confirmada! {data['name']} já está te esperando em Thais.")
     else:
