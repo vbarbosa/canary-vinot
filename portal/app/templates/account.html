@@ -19,7 +19,7 @@
     {% if premium_until or acc.premdays %}
     <div class="card stat"><img src="/static/px/chest.svg" alt="" class="px s32"><div><small>Premium</small><b>{% if premium_until %}até {{ premium_until | date }}{% else %}{{ acc.premdays }} dias{% endif %}</b></div></div>
     {% else %}
-    <a class="card stat" href="/loja"><img src="/static/px/chest.svg" alt="" class="px s32"><div><small>Premium</small><b>Conta grátis · Get Premium</b></div></a>
+    <a class="card stat" href="/loja"><img src="/static/px/chest.svg" alt="" class="px s32"><div><small>Premium</small><b>Conta grátis · virar premium</b></div></a>
     {% endif %}
     <div class="card stat"><img src="/static/px/coin.svg" alt="" class="px s32"><div><small>Tibia Coins</small><b>{{ acc.coins }}</b></div></div>
     <div class="card stat"><img src="/static/px/gift.svg" alt="" class="px s32"><div><small>Coins transferíveis</small><b>{{ acc.coins_transferable }}</b></div></div>
@@ -69,7 +69,15 @@
         <label>Repita <input type="password" name="senha2" required minlength="8" maxlength="64" autocomplete="new-password"></label>
       </div>
       <button class="btn ghost block" type="submit">Trocar senha</button>
-      <small class="hint">A senha nova também vale no jogo.</small>
+      <small class="hint">A senha nova também vale no jogo. Esqueceu a atual? <a href="/esqueci">Recuperar pelo e-mail</a>.</small>
+    </form>
+    <form method="post" action="/conta/email" class="card pad form" id="email">
+      <h2 class="title small-title"><img src="/static/px/scroll.svg" alt="" class="px s24"> Trocar e-mail</h2>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>E-mail novo <input type="email" name="email" required maxlength="255" autocomplete="email" placeholder="{{ acc.email }}"></label>
+      <label>Senha atual <input type="password" name="atual" required autocomplete="current-password"></label>
+      <button class="btn ghost block" type="submit">Trocar e-mail</button>
+      <small class="hint">O e-mail é o seu login, no site e no jogo.</small>
     </form>
   </div>
 </section>

@@ -357,7 +357,7 @@ ACTION_LABELS = {
     "apply_world": "🌍 mundo", "guild_balance": "🛡 banco da guild", "guild_motd": "🛡 mensagem da guild", "house_owner": "🔑 dono de casa",
     "house_rent": "💰 aluguel", "house_access": "👥 convidados de casa", "metin_spawn": "💎 soltar pedra Metin", "metin_remove": "💎 remover pedra Metin",
     "dungeon_auto": "🏯 ajuste de dungeon", "dungeon_free": "🏯 liberar sala", "dungeon_cooldown_reset": "🏯 zerar cooldown", "spawn_monster": "👹 soltar monstro",
-    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos", "quest_queen_banshees": "🗝 liberar quest (Queen of the Banshees)",
+    "give_bless": "🙏 dar bênçãos", "clear_bless": "🙏 tirar bênçãos", "quest_queen_banshees": "🗝 liberar quest (Queen of the Banshees)", "raid_cancel": "👹 remover invasão",
 }
 
 
@@ -565,6 +565,7 @@ def dispatch(actor, name, alvo, text, form, me=""):
         if not r:
             return False, "Raid desconhecida."
         db.enqueue(actor, "start_raid", text=r["name"])
+        raids.record_launch(actor, r)
         return True, f"Soltando a raid {r['label']} ({r['where']})."
 
     if name == "metin_spawn":
@@ -1402,15 +1403,14 @@ def _log_selection(pasta, arquivo, linhas=500, filtro=""):
 
 
 @app.get("/teleporte", response_class=HTMLResponse)
-def teleport_page(request: Request, q: str = "", tipo: str = ""):
+def teleport_page(request: Request, q: str = "", tipo: str = "", x: str = "", y: str = "", z: str = "", lugar: str = ""):
     user = require(request)
     online = db.all("SELECT o.player_id AS id, o.name, o.level, o.vocation, o.posx, o.posy, o.posz "
                     "FROM cockpit_online o ORDER BY o.name")
-    # who can go: everyone online, the group (online or not) and you; anyone else comes from the search box
-    who = db.all("SELECT p.id, p.name, p.level, o.player_id IS NOT NULL AS online, g.player_id IS NOT NULL AS in_group FROM players p "
-                 "LEFT JOIN cockpit_online o ON o.player_id = p.id LEFT JOIN cockpit_group g ON g.player_id = p.id "
-                 "WHERE o.player_id IS NOT NULL OR g.player_id IS NOT NULL OR p.name = %s ORDER BY online DESC, p.name", user["me"])
-    return page(request, "teleport.html", user, q=q, tipo=tipo, kinds=places.KINDS, online=online, who=who, **_place_list(q, tipo))
+    who = teleport_candidates(user["me"])
+    # a coordinate came in the link (📍 Teleportar on a raid/place card): pre-fill the destination, no click needed
+    preset = {"x": clamp(x, 0, 65535), "y": clamp(y, 0, 65535), "z": clamp(z, 0, 15), "lugar": lugar[:100]} if x and y and z else None
+    return page(request, "teleport.html", user, q=q, tipo=tipo, kinds=places.KINDS, online=online, who=who, preset=preset, **_place_list(q, tipo))
 
 
 @app.get("/teleporte/quem", response_class=HTMLResponse)
@@ -1528,6 +1528,7 @@ async def spawn_monster(request: Request):
     if not nome:
         return toast("Dê o nome do monstro e uma posição válida.", ok=False)
     db.enqueue(user["account"], "spawn_monster", text=nome, arg1=x, arg2=y, arg3=z)
+    raids.record_launch(user["account"], {"name": nome, "label": nome, "kind": "monstro", "monsters": [nome], "x": x, "y": y, "z": z})
     ids = list(dict.fromkeys(int(i) for i in f.getlist("pid") if str(i).isdigit()))[:100]
     levados = 0
     if ids:
@@ -1540,7 +1541,7 @@ async def spawn_monster(request: Request):
                 db.run("UPDATE players SET posx = %s, posy = %s, posz = %s WHERE id = %s", x, y, z, r["id"])
                 db.audit(user["account"], "teleport_offline", r["name"], f"{x} {y} {z} junto com {nome}")
             levados += 1
-    return toast(f"Pedido enviado. Solta no próximo minuto." + (f" {levados} jogador(es) vão pro mesmo lugar." if levados else ""))
+    return toast("Pedido enviado. Solta no próximo minuto. Dá pra remover depois na tela Raids." + (f" {levados} jogador(es) vão pro mesmo lugar." if levados else ""))
 
 
 @app.post("/teleporte/{lid}/apagar", response_class=HTMLResponse)
@@ -1700,7 +1701,7 @@ def raids_page(request: Request, q: str = "", tipo: str = ""):
     recent = db.all("SELECT text, status, result, created_at, created_by FROM cockpit_commands WHERE action = 'start_raid' ORDER BY id DESC LIMIT 8")
     labels = {r["name"]: r["label"] for r in raids.all_raids()}
     return page(request, "raids.html", user, rows=raids.search(q, tipo), q=q, tipo=tipo, recent=recent, labels=labels,
-                total=len(raids.all_raids()))
+                total=len(raids.all_raids()), active=raids.active_by_name(), extra=raids.extra_active())
 
 
 @app.get("/raids/auto", response_class=HTMLResponse)
@@ -1732,13 +1733,65 @@ async def raids_auto_save(request: Request):
 @app.get("/raids/lista", response_class=HTMLResponse)
 def raids_list(request: Request, q: str = "", tipo: str = ""):
     user = require(request)
-    return page(request, "_raids.html", user, rows=raids.search(q, tipo), q=q)
+    return page(request, "_raids.html", user, rows=raids.search(q, tipo), q=q, active=raids.active_by_name())
 
 
 @app.post("/raids/soltar", response_class=HTMLResponse)
 def raid_start(request: Request, nome: str = Form(...)):
     user = require(request, post=True)
     ok, msg = dispatch(user["account"], "start_raid", "", nome, {})
+    return toast(msg, ok=ok)
+
+
+@app.post("/raids/{lid}/remover", response_class=HTMLResponse)
+def raid_cancel(request: Request, lid: int):
+    user = require(request, post=True)
+    err = raids.cancel_launch(user["account"], lid)
+    if err:
+        return toast(err, ok=False)
+    return Response(headers={"HX-Redirect": "/raids"})
+
+
+def teleport_candidates(me):
+    """Everyone online, the group (online or not) and you: the base list the 'quem vai' picker starts with."""
+    return db.all(
+        "SELECT p.id, p.name, p.level, o.player_id IS NOT NULL AS online, g.player_id IS NOT NULL AS in_group FROM players p "
+        "LEFT JOIN cockpit_online o ON o.player_id = p.id LEFT JOIN cockpit_group g ON g.player_id = p.id "
+        "WHERE o.player_id IS NOT NULL OR g.player_id IS NOT NULL OR p.name = %s ORDER BY online DESC, p.name", me,
+    )
+
+
+@app.get("/raids/lancar", response_class=HTMLResponse)
+def raid_launch_dialog(request: Request, nome: str = ""):
+    """The 'Lançar invasão' dialog: raid info + optional 'levar jogadores junto'."""
+    user = require(request)
+    r = raids.get(nome)
+    if not r:
+        return HTMLResponse('<article><p class="toast err">Raid desconhecida.</p></article>')
+    return page(request, "_raid_launch.html", user, r=r, who=teleport_candidates(user["me"]))
+
+
+@app.post("/raids/lancar", response_class=HTMLResponse)
+async def raid_launch(request: Request):
+    """Starts a raid and, if asked, teleports the ticked players to where it happens first."""
+    user = require(request, post=True)
+    f = await request.form()
+    r = raids.get(str(f.get("nome", "")))
+    if not r:
+        return toast("Raid desconhecida.", ok=False)
+    ids = list(dict.fromkeys(int(i) for i in f.getlist("pid") if str(i).isdigit()))[:100]
+    rows = db.all(f"SELECT p.id, p.name, o.player_id IS NOT NULL AS online FROM players p LEFT JOIN cockpit_online o ON o.player_id = p.id "
+                  f"WHERE p.id IN ({','.join(['%s'] * len(ids))})", *ids) if ids else []
+    for row in rows:
+        if row["online"]:
+            db.enqueue(user["account"], "teleport", row["name"], r["x"], r["y"], r["z"], text=r["label"][:100])
+        else:
+            db.run("UPDATE players SET posx = %s, posy = %s, posz = %s WHERE id = %s", r["x"], r["y"], r["z"], row["id"])
+            db.audit(user["account"], "teleport_offline", row["name"], f"{r['x']} {r['y']} {r['z']} {r['label']}")
+    moved = len(rows)
+    ok, msg = dispatch(user["account"], "start_raid", "", r["name"], {})
+    if moved:
+        msg += f" {moved} jogador(es) levado(s) junto."
     return toast(msg, ok=ok)
 
 

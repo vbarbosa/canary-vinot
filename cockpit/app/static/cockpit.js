@@ -7,6 +7,12 @@
     htmx.ajax("POST", "/acao", { values, target: "#toast", headers: { "X-CSRF-Token": csrf() } });
   }
 
+  // Every send from the catalog asks first: what, how many, and to whom.
+  function confirmSend(zone, what, n) {
+    const who = zone.dataset.nome || (zone.dataset.alvo === "turma" ? "toda a turma" : "o jogador #" + zone.dataset.alvo);
+    return window.confirm(`Enviar ${n ? n + "x " : ""}${what} para ${who}?`);
+  }
+
   function onDrop(evt) {
     const el = evt.item, zone = evt.to;
     el.remove();
@@ -17,8 +23,9 @@
     if (!zone) return;
     if (zone.dataset.kitBuilder !== undefined) return addToKit(id, title);
     const alvo = zone.dataset.alvo;
+    if (!(kitId || id) || !confirmSend(zone, title || "item", kitId ? 0 : qty())) return;
     if (kitId) send({ action: "give_kit", alvo, arg1: kitId });
-    else if (id) send({ action: "give_item", alvo, arg1: id, arg2: qty() });
+    else send({ action: "give_item", alvo, arg1: id, arg2: qty() });
     zone.classList.add("flash");
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
@@ -28,8 +35,37 @@
     const b = e.target.closest(".item .send");
     if (!b) return;
     e.preventDefault();
-    sendToZone(document.querySelector(".drop"), b.dataset.id, b.closest(".item").dataset.kit, b.closest(".item").title);
+    sendToZone(document.querySelector(".drop[data-alvo]"), b.dataset.id, b.closest(".item").dataset.kit, b.closest(".item").title);
   });
+
+  // Catalog: click selects an item or kit, Enviar sends it (with Qtd) to the player or group on screen.
+  const target = () => { const z = document.querySelector(".drop[data-alvo]"); return z && z.dataset.alvo; };
+  let picked = null;
+  function flashZone() {
+    const z = document.querySelector(".drop[data-alvo]");
+    if (!z) return;
+    z.classList.add("flash");
+    setTimeout(() => z.classList.remove("flash"), 600);
+  }
+  function sendPicked() {
+    const alvo = target();
+    const zone = document.querySelector(".drop[data-alvo]");
+    if (!picked || !alvo || !confirmSend(zone, picked.name, picked.kit ? 0 : qty())) return;
+    send(picked.kit ? { action: "give_kit", alvo, arg1: picked.kit } : { action: "give_item", alvo, arg1: picked.id, arg2: qty() });
+    flashZone();
+  }
+  document.addEventListener("click", e => {
+    if (e.target.id === "send-selected") return sendPicked();
+    if (e.target.closest(".item .send")) return;
+    const it = e.target.closest(".catalog .item");
+    if (!it || !target()) return;
+    document.querySelectorAll(".catalog .item.picked").forEach(x => x.classList.remove("picked"));
+    it.classList.add("picked");
+    picked = { id: it.dataset.id, kit: it.dataset.kit, name: it.title || it.textContent.trim() };
+    document.getElementById("sel-name").textContent = picked.name;
+    document.getElementById("send-selected").disabled = false;
+  });
+  document.addEventListener("dblclick", e => { if (e.target.closest(".catalog .item") && picked) sendPicked(); });
 
   // Kit editor: add by dragging, change quantities, remove, or load an existing kit to edit or duplicate.
   let kit = [];
@@ -154,6 +190,7 @@
   }
 
   function init(root) {
+    if (target()) root.querySelectorAll("#send-selected, #sel-name").forEach(el => { el.hidden = false; });
     (root.matches && root.matches("table.compact") ? [root] : [...root.querySelectorAll("table.compact")]).forEach(enhanceTable);
     root.querySelectorAll("[data-source]").forEach(el => {
       if (el._sortable) return;
@@ -256,7 +293,8 @@
     }
     const pick = e.target.closest("[data-pick]");
     if (pick) {
-      document.querySelectorAll("#tp-form input[name=pid]").forEach(c => {
+      const scope = pick.closest("form") || document;
+      scope.querySelectorAll("input[name=pid]").forEach(c => {
         c.checked = (pick.dataset.pick === "all" && c.dataset.online === "1") || (pick.dataset.pick === "group" && c.dataset.group === "1");
       });
       return;
@@ -282,7 +320,7 @@
     }
     const add = e.target.closest("[data-add-who]");
     if (add) {
-      const o = JSON.parse(add.dataset.addWho), list = document.getElementById("pick-list");
+      const o = JSON.parse(add.dataset.addWho), list = (add.closest("dialog") || document).querySelector(".pick-list");
       let box = list.querySelector(`input[name=pid][value="${o.id}"]`);
       if (!box) {
         const li = document.createElement("li");
@@ -311,6 +349,16 @@
       document.getElementById("place-title").textContent = "⭐ Salvar um lugar";
       document.getElementById("place-save").textContent = "Salvar lugar";
       e.target.hidden = true;
+    } else if (e.target.id === "qt-use") {
+      const q = e.target.closest("#tp-quick"), form = document.getElementById("tp-form");
+      const x = q.querySelector("#qt-x").value, y = q.querySelector("#qt-y").value, z = q.querySelector("#qt-z").value;
+      if (x === "" || y === "" || z === "") return;
+      form.elements.x.value = x; form.elements.y.value = y; form.elements.z.value = z; form.elements.lugar.value = "";
+      document.querySelectorAll(".place.selected").forEach(c => c.classList.remove("selected"));
+      const dest = document.getElementById("tp-dest");
+      dest.classList.remove("muted");
+      dest.innerHTML = `<strong>${x}, ${y}, ${z}</strong><small class="muted">coordenada direta</small>`;
+      document.getElementById("tp-go").disabled = false;
     }
   });
   document.addEventListener("input", e => {

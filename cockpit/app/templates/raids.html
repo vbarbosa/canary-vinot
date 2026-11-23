@@ -16,6 +16,26 @@
       </div>
     </form>
     <div id="raids">{% include "_raids.html" %}</div>
+    {% if extra %}
+    <h4 class="small muted" style="margin-top:1.2rem">👹 Outros monstros soltos (Teleporte &gt; Soltar monstro)</h4>
+    <table class="compact">
+      <thead><tr><th>Nome</th><th>Quando</th><th>Local</th><th>Criador</th><th></th></tr></thead>
+      <tbody>
+        {% for a in extra %}
+        <tr>
+          <td><strong>{{ a.label }}</strong></td>
+          <td class="small"><span data-ts="{{ a.launched_at }}"></span></td>
+          <td class="mono small">{{ a.x }}, {{ a.y }}, {{ a.z }}</td>
+          <td class="small">{{ a.launched_by }}</td>
+          <td class="row wrap small">
+            <button class="outline small danger" hx-post="/raids/{{ a.id }}/remover" hx-target="#toast" hx-confirm="Remover {{ a.label }} do jogo agora?">🗑 Remover</button>
+            <a class="outline small" role="button" href="/teleporte?x={{ a.x }}&y={{ a.y }}&z={{ a.z }}&lugar={{ a.label|urlencode }}">📍 Teleportar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
   </section>
   <aside class="tp-side">
     <article class="panel">
@@ -30,4 +50,5 @@
     </article>
   </aside>
 </div>
+<dialog id="raid-launch-dialog" hx-on::after-swap="this.showModal()" onclick="if(event.target === this) this.close()"></dialog>
 {% endblock %}

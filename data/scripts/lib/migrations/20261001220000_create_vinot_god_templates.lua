@@ -130,7 +130,7 @@ local function createTemplate(vocationId, config, accountId)
 	local manamax = BASE_MANA + (TARGET_LEVEL - 1) * config.gainMana
 	local cap = BASE_CAP + (TARGET_LEVEL - 1) * config.gainCap
 
-	local inserted = db.query("INSERT INTO `players` (`name`, `group_id`, `account_id`, `level`, `vocation`, `health`, `healthmax`, `mana`, `manamax`, `cap`, `sex`, `town_id`, `conditions`) VALUES (" .. db.escapeString(name) .. ", 1, " .. accountId .. ", 1, " .. vocationId .. ", " .. healthmax .. ", " .. healthmax .. ", " .. manamax .. ", " .. manamax .. ", " .. cap .. ", 1, 1, '')")
+	local inserted = db.query("INSERT INTO `players` (`name`, `group_id`, `account_id`, `level`, `vocation`, `health`, `healthmax`, `mana`, `manamax`, `cap`, `sex`, `town_id`, `conditions`, `comment`) VALUES (" .. db.escapeString(name) .. ", 1, " .. accountId .. ", 1, " .. vocationId .. ", " .. healthmax .. ", " .. healthmax .. ", " .. manamax .. ", " .. manamax .. ", " .. cap .. ", 1, 1, '', '')")
 
 	if not inserted then
 		logger.error("[vinot] Template failed: could not insert player row for '{}'.", name)
@@ -181,7 +181,7 @@ local function createTemplate(vocationId, config, accountId)
 	logger.info("[vinot] Created level {} '{}' on account '{}'.", TARGET_LEVEL, name, GOD_ACCOUNT_NAME)
 end
 
-local migration = Migration("20260928010000_create_vinot_god_templates")
+local migration = Migration("20261001220000_create_vinot_god_templates")
 
 function migration:onExecute()
 	local accountResult = db.storeQuery("SELECT `id` FROM `accounts` WHERE `name` = " .. db.escapeString(GOD_ACCOUNT_NAME))

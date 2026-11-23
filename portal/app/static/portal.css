@@ -74,7 +74,7 @@ p { margin: 0 0 1em; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font: 800 1.3rem var(--serif); letter-spacing: .04em; }
 .brand:hover { color: var(--gold-2); }
 .topbar .brand img { width: 24px; height: 24px; opacity: .85; }
-.top-actions { margin-left: auto; display: flex; gap: 8px; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .icon-btn { display: grid; gap: 4px; place-content: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03); cursor: pointer; padding: 0; }
 .icon-btn span { width: 18px; height: 2px; border-radius: 2px; background: #d8dbe3; }
 .icon-btn:hover { border-color: rgba(232, 182, 76, .5); }
@@ -325,9 +325,9 @@ p { margin: 0 0 1em; }
 .creature {
   --tc: var(--green);
   scroll-snap-align: start; border-radius: var(--radius); overflow: hidden; background: var(--panel); border: 1px solid var(--line);
-  transition: transform .2s, border-color .2s;
+  transition: transform .2s, border-color .2s; display: block; color: var(--text);
 }
-.creature:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--tc) 60%, transparent); }
+.creature:hover { color: var(--text); transform: translateY(-4px); border-color: color-mix(in srgb, var(--tc) 60%, transparent); }
 .tier-1 { --tc: #8bc34a; } .tier-2 { --tc: var(--blue); } .tier-3 { --tc: #b26cf0; } .tier-4 { --tc: var(--ember); } .tier-5 { --tc: var(--red); }
 .lair { height: 170px; display: grid; place-items: center; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent), linear-gradient(180deg, #1c2130, #141824); }
 .lair img { max-height: 140px; max-width: 80%; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, .5)); transition: transform .3s; }
@@ -687,3 +687,14 @@ input[aria-invalid=true] { border-color: var(--red); }
 .immun-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
 .chip-tiny { font-size: .72rem; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); }
 @media (max-width: 900px) { .wiki-layout { grid-template-columns: 1fr; } .wiki-infobox { position: static; } }
+.mb-28 { margin-bottom: 28px; }
+.changelog li, .dl-facts dd, .release-badge b { overflow-wrap: anywhere; }
+.label:has(> img) { display: flex; align-items: center; gap: 8px; }
+.label > img, .shop-form .label img { width: 22px; height: 22px; flex: none; }
+.inline-form { display: inline; margin: 0; }
+.center-row { justify-content: center; }
+.top-actions .btn { white-space: nowrap; }
+@media (max-width: 400px) { .topbar .brand span { display: none; } }
+.box-account .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: -4px 0 10px; }
+.box-account .kv { margin-bottom: 14px; }
+.box-account .btn + .box-link { margin-top: 10px; }

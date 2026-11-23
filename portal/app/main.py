@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cms, db, downloads, mailer, shop
+from . import cms, db, downloads, emails, mailer, shop
 from . import wiki as wk
 from . import security as sec
 
@@ -211,7 +211,23 @@ def page(request, name, status_code=200, **ctx):
     ctx.setdefault("me", _me(request))
     ctx["csrf"] = sec.csrf_token(request.session)
     ctx["path"] = request.url.path
+    ctx["full_path"] = request.url.path + (f"?{request.url.query}" if request.url.query else "")
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
+
+
+def menu_active(href, path, full_path, hrefs):
+    """Which side-menu link is the current page. An exact match (query included, e.g. Eventos =
+    /noticias?categoria=evento) wins; otherwise a plain link is active on its page and its subpages."""
+    if full_path in hrefs:
+        return href == full_path
+    if "?" in href or "#" in href or href.startswith("http"):
+        return False
+    if href == "/":
+        return path == "/"
+    return path == href or path.startswith(href.rstrip("/") + "/")
+
+
+templates.env.globals["menu_active"] = menu_active
 
 
 def _me(request):
@@ -326,38 +342,22 @@ def find_token(kind, token):
     )
 
 
-def email_html(title, lines, button, url):
-    body = "".join(f'<p style="margin:0 0 14px">{line}</p>' for line in lines)
-    return f"""<!doctype html><html><body style="margin:0;background:#15130f;padding:24px;font-family:Arial,sans-serif;color:#f2e6c9">
-<table role="presentation" width="100%" style="max-width:520px;margin:auto;background:#1f1b14;border:3px solid #d9a441;border-radius:6px">
-<tr><td style="padding:24px 28px">
-<img src="{BASE_URL}/static/apple-touch-icon.png" width="60" height="60" alt="VinOT" style="image-rendering:pixelated">
-<h1 style="color:#f3d27a;font-size:22px;margin:12px 0 16px">{title}</h1>{body}
-<p style="margin:22px 0"><a href="{url}" style="background:#d9a441;color:#15130f;padding:12px 20px;text-decoration:none;font-weight:bold;border-radius:4px">{button}</a></p>
-<p style="font-size:12px;color:#9a8f7c">Se o botão não funcionar, copie este link no navegador:<br>{url}</p>
-<p style="font-size:12px;color:#9a8f7c">Se não foi você, ignore este e-mail.</p>
-</td></tr></table></body></html>"""
-
-
-def send_confirmation(email, token):
+def send_confirmation(email, token, payload=None):
     url = f"{BASE_URL}/confirmar?t={token}"
-    text = (
-        "Falta pouco pra entrar no VinOT!\n\n"
-        f"Confirme seu e-mail abrindo o link abaixo (vale por {SIGNUP_HOURS} horas):\n{url}\n\n"
-        "Se não foi você que se cadastrou, ignore este e-mail."
-    )
-    html_body = email_html("Confirme sua conta", ["Falta pouco pra entrar no VinOT!",
-                           f"Clique no botão pra confirmar seu e-mail. O link vale por {SIGNUP_HOURS} horas."], "Confirmar e-mail", url)
-    mailer.send(email, "Confirme sua conta no VinOT", text, html_body)
+    payload = payload or {}
+    subject, text, html_body = emails.confirmation(BASE_URL, url, SIGNUP_HOURS, payload.get("name"), VOCATIONS.get(payload.get("voc")))
+    mailer.send(email, subject, text, html_body)
     return url
 
 
 def send_reset(email, token):
     url = f"{BASE_URL}/redefinir?t={token}"
-    text = f"Pra criar uma senha nova no VinOT, abra o link abaixo (vale por {RESET_MINUTES} minutos):\n{url}\n\nSe não foi você, ignore este e-mail."
-    html_body = email_html("Nova senha", [f"Recebemos um pedido pra trocar a senha da sua conta. O link vale por {RESET_MINUTES} minutos."], "Criar nova senha", url)
-    mailer.send(email, "Trocar a senha do VinOT", text, html_body)
+    mailer.send(email, *emails.reset(BASE_URL, url, RESET_MINUTES))
     return url
+
+
+def send_welcome(email, char=None, voc=None):
+    mailer.send(email, *emails.welcome(BASE_URL, char, voc, os.environ.get("PORTAL_WIKI_URL", "").rstrip("/")))
 
 
 _status = {"at": 0, "up": False}
@@ -399,12 +399,31 @@ def top_players(limit=5):
 # ---------------------------------------------------------------- public pages
 
 
+@app.get("/vocacoes", response_class=HTMLResponse)
+def vocations_page(request: Request):
+    return page(request, "vocations.html", vocations=VOCATIONS, blurbs=VOCATION_BLURB)
+
+
+def account_summary(me):
+    """What the home page shows about the logged-in account: coins, premium and characters."""
+    if not me:
+        return None
+    try:
+        acc = db.one("SELECT coins, premdays, lastday FROM accounts WHERE id = %s", me["id"])
+        chars = db.all("SELECT name, level, vocation FROM players WHERE account_id = %s AND deletion = 0 ORDER BY level DESC, name", me["id"])
+    except Exception:
+        return None
+    premium = acc and acc["lastday"] and acc["lastday"] > time.time()
+    return {"coins": acc["coins"] if acc else 0, "premium_until": acc["lastday"] if premium else 0, "chars": chars}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
+    me = _me(request)
     return page(
-        request, "index.html", home=cms.home(), posts=cms.posts(limit=3), promos=cms.promotions(),
+        request, "index.html", me=me, home=cms.home(), posts=cms.posts(limit=3), promos=cms.promotions(),
         stats=stats(), top=top_players(), vocations=VOCATIONS, blurbs=VOCATION_BLURB, flash=pop_flash(request),
-        creatures=CREATURES, tiers=TIERS,
+        creatures=CREATURES, tiers=TIERS, mine=account_summary(me),
     )
 
 
@@ -413,8 +432,13 @@ def download_page(request: Request):
     site = cms.settings()
     rels = downloads.releases()
     links = {k: site.get(v) for k, v in (("windows", "clientWindowsUrl"), ("android", "clientAndroidUrl")) if site.get(v)}
+    # each platform shows its newest file, even when the newest release only has the other platform
+    latest = {}
+    for r in rels:
+        for plat, f in r["files"].items():
+            latest.setdefault(plat, (r, f))
     return page(request, "download.html", site=site, releases=rels, current=rels[0] if rels else None, links=links,
-                size=downloads.human_size, sha=downloads.sha256)
+                latest=latest, size=downloads.human_size, sha=downloads.sha256)
 
 
 @app.get("/baixar/{platform}")
@@ -605,7 +629,7 @@ def signup(
     signup_all.hit("all")
     payload = {"pw": sec.sha1(senha), "name": name, "sex": int(sexo), "voc": voc, "news": bool(novidades)}
     token = new_token("signup", email, payload, SIGNUP_HOURS * 3600, ip)
-    link = send_confirmation(email, token)
+    link = send_confirmation(email, token, payload)
     request.session["pending"] = email
     return page(request, "check_email.html", email=email, dev_link=link if DEV else None)
 
@@ -623,7 +647,7 @@ def resend(request: Request, email: str = Form(""), csrf: str = Form("")):
         # New token each time; the old link stops working.
         token = new_token("signup", email, json.loads(row["payload"]), SIGNUP_HOURS * 3600, ip)
         db.run("UPDATE portal_tokens SET sent_count = %s WHERE token_hash = %s", row["sent_count"] + 1, sec.token_hash(token))
-        link = send_confirmation(email, token)
+        link = send_confirmation(email, token, json.loads(row["payload"]))
     return page(request, "check_email.html", email=email, dev_link=link if DEV else None,
                 note="Se o cadastro estiver pendente, mandamos o link de novo. Olhe também o spam.")
 
@@ -651,6 +675,7 @@ def confirm(request: Request, t: str = ""):
     log.info("account %s confirmed (%s)", acc_id, row["email"])
     acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", acc_id)
     log_in(request, acc)
+    send_welcome(row["email"], data["name"] if char_ok else None, VOCATIONS.get(data["voc"]) if char_ok else None)
     if char_ok:
         flash(request, f"Conta confirmada! {data['name']} já está te esperando em Thais.")
     else:
@@ -933,6 +958,38 @@ def account_password(request: Request, atual: str = Form(""), senha: str = Form(
     acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", me["id"])
     log_in(request, acc)  # keeps this browser logged in; every other session ends
     flash(request, "Senha trocada! Use a nova no jogo também.")
+    return redirect("/conta")
+
+
+@app.post("/conta/email", response_class=HTMLResponse)
+def account_email(request: Request, email: str = Form(""), atual: str = Form(""), csrf: str = Form("")):
+    me = current_account(request)
+    if not me:
+        return redirect("/entrar")
+    ip = sec.client_ip(request)
+    email = email.strip().lower()
+    problem = None
+    if bad_csrf(request, csrf):
+        problem = "A página expirou. Tente de novo."
+    elif login_ip.blocked(ip):
+        problem = "Muitas tentativas. Espere 10 minutos."
+    elif not EMAIL_RE.match(email) or len(email) > 255:
+        problem = "Esse e-mail não parece certo."
+    elif not sec.password_ok(me["password"], atual):
+        login_ip.hit(ip)
+        problem = "A senha atual está errada."
+    elif email == (me["email"] or "").lower():
+        problem = "Esse já é o seu e-mail."
+    elif db.one("SELECT 1 AS x FROM accounts WHERE email = %s", email):
+        problem = "Esse e-mail já é de outra conta."
+    if problem:
+        flash(request, problem, "err")
+        return redirect("/conta#email")
+    db.run("UPDATE accounts SET email = %s WHERE id = %s", email, me["id"])
+    log.info("account %s changed e-mail", me["id"])
+    acc = db.one("SELECT id, name, email, password FROM accounts WHERE id = %s", me["id"])
+    log_in(request, acc)
+    flash(request, "E-mail trocado! Use o novo pra entrar no site e no jogo.")
     return redirect("/conta")
 
 

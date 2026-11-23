@@ -12,7 +12,7 @@
   {% if rates.use_stages %}
   {% for key, label, unit, rows in rates.stages %}
   <h2 class="title small-title"><img src="/static/px/scroll.svg" alt="" class="px s24"> {{ label }} por {{ unit }}</h2>
-  <div class="card table-wrap" style="margin-bottom: 28px;">
+  <div class="card table-wrap mb-28">
     <table class="table">
       <thead><tr><th>Faixa</th><th class="right-col">Multiplicador</th></tr></thead>
       <tbody>
@@ -24,7 +24,7 @@
   </div>
   {% endfor %}
   {% else %}
-  <div class="dl-facts card pad" style="margin-bottom: 28px;">
+  <div class="dl-facts card pad mb-28">
     {% for label, val in rates.fixed %}<div><dt>{{ label }}</dt><dd><b class="gold">×{{ val }}</b></dd></div>{% endfor %}
   </div>
   {% endif %}

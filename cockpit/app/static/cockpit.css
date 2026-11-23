@@ -494,3 +494,11 @@ label.inline input { margin: 0; }
 @media (max-width: 900px) { .side-grip { display: none; } }
 .portal > * { min-width: 0; }
 .chart-bar .seg { flex-wrap: wrap; }
+
+/* Catalog send bar: quantity, button and the selected item */
+.send-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .5rem 0; }
+.send-bar .qty { display: flex; align-items: center; gap: .3rem; white-space: nowrap; margin: 0; }
+.send-bar .qty input { width: 5rem; margin: 0; }
+.send-bar button { margin: 0; width: auto; flex: 1; }
+.send-bar #sel-name { flex-basis: 100%; }
+.catalog .item.picked { outline: 2px solid var(--pico-primary, #d9a43b); }

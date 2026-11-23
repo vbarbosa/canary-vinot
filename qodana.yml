@@ -1,5 +1,11 @@
 version: "1.0"
 
+# Pinned to a stable (non-EAP) release: with no `linter:` qodana-action auto-detects C++ and picks
+# the newest series' clang image, which for this repo had only EAP builds (2024.1 through 2025.3) —
+# an EAP's license expires on a timer, which is exactly what started failing "Analysis - Qodana" on
+# every push. 2026.1 is JetBrains' first stable (non-EAP) qodana-clang release.
+linter: jetbrains/qodana-clang:2026.2
+
 profile:
   name: qodana.recommended
 

@@ -1,18 +1,26 @@
-<p class="muted small">{{ rows|length }} raid(s).</p>
-<div class="places">
+<p class="muted small">{{ rows|length }} invasão(ões).</p>
+<table class="compact">
+  <thead><tr><th>Nome</th><th>Status</th><th>Quando</th><th>Local</th><th>Criador</th><th></th></tr></thead>
+  <tbody>
   {% for r in rows %}
-  <article class="house raid">
-    <img src="/mapa/{{ r.x }}/{{ r.y }}/{{ r.z }}.png" alt="Onde acontece {{ r.label }}" loading="lazy">
-    {% if r.kind == 'boss' %}<span class="badge">Boss</span>{% endif %}
-    <div class="place-body">
-      <strong>{{ r.label }}</strong>
-      <small class="muted">{{ r.where }}{% if r.amount %} · {{ r.amount }} monstro(s){% endif %}</small>
-      <small class="muted">{{ r.monsters|map('title')|join(', ') }}</small>
-      <span class="row small">
-        <button class="small" hx-post="/raids/soltar" hx-vals='{{ {"nome": r.name}|tojson }}' hx-target="#toast" hx-confirm="Soltar a raid {{ r.label }} agora?">👹 Soltar</button>
-        <a class="outline small" role="button" href="/teleporte?q={{ r.monsters[0]|default('')|urlencode }}&tipo=criatura" title="Ver onde esse monstro fica">🌀</a>
-      </span>
-    </div>
-  </article>
-  {% else %}<p class="muted">Nenhuma raid com esse filtro.</p>{% endfor %}
-</div>
+  {% set a = active.get(r.name) %}
+  <tr>
+    <td><strong>{{ r.label }}</strong>{% if r.kind == 'boss' %} <span class="badge">Boss</span>{% endif %}
+      <br><small class="muted">{{ r.where }}{% if r.monsters %} · {{ r.monsters|map('title')|join(', ') }}{% endif %}</small></td>
+    <td>{% if a %}🟢 Ativa{% else %}⚪ Disponível{% endif %}</td>
+    <td class="small">{% if a %}<span data-ts="{{ a.launched_at }}"></span>{% else %}—{% endif %}</td>
+    <td class="mono small">{{ r.x }}, {{ r.y }}, {{ r.z }}</td>
+    <td class="small">{{ a.launched_by if a else '—' }}</td>
+    <td class="row wrap small">
+      <button class="small" hx-get="/raids/lancar?nome={{ r.name|urlencode }}" hx-target="#raid-launch-dialog" hx-swap="innerHTML">👹 Lançar</button>
+      {% if a %}
+      <button class="outline small danger" hx-post="/raids/{{ a.id }}/remover" hx-target="#toast" hx-confirm="Remover a invasão {{ r.label }} agora? Os monstros soltos serão removidos.">🗑 Remover</button>
+      {% endif %}
+      <a class="outline small" role="button" href="/teleporte?x={{ r.x }}&y={{ r.y }}&z={{ r.z }}&lugar={{ r.label|urlencode }}">📍 Teleportar</a>
+      {% if r.kind != 'xml' %}<a class="outline small" role="button" href="/raids/auto">⚙ Editar</a>{% endif %}
+      {% if r.monsters %}<a class="outline small" role="button" href="/teleporte?q={{ r.monsters[0]|urlencode }}&tipo=criatura" title="Ver onde esse monstro fica">🔎 Detalhes</a>{% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="muted">Nenhuma invasão com esse filtro.</td></tr>{% endfor %}
+  </tbody>
+</table>

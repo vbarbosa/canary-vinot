@@ -1,5 +1,5 @@
 {% for m in members %}
-<div class="card drop {{ 'online' if m.online else 'offline' }}" data-alvo="{{ m.id }}">
+<div class="card drop {{ 'online' if m.online else 'offline' }}" data-alvo="{{ m.id }}" data-nome="{{ m.name }}">
   <a href="/jogador/{{ m.id }}"><strong>{{ m.name }}</strong></a>
   <div class="muted small">Lv {{ m.level }} · {{ vocations.get(m.vocation, '') }}</div>
   {% if m.online %}<progress value="{{ m.health }}" max="{{ m.healthmax or 1 }}"></progress>{% else %}<div class="muted small">offline</div>{% endif %}
