@@ -6,7 +6,7 @@ set -eu
 cd "$(dirname "$0")"
 IMG="${VINOT_PORTAL_IMAGE:-vinot-portal:novo}"
 docker rm -f vinot-portal >/dev/null 2>&1 || true
-exec docker run -d --name vinot-portal --restart unless-stopped --network otbr_canary-net \
+exec docker run -d --name vinot-portal --restart unless-stopped --network otbr_canary-net --network otbr_dados --memory 256m --pids-limit 128 --cpus 0.5 \
   -p 100.70.92.116:8091:8091 --user nobody --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   --env-file .env --env-file portal.env \
   -e MYSQL_HOST=database -e SMTP_PASSWORD_FILE=/run/secrets/smtp-password -e VAULT_ENV_FILE=/run/secrets/env \

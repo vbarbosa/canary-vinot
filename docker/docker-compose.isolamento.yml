@@ -1,0 +1,42 @@
+# Linha de base de isolamento da VM (manchete-stack, change isolamento-ambiente-vm):
+# usuário não-root, cap_drop ALL, no-new-privileges, raiz somente leitura, limites; banco só em rede interna.
+# Entra por último no COMPOSE_FILE do docker/.env.
+x-base: &base
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  read_only: true
+  tmpfs: [/tmp]
+services:
+  database:
+    <<: *base
+    user: "999:999"                 # dono do volume; como não-root o entrypoint não faz chown nem troca de usuário
+    tmpfs: [/tmp, /run/mysqld]
+    ports: !reset []                # manutenção por "docker exec otbr-database-1 mariadb ..."
+    networks: !override [dados]     # sem saída para a internet
+    mem_limit: 768m
+    cpus: 1.5
+    pids_limit: 256
+  server:
+    <<: *base
+    user: "1001:1001"               # ubuntu (1001), dono do repositório montado em /srv/canary (logs, cockpit-world.lua)
+    networks: [canary-net, dados]
+    mem_limit: 3g
+    cpus: 3.0
+    pids_limit: 256
+  login:
+    <<: *base
+    user: "65534:65534"
+    networks: [canary-net, dados]
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
+  cockpit:
+    <<: *base
+    user: "1001:1001"               # dono do volume cockpit-icons
+    networks: [canary-net, dados]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+networks:
+  dados:
+    internal: true
