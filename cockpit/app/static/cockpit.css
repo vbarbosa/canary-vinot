@@ -61,6 +61,8 @@ table.compact tbody tr.tbl-hide, table.compact tbody tr.tbl-page { display: none
 .item.kit { font-size: 1.4rem; background: #33291a; border-color: #8a7440; }
 .item.kit span { font-size: .7rem; }
 .item:hover { border-color: var(--pico-primary); }
+.item .send { all: unset; cursor: pointer; align-self: stretch; margin-top: .1rem; padding: .1rem; border-radius: 4px; background: #3f3727; color: #d8c9a3; text-align: center; font-size: .75rem; }
+.item .send:hover { background: var(--pico-primary); color: #fff; }
 img.mini { width: 18px; height: 18px; vertical-align: middle; image-rendering: pixelated; }
 
 /* drop zones and group cards */

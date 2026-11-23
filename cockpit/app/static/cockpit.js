@@ -16,14 +16,27 @@
   function onDrop(evt) {
     const el = evt.item, zone = evt.to;
     el.remove();
-    if (zone.dataset.kitBuilder !== undefined) return addToKit(el.dataset.id, el.title);
+    sendToZone(zone, el.dataset.id, el.dataset.kit, el.title);
+  }
+
+  function sendToZone(zone, id, kitId, title) {
+    if (!zone) return;
+    if (zone.dataset.kitBuilder !== undefined) return addToKit(id, title);
     const alvo = zone.dataset.alvo;
-    if (!(el.dataset.kit || el.dataset.id) || !confirmSend(zone, el.title || "item", el.dataset.kit ? 0 : qty())) return;
-    if (el.dataset.kit) send({ action: "give_kit", alvo, arg1: el.dataset.kit });
-    else if (el.dataset.id) send({ action: "give_item", alvo, arg1: el.dataset.id, arg2: qty() });
+    if (!(kitId || id) || !confirmSend(zone, title || "item", kitId ? 0 : qty())) return;
+    if (kitId) send({ action: "give_kit", alvo, arg1: kitId });
+    else send({ action: "give_item", alvo, arg1: id, arg2: qty() });
     zone.classList.add("flash");
     setTimeout(() => zone.classList.remove("flash"), 600);
   }
+
+  // Botão "enviar" no card do item: mesmo efeito do arrastar, sem precisar arrastar (ruim no celular/tablet).
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".item .send");
+    if (!b) return;
+    e.preventDefault();
+    sendToZone(document.querySelector(".drop[data-alvo]"), b.dataset.id, b.closest(".item").dataset.kit, b.closest(".item").title);
+  });
 
   // Catalog: click selects an item or kit, Enviar sends it (with Qtd) to the player or group on screen.
   const target = () => { const z = document.querySelector(".drop[data-alvo]"); return z && z.dataset.alvo; };
@@ -43,6 +56,7 @@
   }
   document.addEventListener("click", e => {
     if (e.target.id === "send-selected") return sendPicked();
+    if (e.target.closest(".item .send")) return;
     const it = e.target.closest(".catalog .item");
     if (!it || !target()) return;
     document.querySelectorAll(".catalog .item.picked").forEach(x => x.classList.remove("picked"));

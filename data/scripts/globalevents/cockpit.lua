@@ -304,11 +304,59 @@ actions.heal = function(player)
 	return true, "curado"
 end
 
+-- as 8 bencoes (1 = Twist of Fate, as outras reduzem perda de itens/skill); dar todas e o mesmo que o jogador
+-- comprar tudo com !bless, so que de graca e sem precisar de gold no banco
+actions.give_bless = function(player)
+	for i = 1, 8 do
+		if not player:hasBlessing(i) then
+			player:addBlessing(i, 1)
+		end
+	end
+	player:sendBlessStatus()
+	player:getPosition():sendMagicEffect(CONST_ME_HOLYAREA)
+	return true, "bencoes dadas"
+end
+
+actions.clear_bless = function(player)
+	for i = 1, 8 do
+		if player:hasBlessing(i) then
+			player:removeBlessing(i, 1)
+		end
+	end
+	player:sendBlessStatus()
+	return true, "bencoes removidas"
+end
+
 -- Enche a stamina (42h): jogador em 0 de stamina ganha 0% de XP, mesmo matando criatura.
 actions.stamina_full = function(player)
 	player:setStamina(2520)
 	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_GREEN)
 	return true, "stamina cheia"
+end
+
+-- Libera o acesso final de The Queen of the Banshees sem fazer os 7 selos: copia exatamente o que o
+-- jogo faz ao completar o ultimo selo (data-otservbr-global/scripts/quests/the_queen_of_the_banshees/movement-7-last_seal_flame.lua)
+actions.quest_queen_banshees = function(player)
+	local banshees = Storage.Quest.U7_2.TheQueenOfTheBanshees
+	player:setStorageValue(banshees.FirstSeal, 1)
+	player:setStorageValue(banshees.SecondSeal, 1)
+	player:setStorageValue(banshees.ThirdSeal, 1)
+	player:setStorageValue(banshees.ThirdSealWarlocks, 1)
+	player:setStorageValue(banshees.FourthSeal, 1)
+	player:setStorageValue(banshees.FifthSealTile, 9)
+	player:setStorageValue(banshees.FifthSeal, 1)
+	player:setStorageValue(banshees.SixthSeal, 1)
+	player:setStorageValue(banshees.FirstSealDoor, -1)
+	player:setStorageValue(banshees.SecondSealDoor, -1)
+	player:setStorageValue(banshees.ThirdSealDoor, -1)
+	player:setStorageValue(banshees.FourthSealDoor, -1)
+	player:setStorageValue(banshees.FifthSealDoor, -1)
+	player:setStorageValue(banshees.SixthSealDoor, -1)
+	player:setStorageValue(banshees.LastSealDoor, -1)
+	player:setStorageValue(banshees.FinalBattle, 1)
+	player:teleportTo(Position(32269, 31853, 15))
+	player:getPosition():sendMagicEffect(CONST_ME_TELEPORT)
+	return true, "acesso liberado: queen of the banshees"
 end
 
 -- Ground with no blocking flag, so the player lands somewhere they can actually walk out of.
